@@ -1,0 +1,13 @@
+subworkflow MAGeCK_workflow:
+    workdir:
+        "../../MAGeCK/"
+    snakefile:
+        "../../MAGeCK/workflow/Snakefile"
+    configfile:
+        "../../MAGeCK/config/configfile.yaml"
+
+rule a:
+    input:
+        MAGeCK_workflow("mageck_output.txt")
+    output: ...
+    shell:  ...
