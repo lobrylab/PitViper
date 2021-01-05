@@ -1,12 +1,13 @@
 
 
-rule mageck_count:
+rule mageck_count_fast:
+    "When starting from raw fastq files."
     input:
     output:
     params:
     conda:
         "../envs/mageck.yaml"
-    logs:
+    log:
         "logs/{token}/mageck/count/{sample}"
     shell:
         "mageck count \
@@ -16,14 +17,35 @@ rule mageck_count:
             --fastq test1.fastq test2.fastq"
 
 
+rule mapping_bowtie2:
+    input:
+
+    output:
+
+    params:
+
+    conda:
+        "../envs/bowtie2.yml"
+    log:
+        "logs/bowtie2/{sample}.log"
+    threads: config['bowtie2']['threads']
+    shell:
+        "mageck count \
+          -l {input.list} \
+          -n {params.output_prefix} \
+          --sample-label 'plasmid,ESC1' \
+          --fastq ERR376998.bam ERR376999.bam"
+
+
 rule mageck_RRA:
+    "Simple treatment vs. control analysis."
     input:
         "results/{token}/counts/"
     output:
     params:
     conda:
         "../envs/mageck.yaml"
-    logs:
+    log:
         "logs/{token}/mageck/RRA/{sample}"
     shell:
         "mageck test \
@@ -34,12 +56,13 @@ rule mageck_RRA:
 
 
 rule mageck_MLE:
+    "Multiple sample comparison analysis."
     input:
     output:
     params:
     conda:
         "../envs/mageck.yaml"
-    logs:
+    log:
         "logs/{token}/mageck/MLE/{sample}"
     shell:
         "mageck mle \
