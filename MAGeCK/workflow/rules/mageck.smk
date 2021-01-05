@@ -11,13 +11,14 @@ rule mageck_count:
     shell:
         "mageck count \
             -l library.txt \
-            -n demo \
+            -n {params} \
             --sample-label L1,CTRL  \
             --fastq test1.fastq test2.fastq"
 
 
 rule mageck_RRA:
     input:
+        "results/{token}/counts/"
     output:
     params:
     conda:
