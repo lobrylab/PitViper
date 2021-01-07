@@ -1,5 +1,0 @@
-
-
-
-
-include: "workflow/rules/mageck.smk"
