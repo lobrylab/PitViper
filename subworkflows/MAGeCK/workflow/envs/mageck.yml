@@ -1,5 +1,0 @@
-name: mageck
-channels:
-  - bioconda
-dependencies:
-  - mageck=0.5.9
