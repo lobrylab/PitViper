@@ -1,34 +1,22 @@
 from snakemake.utils import min_version
 min_version("5.24.0")
 
-include: "rules/commons.smk"
+configfile: "config/configfile.yaml"
 
-## MAGeCK subworkflow
-subworkflow MAGeCK_workflow:
-    # workdir:
-    #     "../../subworkflows/MAGeCK/"
-    snakefile:
-        "../../subworkflows/MAGeCK/workflow/Snakefile"
-    configfile:
-        "../subworkflows/MAGeCK/config/configfile.yaml"
+include: "rules/commons.smk"
+include: "rules/mageck_mle_count.smk"
 
 rule all:
     input:
         #get_pipeline_outputs
-        "results/development/test_succeed.txt"
+        #"results/development/test_succeed.txt"
+        "results/development/MAGeCK_MLE/MAGeCK_MLE_test.txt"
 
 rule a:
     input:
-        a=MAGeCK_workflow("results/{token}/MAGeCK_MLE/{name}.sgrna_summary.txt"),
-        b=MAGeCK_workflow("results/{token}/notebooks/MAGeCK_MLE_{name}.txt")
+        a="results/{token}/MAGeCK_MLE/{name}.sgrna_summary.txt",
+        b="results/{token}/MAGeCK_MLE/MAGeCK_MLE_{name}.txt"
     output:
         "results/{token}/{name}_succeed.txt"
     shell:
         "echo '{wildcards.name} succeed.' > {output}"
-
-
-# rule a:
-#     input:
-#         ""
-#     output:
-#         MAGeCK_workflow("results/{token}/MAGeCK_MLE/{name}.sgrna_summary.txt")

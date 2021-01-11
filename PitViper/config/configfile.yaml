@@ -1,0 +1,17 @@
+### Workflow inputs
+
+inputs:
+  count_table: "/mnt/d/Pipelines/PitViper/data/all.count.txt"
+
+
+
+
+
+
+### Tools config
+
+#### MAGeCK MLE
+MAGeCK:
+  designmat: "/mnt/d/Pipelines/PitViper/data/designmat.txt"
+  MLE:
+    norm-method: 'total'
