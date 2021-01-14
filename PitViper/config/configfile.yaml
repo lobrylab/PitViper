@@ -1,9 +1,12 @@
 ### Workflow inputs
 
 inputs:
-  count_table: "/mnt/d/Pipelines/PitViper/data/all.count.txt"
+  count_table: "../data/all.count.txt"
+  samples: "../data/samples.txt"
 
-
+### Experimental design
+experimental_design:
+  control: "M07e-J4"
 
 
 
@@ -12,6 +15,11 @@ inputs:
 
 #### MAGeCK MLE
 MAGeCK:
-  designmat: "/mnt/d/Pipelines/PitViper/data/designmat.txt"
+  designmat: "../data/designmat.txt"
   MLE:
     norm-method: 'total'
+
+
+BAGEL:
+  essentials: '../data/training_essentials.txt'
+  nonessential: '../data/training_nonessential.txt'

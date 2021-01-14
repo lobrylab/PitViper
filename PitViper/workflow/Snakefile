@@ -5,12 +5,14 @@ configfile: "config/configfile.yaml"
 
 include: "rules/commons.smk"
 include: "rules/mageck_mle_count.smk"
+include: "rules/bagel.smk"
 
 rule all:
     input:
         #get_pipeline_outputs
-        #"results/development/test_succeed.txt"
-        "results/development/MAGeCK_MLE/MAGeCK_MLE_test.txt"
+        "results/development/BAGEL/test/test_bagel_essentials_genes.txt",
+        "results/development/BAGEL/test/test_bagel_nonessentials_genes.txt"
+
 
 rule a:
     input:
