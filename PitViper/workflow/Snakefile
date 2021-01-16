@@ -1,17 +1,24 @@
 from snakemake.utils import min_version
 min_version("5.24.0")
 
-## MAGeCK subworkflow
-subworkflow MAGeCK_workflow:
-    workdir:
-        "../../MAGeCK/"
-    snakefile:
-        "../../MAGeCK/workflow/Snakefile"
-    configfile:
-        "../../MAGeCK/config/configfile.yaml"
+configfile: "config/configfile.yaml"
+
+include: "rules/commons.smk"
+include: "rules/mageck_mle_count.smk"
+include: "rules/bagel.smk"
+
+rule all:
+    input:
+        #get_pipeline_outputs
+        "results/development/BAGEL/test/test_bagel_essentials_genes.txt",
+        "results/development/BAGEL/test/test_bagel_nonessentials_genes.txt"
+
 
 rule a:
     input:
-        MAGeCK_workflow("mageck_output.txt")
-    output: ...
-    shell:  ...
+        a="results/{token}/MAGeCK_MLE/{name}.sgrna_summary.txt",
+        b="results/{token}/MAGeCK_MLE/MAGeCK_MLE_{name}.txt"
+    output:
+        "results/{token}/{name}_succeed.txt"
+    shell:
+        "echo '{wildcards.name} succeed.' > {output}"

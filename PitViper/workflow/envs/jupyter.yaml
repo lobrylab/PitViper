@@ -1,0 +1,5 @@
+channels:
+  - conda-forge
+dependencies:
+  - jupyter
+  - altair=4.1.0
