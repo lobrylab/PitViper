@@ -9,7 +9,9 @@ rule generate_design_matrix:
     output:
         matrix="data/{token}/design_matrices/{treatment}_vs_{control}_design_matrix.txt"
     conda:
-        "../envs/click.yaml"
+        "../envs/commons.yaml"
+    log:
+        "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}_design_matrix.log"
     shell:
         "python3 workflow/scripts/readSamples.py --file {input} --directory data/{wildcards.token}/design_matrices/ --control {wildcards.control} --treatment {wildcards.treatment}"
 
@@ -31,9 +33,9 @@ rule mageck_mle:
     conda:
         "../envs/mageck.yaml"
     log:
-        logs="logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}.log"
+        "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}.log"
     shell:
-        "mageck mle -k {params.count_table} -d {input.designmat} -n {params.name} --norm-method {params.method} > {log}"
+        "mageck mle -k {params.count_table} -d {input.designmat} -n {params.name} --norm-method {params.method} &> {log}"
 
 
 rule mageck_mle_notebooks:

@@ -1,3 +1,5 @@
+import pandas as pd
+
 from snakemake.utils import min_version
 min_version("5.24.0")
 
@@ -5,13 +7,12 @@ configfile: "config/configfile.yaml"
 
 include: "rules/commons.smk"
 include: "rules/mageck_mle_count.smk"
+include: "rules/mageck_rra_count.smk"
 include: "rules/bagel.smk"
 
 rule all:
     input:
-        #get_pipeline_outputs
-        "results/development/BAGEL/test/test_bagel_essentials_genes.txt",
-        "results/development/BAGEL/test/test_bagel_nonessentials_genes.txt"
+        get_pipeline_outputs
 
 
 rule a:

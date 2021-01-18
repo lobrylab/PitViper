@@ -1,33 +1,44 @@
 
 
-rule compute_mean:
-    "Compute mean count of control condition for BAGEL."
+
+
+rule generate_count_matrix:
     input:
-        config['inputs']['count_table']
+        samples=config['inputs']['samples'],
+        counts=config['inputs']['count_table']
     output:
-        count_table = 'data/{token}//{treatment}_vs_{control}_counts_for_BAGEL.txt'
-    params:
-        control=config['experimental_design']['control']
+        matrix="data/{token}/count_matrices/{treatment}_vs_{control}_count_matrix.txt"
+    conda:
+        "../envs/commons.yaml"
+    log:
+        "logs/{token}/BAGEL/{treatment}_vs_{control}_count_matrix.log"
     shell:
-        "python3 ./workflow/scripts/compute_mean.py {input} {params.control}"
+        "python3 workflow/scripts/bagel_count_files.py \
+            --file {input.samples} \
+            --counts {input.counts} \
+            --directory data/{wildcards.token}/count_matrices/ \
+            --control {wildcards.control} \
+            --treatment {wildcards.treatment} > {log}"
 
 
 
 rule bagel_foldchange:
     "Run BAGEL's script for foldchange calculation."
     input:
-        count_table = rules.compute_mean.output.count_table
+        count_table = rules.generate_count_matrix.output.matrix
     output:
         foldchange="results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL.foldchange"
     params:
         "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL"
+    conda:
+        "../envs/bagel.yaml"
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_foldchange.log"
     shell:
-        "./workflow/scripts/bagel-for-knockout-screens-code/BAGEL-calc_foldchange.py \
+        "python workflow/scripts/bagel-for-knockout-screens-code/BAGEL-calc_foldchange.py \
             -i {input.count_table} \
             -o {params} \
-            -c 10 > {log}"
+            -c 1 > {log}"
 
 
 rule bagel_bf:
@@ -41,13 +52,15 @@ rule bagel_bf:
         nonessential = config['BAGEL']['nonessential']
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_bf.log"
+    conda:
+        "../envs/bagel.yaml"
     shell:
-        "./workflow/scripts/bagel-for-knockout-screens-code/BAGEL.py \
+        "python workflow/scripts/bagel-for-knockout-screens-code/BAGEL.py \
             -i {input.foldchange} \
             -o {output.bf} \
             -e {params.essentials} \
             -n {params.nonessential} \
-            -c 7,8,9 > {log}"
+            -c 1,2,3 > {log}"
 
 
 rule bagel_essentials_genes:
