@@ -1,4 +1,4 @@
-*.snakemake
+.snakemake
 data/
 logs/
 results/
