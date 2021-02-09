@@ -3,3 +3,5 @@ channels:
 dependencies:
   - jupyter
   - altair=4.1.0
+  - matplotlib
+  - matplotlib-venn
