@@ -1,0 +1,11 @@
+channels:
+  - conda-forge
+  - r
+  - bioconda
+dependencies:
+  - r-base=3.6.3
+  - r-devtools
+  - r-readr
+  - bioconductor-deseq2
+  - r-dplyr
+  - r-mixtools

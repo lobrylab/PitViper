@@ -2,12 +2,12 @@
 
 
 
-rule generate_count_matrix:
+rule bagel_generate_count_matrix:
     input:
         samples=config['inputs']['samples'],
         counts=config['inputs']['count_table']
     output:
-        matrix="data/{token}/count_matrices/{treatment}_vs_{control}_count_matrix.txt"
+        matrix="data/{token}/count_matrices/BAGEL/{treatment}_vs_{control}_count_matrix.txt"
     conda:
         "../envs/commons.yaml"
     log:
@@ -16,7 +16,7 @@ rule generate_count_matrix:
         "python3 workflow/scripts/bagel_count_files.py \
             --file {input.samples} \
             --counts {input.counts} \
-            --directory data/{wildcards.token}/count_matrices/ \
+            --directory data/{wildcards.token}/count_matrices/BAGEL/ \
             --control {wildcards.control} \
             --treatment {wildcards.treatment} > {log}"
 
@@ -25,7 +25,7 @@ rule generate_count_matrix:
 rule bagel_foldchange:
     "Run BAGEL's script for foldchange calculation."
     input:
-        count_table = rules.generate_count_matrix.output.matrix
+        count_table = rules.bagel_generate_count_matrix.output.matrix
     output:
         foldchange="results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL.foldchange"
     params:
@@ -48,8 +48,8 @@ rule bagel_bf:
     output:
         bf = "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf"
     params:
-        essentials = config['BAGEL']['essentials'],
-        nonessential = config['BAGEL']['nonessential']
+        nonessential = config['BAGEL']['nonessential'],
+        essentials = config['essential']  # config['BAGEL']['essentials']
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_bf.log"
     conda:

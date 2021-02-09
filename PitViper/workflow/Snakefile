@@ -5,21 +5,17 @@ min_version("5.24.0")
 
 configfile: "config/configfile.yaml"
 
+print(config['essential'])
+print(config['token'])
+
 include: "rules/commons.smk"
-include: "rules/mageck_mle_count.smk"
-include: "rules/mageck_rra_count.smk"
+include: "rules/mageck_count.smk"
+include: "rules/mageck_mle.smk"
+include: "rules/mageck_rra.smk"
 include: "rules/bagel.smk"
+include: "rules/crisphiermix.smk"
+include: "rules/integration.smk"
 
 rule all:
     input:
-        get_pipeline_outputs
-
-
-rule a:
-    input:
-        a="results/{token}/MAGeCK_MLE/{name}.sgrna_summary.txt",
-        b="results/{token}/MAGeCK_MLE/MAGeCK_MLE_{name}.txt"
-    output:
-        "results/{token}/{name}_succeed.txt"
-    shell:
-        "echo '{wildcards.name} succeed.' > {output}"
+        get_pipeline_outputs  # see workflow/rules/commons.smk

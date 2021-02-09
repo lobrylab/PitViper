@@ -7,13 +7,13 @@ rule generate_design_matrix:
     input:
         config['inputs']['samples']
     output:
-        matrix="data/{token}/design_matrices/{treatment}_vs_{control}_design_matrix.txt"
+        matrix="data/{token}/design_matrices/MAGeCK/{treatment}_vs_{control}_design_matrix.txt"
     conda:
         "../envs/commons.yaml"
     log:
         "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}_design_matrix.log"
     shell:
-        "python3 workflow/scripts/readSamples.py --file {input} --directory data/{wildcards.token}/design_matrices/ --control {wildcards.control} --treatment {wildcards.treatment}"
+        "python3 workflow/scripts/readSamples.py --file {input} --directory data/{wildcards.token}/design_matrices/MAGeCK/ --control {wildcards.control} --treatment {wildcards.treatment}"
 
 
 rule mageck_mle:

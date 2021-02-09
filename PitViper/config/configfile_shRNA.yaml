@@ -1,0 +1,36 @@
+
+token: "shRNA_10_essentials_genes _BAGEL"
+essential: None
+### Workflow inputs
+
+# Choose between "CRISPRi" and "shRNA/CRISPR"
+screen_type: "shRNA"
+
+
+inputs:
+  fastq_dir: "" #"/home/paularthur/PitViper_development/data/fastq/"
+  count_table: "../data/count_matrices/shRNA/screen.count.txt"
+  samples: "../data/metadata/shRNA/samples.txt"
+  files: "../data/metadata/shRNA/files.txt"
+  library: "../data/libraries/shRNA/sh_epi_lib.csv"
+
+### Tools config
+
+#### MAGeCK
+MAGeCK:
+  MLE:
+    activate: False
+    norm-method: 'total'
+  RRA:
+    activate: False
+
+#### BAGEL
+BAGEL:
+  activate: True
+  essentials: '../data/BAGEL/training_essentials.txt'
+  nonessential: '../data/BAGEL/training_nonessential.txt'
+
+
+#### CRISPhieRmix
+CRISPhieRmix:
+  activate: False

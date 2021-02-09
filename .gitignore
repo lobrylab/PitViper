@@ -3,3 +3,5 @@ data/
 logs/
 results/
 data/
+PitViper/notebooks
+PitViper/workflow/scripts/bagel-for*
