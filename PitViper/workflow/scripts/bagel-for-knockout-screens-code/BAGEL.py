@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/python
 
 VERSION = 0.91
 
@@ -14,28 +14,28 @@ import scipy.stats as stats
 import sys, getopt
 
 helptext = ('\n'
-		   'BAGEL.py -i [fold change file] -o [output file] -e [reference essentials] -n [reference nonessentials] -c [columns to test]\n' 
+		   'BAGEL.py -i [fold change file] -o [output file] -e [reference essentials] -n [reference nonessentials] -c [columns to test]\n'
 		   '\n'
 		   '  from the Bayesian Analysis of Gene EssentiaLity (BAGEL) suite\n'
-		   '  Version ' + str(VERSION) + '\n' 
+		   '  Version ' + str(VERSION) + '\n'
 		   '\n'
-		   '  required options:\n' 
-		   '     -i  [fold change file]         Tab-delmited file of reagents and fold changes.  See documentation for format.\n' 
-		   '     -o  [output file]              Output filename\n' 
-		   '     -e  [reference essentials]     File with list of training set of essential genes\n' 
-		   '     -n  [reference nonessentials]  File with list of training set of nonessential genes\n' 
-		   '     -c  [columns to test]          comma-delimited list of columns in input file to include in analyisis\n' 
-		   '\n' 
+		   '  required options:\n'
+		   '     -i  [fold change file]         Tab-delmited file of reagents and fold changes.  See documentation for format.\n'
+		   '     -o  [output file]              Output filename\n'
+		   '     -e  [reference essentials]     File with list of training set of essential genes\n'
+		   '     -n  [reference nonessentials]  File with list of training set of nonessential genes\n'
+		   '     -c  [columns to test]          comma-delimited list of columns in input file to include in analyisis\n'
+		   '\n'
 		   '  other options:\n'
 		   '     --numiter=N                    Number of bootstrap iterations (default 1000)\n'
 		   '     -h, --help                     Show this help text\n'
 		   '\n'
-		   '  Example:\n' 
+		   '  Example:\n'
 		   '  BAGEL.py -i foldchange_file -o experiment.bf -e essentials_training_set -n nonessentials_training_set -c 1,2,3\n'
 		   '\n'
 		   '  Calculates a log2 Bayes Factor for each gene; positive BFs indicate confidence that the gene is essential.\n'
 		   '  writes to [output file]: gene name, mean Bayes Factor across all iterations, std deviation of BFs, and number of iterations\n'
-		   '  in which the gene was part of the test set (and a BF was calculated[output file]\n' 
+		   '  in which the gene was part of the test set (and a BF was calculated[output file]\n'
 		   '\n')
 
 NUM_BOOTSTRAPS = 1000
