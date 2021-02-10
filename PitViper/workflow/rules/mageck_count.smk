@@ -15,7 +15,7 @@ rule mageck_count:
     conda:
         "../envs/mageck.yaml"
     log:
-        "logs/MAGeCK_counts.log"
+        "logs/mapping/MAGeCK_counts.log"
     shell:
         "mageck count -l {input.library} -n {params.name} --sample-label {params.labels}  --fastq {params.files} &> {log}"
 
