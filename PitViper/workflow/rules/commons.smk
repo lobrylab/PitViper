@@ -1,10 +1,21 @@
 def getFastqFiles(wildcards):
-    """Return a list of experiment's files."""
+    """Return a list of experiment's files  in fastq format."""
     samples_sheet = pd.read_csv(config['inputs']['files'], sep=",")
     fastqs = []
     for index, row in samples_sheet.iterrows():
         fastqs.append(config['inputs']['fastq_dir'] + row['file'])
     return fastqs
+
+
+def getBamFiles(wildcards):
+    """Return a list of experiment's files in bam format."""
+    samples_sheet = pd.read_csv(config['inputs']['files'], sep=",")
+    bams = []
+    for index, row in samples_sheet.iterrows():
+        file = config['inputs']['bam_dir'] + row['file']
+        file = re.sub(".fastq.gz", ".bam", file)
+        bams.append(file)
+    return bams
 
 
 def getLabels(wildcards):
@@ -20,11 +31,22 @@ def getLabels(wildcards):
 def getFiles(wildcards):
     """Return concatenation of experiment's files. Needed for MAGeCK count software."""
     samples_sheet = pd.read_csv(config['inputs']['files'], sep=",")
-    fastqs = []
-    for index, row in samples_sheet.iterrows():
-        fastqs.append(config['inputs']['fastq_dir'] + row['file'])
-    fastqs_str = " ".join(fastqs)
-    return fastqs_str
+    if config['count_from'] == 'fastq':
+        fastqs = []
+        for index, row in samples_sheet.iterrows():
+            fastqs.append(config['inputs']['fastq_dir'] + row['file'])
+        fastqs_str = " ".join(fastqs)
+        return fastqs_str
+    elif config['count_from'] == 'bam':
+        bams = []
+        new_extension = '.bam'
+        for index, row in samples_sheet.iterrows():
+            file = config['inputs']['bam_dir'] + row['file']
+            pre, ext = os.path.splitext(file)
+            bams.append(pre + new_extension)
+        bams_str = " ".join(bams)
+        return bams_str
+
 
 
 def getTreatmentIdsLen(wildcards):
@@ -83,11 +105,6 @@ def get_all_pairwise_comparaisons():
 
     return l
 
-get_all_pairwise_comparaisons()
-
-
-
-
 def get_pipeline_outputs(wildcards):
     wanted_outputs = []
 
@@ -105,6 +122,9 @@ def get_pipeline_outputs(wildcards):
             wanted_outputs.append("results/{token}/MAGeCK_RRA/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if (config['CRISPhieRmix']['activate'] == True):
             wanted_outputs.append("results/{token}/CRISPhieRmix/{treatment}_vs_{control}/{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        if (config['BAGEL']['activate'] == True):
+            wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_essentials_genes.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+            wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_nonessentials_genes.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         # wanted_outputs.append("results/{token}/Integration/{treatment}_vs_{control}/Genes/MAGeck_MLE_{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         # wanted_outputs.append("results/{token}/Integration/{treatment}_vs_{control}/Genes/MAGeck_RRA_{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         # wanted_outputs.append("results/{token}/Integration/{treatment}_vs_{control}/Genes/BAGEL_{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))

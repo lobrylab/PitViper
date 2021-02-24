@@ -3,6 +3,7 @@
 
 
 rule bagel_generate_count_matrix:
+    """ Generate count matrix between two conditions for BAGEL. """
     input:
         samples=config['inputs']['samples'],
         counts=config['inputs']['count_table']
@@ -49,7 +50,7 @@ rule bagel_bf:
         bf = "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf"
     params:
         nonessential = config['BAGEL']['nonessential'],
-        essentials = config['essential']  # config['BAGEL']['essentials']
+        essentials = config['BAGEL']['essentials']
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_bf.log"
     conda:
