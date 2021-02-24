@@ -22,12 +22,12 @@ rule mageck_mle:
         output: genes and sgrnas summaries
         params: user must choose a normalization method"""
     input:
-        designmat = rules.generate_design_matrix.output.matrix
+        designmat = rules.generate_design_matrix.output.matrix,
+        count_table = config['inputs']['count_table']
     output:
         gene_summary = "results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt",
         sgrna_summary = "results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.sgrna_summary.txt"
     params:
-        count_table = config['inputs']['count_table'],
         name = "results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}",
         method= config['MAGeCK']['MLE']['norm-method']
     conda:
@@ -35,10 +35,11 @@ rule mageck_mle:
     log:
         "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}.log"
     shell:
-        "mageck mle -k {params.count_table} -d {input.designmat} -n {params.name} --norm-method {params.method} &> {log}"
+        "mageck mle -k {input.count_table} -d {input.designmat} -n {params.name} --norm-method {params.method} &> {log}"
 
 
 rule mageck_mle_notebooks:
+    """ Generate a jupyter notebook for data analysis of MAGeCK MLE results. """
     input:
         gene_summary=rules.mageck_mle.output.gene_summary,
         sgrna_summary=rules.mageck_mle.output.sgrna_summary

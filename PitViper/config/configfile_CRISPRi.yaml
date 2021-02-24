@@ -1,32 +1,39 @@
 
-token: "CRISPRi"
+token: "CRISPRi_countFrom_bam"
 
 ### Workflow inputs
 
 # Choose between "CRISPRi" and "shRNA/CRISPR"
 screen_type: "CRISPRi"
 
+count_from: "bam"
 
 inputs:
-  fastq_dir: "/home/paularthur/PitViper_development/data/fastq/"
-  count_table: "data/screen.count.txt"
+  fastq_dir: "../data/fastq/"
+  bam_dir: "../data/bam/"
+  count_table: "data/CRISPRi_countFrom_bam/screen.count.txt"
+  count_table_base_name: "data/CRISPRi_countFrom_bam/screen"
   samples: "../data/metadata/CRISPRi/samples.txt"
   files: "../data/metadata/CRISPRi/files.txt"
   library: "../data/libraries/CRISPRi/SE_lib.csv"
 
-### Experimental design
-# experimental_design:
-#   control: "M07e-J4"
-
-
 ### Tools config
 
-#### MAGeCK MLE
+#### MAGeCK
 MAGeCK:
   MLE:
+    activate: True
     norm-method: 'total'
+  RRA:
+    activate: True
 
-
+#### BAGEL
 BAGEL:
-  essentials: '../data/BAGEL/training_essentials.txt'
-  nonessential: '../data/BAGEL/training_nonessential.txt'
+  activate: False
+  essentials: '../data/BAGEL/CRISPRi/training_essentials.txt'
+  nonessential: '../data/BAGEL/CRISPRi/training_nonessential.txt'
+
+
+#### CRISPhieRmix
+CRISPhieRmix:
+  activate: True

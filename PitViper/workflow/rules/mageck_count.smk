@@ -1,21 +1,42 @@
 
 
+if config['count_from'] == 'fastq':
+    ruleorder: mageck_count_fastq > mageck_count_bam
+elif config['count_from'] == 'bam':
+    ruleorder: mageck_count_bam > mageck_count_fastq
 
-
-rule mageck_count:
+rule mageck_count_fastq:
     input:
         fastqs = getFastqFiles,
         library = config['inputs']['library']
     output:
-        file = "data/screen.count.txt"
+        file = config['inputs']['count_table']
     params:
-        name = "data/screen",
+        name = config['inputs']['count_table_base_name'],
         labels = getLabels,
         files = getFiles
     conda:
         "../envs/mageck.yaml"
     log:
-        "logs/mapping/MAGeCK_counts.log"
+        "logs/mapping/MAGeCK_counts_fastq.log"
+    shell:
+        "mageck count -l {input.library} -n {params.name} --sample-label {params.labels}  --fastq {params.files} &> {log}"
+
+
+rule mageck_count_bam:
+    input:
+        bams = getBamFiles,
+        library = config['inputs']['library']
+    output:
+        file = config['inputs']['count_table']
+    params:
+        name = config['inputs']['count_table_base_name'],
+        labels = getLabels,
+        files = getFiles
+    conda:
+        "../envs/mageck.yaml"
+    log:
+        "logs/mapping/MAGeCK_counts_bam.log"
     shell:
         "mageck count -l {input.library} -n {params.name} --sample-label {params.labels}  --fastq {params.files} &> {log}"
 

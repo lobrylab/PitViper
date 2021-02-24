@@ -3,6 +3,7 @@
 
 
 rule crisphiermix_generate_count_matrix:
+    """ Generate a count matrix between two conditions for CRISPhieRmix. """
     input:
         samples=config['inputs']['samples'],
         counts=config['inputs']['count_table']

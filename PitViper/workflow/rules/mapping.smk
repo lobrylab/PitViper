@@ -26,21 +26,29 @@ rule bowtie_build:
         "bowtie2-build {input} {params} > {log}"
 
 
+def index(wildcards):
+    full_name = config['inputs']['library']
+    m = re.match("(^.+)\.\w+$", full_name)
+    if m:
+        return m.group(1)
+
+
 rule bowtie_mapping:
     input:
         index=rules.bowtie_build.output.index,
-        fastq="path/to/fastq/{sample}.fastq"
+        fastq="../data/fastq/{sample}.fastq.gz"
     output:
-        bam="path/to/bam/{sample}.bam"
+        bam="../data/bam/{sample}.bam"
     params:
-        adap5="",
-        adap3=""
+        adap5="20",
+        adap3="10",
+        index_base_name = index
     conda:
         "../envs/bowtie.yaml"
-    log: ""
+    log: "logs/Bowtie_mapping/{sample}_bowtie_mapping.log"
     shell:
         "bowtie2 \
-            -x {input.index} \
+            -x {params.index_base_name} \
             -U {input.fastq} \
             -5 {params.adap5} \
             -3 {params.adap3} \
