@@ -54,3 +54,19 @@ rule integration:
         notebook="notebooks/" + config['token'] + "/report_integration_notebook.ipynb"
     notebook:
         "../notebooks/Reports_Integration.py.ipynb"
+
+
+rule visualization:
+    input:
+        generatedResults
+    output:
+        nb="results/" + config['token'] + "/reports/integration.ipynb"
+    params:
+        in_nb="workflow/notebooks/Reports_Integration.py.ipynb",
+        token=config['token']
+    conda:
+        "../envs/jupyter.yaml"
+    log:
+        "logs/" + config['token'] + "/Integration/integration_test.log"
+    shell:
+        "papermill {params.in_nb} {output.nb} -p mageck_mle_outputs results/{params.token}/MAGeCK_MLE/ -p mageck_rra_outputs results/{params.token}/MAGeCK_RRA/"

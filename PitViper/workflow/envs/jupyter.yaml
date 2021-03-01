@@ -5,3 +5,8 @@ dependencies:
   - altair=4.1.0
   - matplotlib
   - matplotlib-venn
+  - ipywidgets
+  - altair_viewer
+  - vega
+  - papermill
+  - jupyterlab

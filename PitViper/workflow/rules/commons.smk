@@ -112,6 +112,8 @@ def get_pipeline_outputs(wildcards):
 
     token = config['token']
 
+    wanted_outputs.append("results/" + config['token'] + "/reports/integration.ipynb")
+
     for comparaison in comparaisons:
         if ((config['screen_type'] == "shRNA") or (config['screen_type'] == "CRISPR")) and (config['BAGEL']['activate'] == True):
             wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
