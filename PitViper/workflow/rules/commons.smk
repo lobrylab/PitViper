@@ -112,24 +112,25 @@ def get_pipeline_outputs(wildcards):
 
     token = config['token']
 
-    wanted_outputs.append("results/" + config['token'] + "/reports/integration.ipynb")
+    # wanted_outputs.append("results/" + config['token'] + "/reports/integration.ipynb")
 
     for comparaison in comparaisons:
-        if ((config['screen_type'] == "shRNA") or (config['screen_type'] == "CRISPR")) and (config['BAGEL']['activate'] == True):
+        if ((config['screen_type'] == "shRNA") or (config['screen_type'] == "CRISPR")) and (bool(config['BAGEL']['activate']) == True):
             wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
             wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_essentials_genes.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
-        if (config['MAGeCK']['MLE']['activate'] == True):
+        if bool(config['MAGeCK']['MLE']['activate']) == True:
             wanted_outputs.append("results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
-        if (config['MAGeCK']['RRA']['activate'] == True):
+        if bool(config['MAGeCK']['RRA']['activate']) == True:
             wanted_outputs.append("results/{token}/MAGeCK_RRA/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
-        if (config['CRISPhieRmix']['activate'] == True):
+        if bool(config['CRISPhieRmix']['activate']) == True:
             wanted_outputs.append("results/{token}/CRISPhieRmix/{treatment}_vs_{control}/{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
-        if (config['BAGEL']['activate'] == True):
-            wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_essentials_genes.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
-            wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_nonessentials_genes.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        # if bool(config['BAGEL']['activate']) == True:
+        #     wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_essentials_genes.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        #     wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_nonessentials_genes.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         # wanted_outputs.append("results/{token}/Integration/{treatment}_vs_{control}/Genes/MAGeck_MLE_{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         # wanted_outputs.append("results/{token}/Integration/{treatment}_vs_{control}/Genes/MAGeck_RRA_{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         # wanted_outputs.append("results/{token}/Integration/{treatment}_vs_{control}/Genes/BAGEL_{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         # wanted_outputs.append("results/{token}/Integration/{treatment}_vs_{control}/Genes/CRISPhieRmix_{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
 
+    print(wanted_outputs)
     return wanted_outputs
