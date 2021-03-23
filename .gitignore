@@ -5,3 +5,4 @@ results/
 data/
 PitViper/notebooks
 PitViper/workflow/scripts/bagel-for*
+PitViper/workflow/notebooks/.ipynb_checkpoints
