@@ -3,7 +3,7 @@ def getFastqFiles(wildcards):
     samples_sheet = pd.read_csv(config['inputs']['files'], sep=",")
     fastqs = []
     for index, row in samples_sheet.iterrows():
-        fastqs.append(config['inputs']['fastq_dir'] + row['file'])
+        fastqs.append(row['file'])
     return fastqs
 
 
@@ -12,7 +12,7 @@ def getBamFiles(wildcards):
     samples_sheet = pd.read_csv(config['inputs']['files'], sep=",")
     bams = []
     for index, row in samples_sheet.iterrows():
-        file = config['inputs']['bam_dir'] + row['file']
+        file = row['file']
         file = re.sub(".fastq.gz", ".bam", file)
         bams.append(file)
     return bams
@@ -34,14 +34,14 @@ def getFiles(wildcards):
     if config['count_from'] == 'fastq':
         fastqs = []
         for index, row in samples_sheet.iterrows():
-            fastqs.append(config['inputs']['fastq_dir'] + row['file'])
+            fastqs.append(row['file'])
         fastqs_str = " ".join(fastqs)
         return fastqs_str
     elif config['count_from'] == 'bam':
         bams = []
         new_extension = '.bam'
         for index, row in samples_sheet.iterrows():
-            file = config['inputs']['bam_dir'] + row['file']
+            file = row['file']
             pre, ext = os.path.splitext(file)
             bams.append(pre + new_extension)
         bams_str = " ".join(bams)
