@@ -1,8 +1,11 @@
 import click
 import os
 
-def run_pitviper(configfile):
-    cmd = "snakemake -d PitViper/ -s PitViper/workflow/Snakefile --configfile {configfile} --use-conda --cores 1".format(configfile=configfile)
+def run_pitviper(configfile, dry_run):
+    if dry_run:
+        cmd = "snakemake -d PitViper/ -s PitViper/workflow/Snakefile -n --configfile {configfile} --use-conda --cores 1".format(configfile=configfile)
+    elif not dry_run:
+        cmd = "snakemake -d PitViper/ -s PitViper/workflow/Snakefile --configfile {configfile} --use-conda --cores 1".format(configfile=configfile)
     print('Command:', cmd)
     os.system(cmd)
 
@@ -15,8 +18,11 @@ def main(run_snakemake, configfile, dry_run):
     try:
         configfile = 'PitViper/{configfile}'.format(configfile=configfile)
         f = open(configfile)
-        if not dry_run and run_snakemake:
-            run_pitviper(configfile=configfile)
+        if dry_run:
+            run_pitviper(configfile=configfile, dry_run=True)
+            f.close()
+        elif run_snakemake:
+            run_pitviper(configfile=configfile, dry_run=False)
             f.close()
         else:
             print('Dry run activated or snakemake not activated, pipeline won\'t be executed.')
