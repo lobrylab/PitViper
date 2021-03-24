@@ -42,10 +42,11 @@ rule bowtie_mapping:
     params:
         adap5="20",
         adap3="10",
-        index_base_name = index
+        index_base_name=index
     conda:
         "../envs/bowtie.yaml"
-    log: "logs/Bowtie_mapping/{sample}_bowtie_mapping.log"
+    log:
+        "logs/Bowtie_mapping/{sample}_bowtie_mapping.log"
     shell:
         "bowtie2 \
             -x {params.index_base_name} \
