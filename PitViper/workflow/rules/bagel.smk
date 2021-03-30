@@ -49,7 +49,7 @@ rule bagel_bf:
     output:
         bf = "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf"
     params:
-        nonessential = config['BAGEL']['nonessential'],
+        nonessential = config['BAGEL']['nonessentials'],
         essentials = config['BAGEL']['essentials']
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_bf.log"
