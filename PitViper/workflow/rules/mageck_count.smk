@@ -1,8 +1,8 @@
 
 
-if config['count_from'] == 'fastq':
+if config['start_from'] == 'fastq':
     ruleorder: mageck_count_fastq > mageck_count_bam
-elif config['count_from'] == 'bam':
+elif config['start_from'] == 'bam':
     ruleorder: mageck_count_bam > mageck_count_fastq
 
 rule mageck_count_fastq:
@@ -12,7 +12,7 @@ rule mageck_count_fastq:
     output:
         file = config['inputs']['count_table']
     params:
-        name = config['inputs']['count_table_base_name'],
+        name = config['inputs']['count_table'].split('/')[-1].split('.count.txt')[0],
         labels = getLabels,
         files = getFiles
     conda:
@@ -30,7 +30,7 @@ rule mageck_count_bam:
     output:
         file = config['inputs']['count_table']
     params:
-        name = config['inputs']['count_table_base_name'],
+        name = config['inputs']['count_table'].split('/')[-1].split('.count.txt')[0],
         labels = getLabels,
         files = getFiles
     conda:
