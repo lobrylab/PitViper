@@ -1,4 +1,4 @@
-<img src="docs/logo/pitviper_remastered.png" alt="alt text" width="500" height="175">
+<img src="docs/logo/pitviper_remasteredv2.png" alt="alt text" width="500" height="175">
 
 > **An analysis pipeline to analyze functional screening data from shRNA, CRISPR/Cas9 and CRISPR/dCas9 experiments.**
 
