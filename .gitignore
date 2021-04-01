@@ -6,3 +6,5 @@ data/
 PitViper/notebooks
 PitViper/workflow/scripts/bagel-for*
 PitViper/workflow/notebooks/.ipynb_checkpoints
+__pycache__
+PitViper/workflow/notebooks/archives/.ipynb_checkpoints
