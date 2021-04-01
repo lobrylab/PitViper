@@ -9,12 +9,16 @@ import json
 
 
 class ToolResult:
-    TOOLS_PATH = {
+    TOOLS_RESULT_PATH = {
         'MAGeCK_MLE': '{tool_path}{directory}/{directory}.gene_summary.txt',
         'MAGeCK_RRA': '{tool_path}{directory}/{directory}.gene_summary.txt',
         'BAGEL': '{tool_path}{directory}/{directory}_BAGEL_output.bf',
         'CRISPhieRmix': '{tool_path}{directory}/{directory}.txt'
         }
+    
+    TOOLS_sgRNA_PATH = {
+        'MAGeCK_MLE': '{tool_path}{directory}/{directory}.sgrna_summary.txt',
+        'MAGeCK_RRA': '{tool_path}{directory}/{directory}.sgrna_summary.txt'}
     
     SEPARATORS = {
         'MAGeCK_MLE': '\t',
@@ -38,9 +42,13 @@ class ToolResult:
         comparisons_dict = {}
         self.tool = self.get_tool_name()
         for directory in os.listdir(str(self.path)):
-            table_file = self.TOOLS_PATH[self.tool].format(tool_path=self.path, directory=directory)
+            table_file = self.TOOLS_RESULT_PATH[self.tool].format(tool_path=self.path, directory=directory)
             comparisons_dict[directory] = {'file': table_file, 
                                            'table': pd.read_csv(table_file, sep=self.SEPARATORS[self.tool])}
+            if self.tool in ['MAGeCK_MLE', 'MAGeCK_RRA']:
+                sgRNA_table = self.TOOLS_sgRNA_PATH[self.tool].format(tool_path=self.path, directory=directory)
+                comparisons_dict[directory]['sgRNA'] = pd.read_csv(sgRNA_table, sep=self.SEPARATORS[self.tool])
+                    
         self.comparisons_dict = comparisons_dict
 
     def init(self):
@@ -310,12 +318,15 @@ def createEnrichrTable(enrichrResults):
     return table
 
 
-def enrichmentBarPlot(source, n, description):
+def enrichmentBarPlot(source, n, description, col_1, col_2):
+    if n == 'max':
+        n = len(source.index)
     source = source.sort_values(by=['Combined score'], ascending=False).head(n)
 
     domain = [source['Adjusted p-value'].min(), source['Adjusted p-value'].max()]
-    range_ = ['darkred', 'white']
+    range_ = [col_1, col_2]
 
+    
     bars = alt.Chart(source).mark_bar().encode(
         x='Combined score',
         y=alt.Y('Term name', sort='-x'),
@@ -339,11 +350,16 @@ def enrichmentBarPlot(source, n, description):
     return chart
 
 
-def enrichmentCirclePlot(source, n):
+def enrichmentCirclePlot(source, n, description, col_1, col_2):
+    if n == 'max':
+        n = int(len(source.index))
+        
     source = source.sort_values(by=['Combined score'], ascending=False).head(n)
 
+    source['n_overlap'] = source['Overlapping genes'].str.len()
+        
     domain = [source['Adjusted p-value'].min(), source['Adjusted p-value'].max()]
-    range_ = ['darkred', 'white']
+    range_ = [col_1, col_2]
     
     chart = alt.Chart(source).mark_circle(size=60).encode(
         alt.X('Combined score',
@@ -359,9 +375,71 @@ def enrichmentCirclePlot(source, n):
                  'Overlapping genes', 
                  'Adjusted p-value', 
                  'Old p-value', 
-                 'Old adjusted p-value',],
-    ).interactive()
+                 'Old adjusted p-value',
+                 'n_overlap'],
+        size='n_overlap',
+    ).properties(
+        title=description,
+    )
     
-    chart = (chart).properties(height=300, width=900)
+    chart = (chart).properties(height=20*n, width=500)
     
     return chart
+
+
+
+
+
+
+        
+def enrichr_plots(pitviper_res):
+    BASES = open("../../workflow/notebooks/enrichr_list.txt", "r").readlines()
+    TOOLS = [tool for tool in pitviper_res.keys()]
+    @interact(tool=TOOLS)
+    def enrichr_plots(tool):
+        tool_res = pitviper_res[tool]
+        conditions = [{'baseline':condition.split('_vs_')[1] , 'treatment':condition.split('_vs_')[0]} for condition in tool_res.comparisons_dict.keys()]
+        @interact(description=widgets.Text(value='My gene list', placeholder='Description', description='Description:'), base=BASES, baseline=set([condition['baseline'] for condition in conditions]))
+        def enrichr_plots(description, base, baseline):
+            treatments = [condition['treatment'] for condition in conditions if condition['baseline'] == baseline]
+            @interact(col_2=widgets.ColorPicker(concise=False, description='Top color', value='blue', disabled=False), col_1=widgets.ColorPicker(concise=False, description='Bottom color', value='red', disabled=False), plot_type=['Circle', 'Bar'], size=[5, 10, 20, 50, 100, 200, 'max'], treatment=treatments, fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05))
+            def enrichr_plots(treatment, fdr_cutoff, size, plot_type, col_2, col_1):
+                comparisons = [condition['treatment']+'_vs_'+baseline for condition in conditions if condition['baseline'] == baseline]
+                print('Description:', description)
+                print('Baseline:', baseline)
+                print('Treatment:', treatment)
+                print('FDR cut-off:', fdr_cutoff)
+                print('Tool:', tool)
+                print('Gene set library:', base)
+
+                if tool == 'MAGeCK_MLE':
+                    info = tool_res.comparisons_dict[treatment+'_vs_'+baseline]['table']
+                    info = info.loc[info[treatment+'|fdr'] < fdr_cutoff]
+                    genes = info['Gene']
+
+                if tool == 'MAGeCK_RRA':
+                    info = tool_res.comparisons_dict[treatment+'_vs_'+baseline]['table']
+                    print(info.columns)
+                    info = info.loc[info['neg|fdr'] < fdr_cutoff]
+                    genes = info['id']
+
+
+                print("Size (gene set):", len(genes))
+
+                def on_button_clicked(b):
+                    enrichr_res = getEnrichrResults(genes, description, base)
+                    table = createEnrichrTable(enrichr_res)
+                    if plot_type == 'Bar':
+                        chart = enrichmentBarPlot(table, size, description, col_1, col_2)
+                    else:
+                        chart = enrichmentCirclePlot(table, size, description, col_1, col_2)
+                    with output:
+                        display(chart)
+
+
+                button = widgets.Button(description="Show EnrichR results")
+                output = widgets.Output()
+
+                display(button, output)
+
+                button.on_click(on_button_clicked)

@@ -53,9 +53,12 @@ log2fc.cleaned <- all_count.DESeq2[which(!is.na(all_count.DESeq2$log2FoldChange)
 geneIds = all_count.DESeq2[which(!is.na(all_count.DESeq2$log2FoldChange)),]$Gene
 geneIds = factor(geneIds, levels = unique(geneIds))
 
-log2fcCRISPhieRmixFit = CRISPhieRmix::CRISPhieRmix(log2fc.cleaned, geneIds = geneIds, mu = -2, nMesh = 100, PLOT = TRUE, VERBOSE = TRUE)
+log2fcCRISPhieRmixFit = CRISPhieRmix::CRISPhieRmix(log2fc.cleaned, geneIds = geneIds, PLOT = TRUE, VERBOSE = TRUE)
 
-log2fcCRISPhieRmixScores = data.frame(gene = log2fcCRISPhieRmixFit$genes, locfdr = log2fcCRISPhieRmixFit$locfdr, score = log2fcCRISPhieRmixFit$geneScores)
+print(log2fcCRISPhieRmixFit)
+
+#log2fcCRISPhieRmixScores = data.frame(gene = log2fcCRISPhieRmixFit$genes, FDR = log2fcCRISPhieRmixFit$FDR)
+log2fcCRISPhieRmixScores = data.frame(gene = log2fcCRISPhieRmixFit$genes, locfdr = log2fcCRISPhieRmixFit$locfdr, score = log2fcCRISPhieRmixFit$geneScores, FDR = log2fcCRISPhieRmixFit$FDR)
 log2fcCRISPhieRmixScores$locfdr[which(log2fcCRISPhieRmixScores$locfdr < 0)] = 0
 log2fcCRISPhieRmixScores = log2fcCRISPhieRmixScores[order(log2fcCRISPhieRmixScores$locfdr, decreasing = FALSE), ]
 
