@@ -31,13 +31,13 @@ def getLabels(wildcards):
 def getFiles(wildcards):
     """Return concatenation of experiment's files. Needed for MAGeCK count software."""
     samples_sheet = pd.read_csv(config['inputs']['files'], sep=",")
-    if config['count_from'] == 'fastq':
+    if config['start_from'] == 'fastq':
         fastqs = []
         for index, row in samples_sheet.iterrows():
             fastqs.append(row['file'])
         fastqs_str = " ".join(fastqs)
         return fastqs_str
-    elif config['count_from'] == 'bam':
+    elif config['start_from'] == 'bam':
         bams = []
         new_extension = '.bam'
         for index, row in samples_sheet.iterrows():
