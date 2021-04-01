@@ -12,7 +12,7 @@ rule mageck_count_fastq:
     output:
         file = config['inputs']['count_table']
     params:
-        name = config['inputs']['count_table'].split('/')[-1].split('.count.txt')[0],
+        name = config['inputs']['count_table'].split('.count.txt')[0],
         labels = getLabels,
         files = getFiles
     conda:
