@@ -6,7 +6,10 @@ from ipywidgets import interact, interactive, fixed, interact_manual
 import ipywidgets as widgets
 import requests
 import json
+import natsort as ns
+import numpy as np
 
+alt.data_transformers.disable_max_rows()
 
 class ToolResult:
     TOOLS_RESULT_PATH = {
@@ -31,7 +34,7 @@ class ToolResult:
             
             
     def get_tool_name(self):
-        m = re.match("^\.\.\/\.\.\/\w+\/\w+\/(\w+)\/$", self.path)
+        m = re.match("\w+\/\w+\/(\w+)\/$", self.path)
         if m:
             return m.group(1)
         else:
@@ -55,6 +58,71 @@ class ToolResult:
         self.create_comparisons_dict()
         
         
+        
+        
+def show_read_count_distribution(token):
+    path_qc = "./data/{token}/screen.count.txt".format(token=token)
+    table = pd.read_csv(path_qc, sep='\t')
+        
+    table.iloc[:, 2:] = table.iloc[:, 2:] +1 
+    table.iloc[:, 2:] = table.iloc[:, 2:].apply(np.log2)
+      
+    chart = alt.Chart(table).transform_fold(
+        list(table.columns[2:]),
+        as_ = ['Measurement_type', 'counts']
+    ).transform_density(
+        density='counts',
+        bandwidth=0.3,
+        groupby=['Measurement_type'],
+        extent= [0, 20],
+        counts = True,
+        steps=200
+    ).mark_line().encode(
+        alt.X('value:Q'),
+        alt.Y('density:Q'),
+        alt.Color('Measurement_type:N'),
+        tooltip = ['Measurement_type:N', 'value:Q', 'density:Q'],
+    ).properties(width=800, height=400)#.interactive()
+    
+    return chart
+
+
+        
+def show_mapping_qc(token):
+    path_qc = "./data/{token}/screen.countsummary.txt".format(token=token)
+    table = pd.read_csv(path_qc, sep='\t')
+    
+    table = table[['Label', 'Reads', 'Mapped', 'Percentage', 'Zerocounts', 'GiniIndex']]
+    
+    table['Label'] = pd.Categorical(table['Label'], ordered=True, categories= ns.natsorted(table['Label'].unique()))
+    table = table.sort_values('Label')
+    
+    def color_low_mapping_red(val):
+        """
+        Takes a scalar and returns a string with
+        the css property `'color: red'` for negative
+        strings, black otherwise.
+        """
+        color = 'red' if float(val) < 0.6 else 'green'
+        return 'color: %s' % color
+    
+    def color_high_gini_red(val):
+        """
+        Takes a scalar and returns a string with
+        the css property `'color: red'` for negative
+        strings, black otherwise.
+        """
+        color = 'red' if val > 0.35 else 'green'
+        return 'color: %s' % color
+    
+    
+    s = table.style.\
+        applymap(color_low_mapping_red, subset=['Percentage']).\
+        applymap(color_high_gini_red, subset=['GiniIndex'])
+    
+    return s
+
+        
 def create_results_pitviper(results_path):
     results = {}
     for path in results_path:
@@ -69,6 +137,98 @@ def natural_sort(l):
     convert = lambda text: int(text) if text.isdigit() else text.lower() 
     alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
     return sorted(l, key = alphanum_key)
+
+
+
+
+def gene_selection_table(results):
+    TOOLS = [str(tool) for tool in results.keys()]
+    @interact(tool=TOOLS)
+    def gene_selection_table(tool):
+        tool_res = results[tool]
+        conditions = [{'baseline':condition.split('_vs_')[1] , 'treatment':condition.split('_vs_')[0]} for condition in tool_res.comparisons_dict.keys()]
+        @interact(baseline=set([condition['baseline'] for condition in conditions]))
+        def gene_selection_table(baseline):
+            treatments = [condition['treatment'] for condition in conditions if condition['baseline'] == baseline]
+            @interact(treatment=treatments)
+            def gene_selection_table(treatment):
+                print('Tool:', tool)
+                print('Baseline:', baseline)
+                print('Treatment', treatment)
+
+                def on_button_clicked(b):
+
+                    info = tool_res.comparisons_dict[treatment+'_vs_'+baseline]['table']
+                    info = info.drop(info.filter(like=baseline).columns,axis=1)
+                    
+                    with output:
+                        display(info)
+
+                button = widgets.Button(description="Show datatable")
+                output = widgets.Output()
+
+                display(button, output)
+
+                button.on_click(on_button_clicked)
+
+
+
+def sgRNA_accross_conditions(result):
+    conditions = [{'baseline':condition.split('_vs_')[1] , 'treatment':condition.split('_vs_')[0]} for condition in result.comparisons_dict.keys()]
+    baselines=set([condition['baseline'] for condition in conditions])
+    features=widgets.Text(value='MYC', placeholder='Feature to show...', description='Feature:')
+    @interact(feature=features, baseline=baselines)
+    def sgRNA_accross_conditions(feature, baseline):
+        treatments = [condition['treatment'] for condition in conditions if condition['baseline'] == baseline]
+        @interact(treatment=treatments)
+        def sgRNA_accross_conditions(treatment):
+            print('Feature:', feature)
+            print('Baseline', baseline)
+            print('Treatment', treatment)
+
+            tables_to_concatenate = []
+            comp = treatment + '_vs_' + baseline
+            table = result.comparisons_dict[comp]['sgRNA'].copy()
+            new_names = [(i,treatment + "|" + i) for i in table.iloc[:, 2:].columns.values]
+            table.rename(columns = dict(new_names), inplace=True)
+            tables_to_concatenate.append(table)
+            
+            def on_button_clicked(b):
+                info = pd.concat(tables_to_concatenate, axis=1)
+                info = info.iloc[:,~info.columns.duplicated()]
+
+                info = info.loc[info['Gene'] == feature]
+
+                info = info.filter(regex=r'sgrna$|\|control_count$|\|treatment_count$')
+
+                info[[baseline+'-1',baseline+'-2', baseline+'-3']] = info[treatment + '|control_count'].str.split("/",expand=True,)
+                
+                info[[treatment+'-1',treatment+'-2', treatment+'-3']] = info[treatment + '|treatment_count'].str.split("/",expand=True,)
+                
+                info = info.drop(columns=[treatment+'|control_count', treatment+'|treatment_count'])
+                                
+                info = info.melt(id_vars=('sgrna'))
+                
+
+                sort_cols = natural_sort([baseline] + treatments)
+    
+                
+                chart = alt.Chart(info).mark_line().encode(
+                    x=alt.X('variable', axis=alt.Axis(title='Condition'), sort=sort_cols),
+                    y=alt.X('value:Q', axis=alt.Axis(title='Count'), sort="ascending"),
+                    color='sgrna',
+                    tooltip=['sgrna', 'value']
+                ).properties(width=500)
+                with output:
+                    display(chart)
+
+            button = widgets.Button(description="Show sgRNA counts")
+            output = widgets.Output()
+
+            display(button, output)
+
+            button.on_click(on_button_clicked)
+
 
 
 def mageck_mle_feature_accros_conditions(mle, baseline, feature, fdr_cutoff, comparisons, treatments):
@@ -393,7 +553,7 @@ def enrichmentCirclePlot(source, n, description, col_1, col_2):
 
         
 def enrichr_plots(pitviper_res):
-    BASES = open("../../workflow/notebooks/enrichr_list.txt", "r").readlines()
+    BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
     TOOLS = [tool for tool in pitviper_res.keys()]
     @interact(tool=TOOLS)
     def enrichr_plots(tool):
@@ -402,31 +562,39 @@ def enrichr_plots(pitviper_res):
         @interact(description=widgets.Text(value='My gene list', placeholder='Description', description='Description:'), base=BASES, baseline=set([condition['baseline'] for condition in conditions]))
         def enrichr_plots(description, base, baseline):
             treatments = [condition['treatment'] for condition in conditions if condition['baseline'] == baseline]
-            @interact(col_2=widgets.ColorPicker(concise=False, description='Top color', value='blue', disabled=False), col_1=widgets.ColorPicker(concise=False, description='Bottom color', value='red', disabled=False), plot_type=['Circle', 'Bar'], size=[5, 10, 20, 50, 100, 200, 'max'], treatment=treatments, fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05))
-            def enrichr_plots(treatment, fdr_cutoff, size, plot_type, col_2, col_1):
+            @interact(col_2=widgets.ColorPicker(concise=False, description='Top color', value='blue', disabled=False), col_1=widgets.ColorPicker(concise=False, description='Bottom color', value='red', disabled=False), plot_type=['Circle', 'Bar'], size=[5, 10, 20, 50, 100, 200, 'max'], treatment=treatments, fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05), score_cutoff=widgets.Text(value='0', placeholder='0', description='Score cut-off:'))
+            def enrichr_plots(treatment, score_cutoff, fdr_cutoff, size, plot_type, col_2, col_1):
                 comparisons = [condition['treatment']+'_vs_'+baseline for condition in conditions if condition['baseline'] == baseline]
                 print('Description:', description)
                 print('Baseline:', baseline)
                 print('Treatment:', treatment)
                 print('FDR cut-off:', fdr_cutoff)
+                print('Score cut-off', score_cutoff)
                 print('Tool:', tool)
                 print('Gene set library:', base)
 
-                if tool == 'MAGeCK_MLE':
-                    info = tool_res.comparisons_dict[treatment+'_vs_'+baseline]['table']
-                    info = info.loc[info[treatment+'|fdr'] < fdr_cutoff]
-                    genes = info['Gene']
-
-                if tool == 'MAGeCK_RRA':
-                    info = tool_res.comparisons_dict[treatment+'_vs_'+baseline]['table']
-                    print(info.columns)
-                    info = info.loc[info['neg|fdr'] < fdr_cutoff]
-                    genes = info['id']
-
-
-                print("Size (gene set):", len(genes))
-
+                score_cutoff = float(score_cutoff)
+                
                 def on_button_clicked(b):
+                    
+
+                    if tool == 'MAGeCK_MLE':
+                        info = tool_res.comparisons_dict[treatment+'_vs_'+baseline]['table']
+                        info = info.loc[info[treatment+'|fdr'] < fdr_cutoff]
+                        if score_cutoff < 0:
+                            info = info.loc[info[treatment+'|beta'] < score_cutoff]
+                        elif score_cutoff > 0:
+                            info = info.loc[info[treatment+'|beta'] > score_cutoff]
+                        genes = info['Gene']
+
+                    if tool == 'MAGeCK_RRA':
+                        info = tool_res.comparisons_dict[treatment+'_vs_'+baseline]['table']
+                        print(info.columns)
+                        info = info.loc[info['neg|fdr'] < fdr_cutoff]
+                        genes = info['id']
+                        
+                    print("Size (gene set):", len(genes))
+
                     enrichr_res = getEnrichrResults(genes, description, base)
                     table = createEnrichrTable(enrichr_res)
                     if plot_type == 'Bar':
@@ -443,3 +611,50 @@ def enrichr_plots(pitviper_res):
                 display(button, output)
 
                 button.on_click(on_button_clicked)
+                
+                
+                
+                
+def test_plotting(data):
+    conditions = [{'baseline':condition.split('_vs_')[1] , 'treatment':condition.split('_vs_')[0]} for condition in data.comparisons_dict.keys()]
+    baselines=set([condition['baseline'] for condition in conditions])
+    @interact(baseline=baselines)
+    def test_plotting(baseline):
+        treatments = [condition['treatment'] for condition in conditions if condition['baseline'] == baseline]
+        non_sig=widgets.ColorPicker(concise=False, description='Non-significant', value='#949494', disabled=False)
+        sig=widgets.ColorPicker(concise=False, description='Significant', value='red', disabled=False)
+        @interact(treatment=treatments, non_sig=non_sig, sig=sig)
+        def test_plotting(treatment, non_sig, sig):
+            print('Baseline:', baseline)
+            print('Treatment:', treatment)
+            comp = treatment + '_vs_' + baseline
+            source = data.comparisons_dict[comp]['table']
+
+            source['default_rank'] = source[treatment + '|beta'].rank()
+
+            source.loc[source[treatment + '|fdr'] < 0.05, 'significant'] = 'Yes' 
+            source.loc[source[treatment + '|fdr'] >= 0.05, 'significant'] = 'No'
+            domain = ['Yes', 'No']
+            range_ = [sig, non_sig]
+            
+            def on_button_clicked(b):
+                chart = alt.Chart(source).mark_circle(size=60).encode(
+                    x=alt.X('default_rank:Q'),
+                    y=alt.Y(treatment + '|beta:Q'),
+                    tooltip=['Gene', 'sgRNA', treatment + '|beta', treatment + '|fdr', 'significant'],
+                    color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:"))
+                ).properties(width=700).interactive()
+
+                line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
+
+                chart = (chart + line)
+                with output:
+                    display(chart)
+            
+            button = widgets.Button(description="Show plot")
+            output = widgets.Output()
+
+            display(button, output)
+
+            button.on_click(on_button_clicked)
+          
