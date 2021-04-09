@@ -56,6 +56,25 @@ rule integration:
         "../notebooks/Reports_Integration.py.ipynb"
 
 
+rule generate_report:
+    input:
+        generatedResults
+    output:
+        notebook="results/" + config['token'] + "/reports/PitViper_report.ipynb"
+    params:
+        template="workflow/notebooks/Rapport.ipynb",
+        token=config['token']
+    conda:
+        "../envs/jupyter.yaml"
+    log:
+        "logs/" + config['token'] + "/reports/PitViper_report.log"
+    shell:
+        "papermill {params.template} {output.notebook} \
+            -p mageck_mle_outputs results/{params.token}/MAGeCK_MLE/ \
+            -p mageck_rra_outputs results/{params.token}/MAGeCK_RRA/ \
+            -p bagel_outputs results/{params.token}/BAGEL/ \
+            -p crisphiermix_outputs results/{params.token}/CRISPhieRmix/"
+
 rule visualization:
     input:
         generatedResults
