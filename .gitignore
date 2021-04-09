@@ -24,3 +24,6 @@ PitViper/workflow/notebooks/archives/.ipynb_checkpoints
 /PitViper/workflow/notebooks/archives/MAGeCK_MLE.py.ipynb
 /docs/logo/logo PA.svg
 /PitViper/config/sharon2019.yaml
+*.bam
+*.gz
+*.bt2

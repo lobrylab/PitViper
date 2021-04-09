@@ -1,0 +1,13 @@
+file,replicate
+../data/fastq/CLLR135.fastq.gz,J4_rep1
+../data/fastq/CLLR136.fastq.gz,J11_rep1
+../data/fastq/CLLR137.fastq.gz,J18_rep1
+../data/fastq/CLLR138.fastq.gz,J25_rep1
+../data/fastq/CLLR139.fastq.gz,J4_rep2
+../data/fastq/CLLR140.fastq.gz,J11_rep2
+../data/fastq/CLLR141.fastq.gz,J18_rep2
+../data/fastq/CLLR142.fastq.gz,J25_rep2
+../data/fastq/CLLR143.fastq.gz,J4_rep3
+../data/fastq/CLLR144.fastq.gz,J11_rep3
+../data/fastq/CLLR145.fastq.gz,J18_rep3
+../data/fastq/CLLR146.fastq.gz,J25_rep3

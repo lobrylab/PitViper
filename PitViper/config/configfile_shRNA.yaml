@@ -9,12 +9,12 @@ screen_type: "shRNA"
 start_from: "count"
 
 inputs:
-  fastq_dir: "../data/fastq/"
-  bam_dir: "../data/bam/"
-  count_table: "../data/count_matrices/shRNA/screen.count.txt"
-  samples: "../data/metadata/shRNA/samples.txt"
-  files: "../data/metadata/shRNA/files.txt"
-  library: "../data/libraries/shRNA/SE_lib.csv"
+  fastq_dir: "resources/fastq/"
+  bam_dir: "resources/bam/"
+  count_table: "resources/count_matrices/shRNA/screen.count.txt"
+  samples: "resources/metadata/shRNA/samples.txt"
+  files: "resources/metadata/shRNA/files.txt"
+  library: "resources/libraries/shRNA/SE_lib.csv"
 
 ### Tools config
 
@@ -29,8 +29,8 @@ MAGeCK:
 #### BAGEL
 BAGEL:
   activate: True
-  essentials: '../data/BAGEL/shRNA/training_essentials.txt'
-  nonessentials: '../data/BAGEL/shRNA/training_nonessential.txt'
+  essentials: 'resources/BAGEL/shRNA/training_essentials.txt'
+  nonessentials: 'resources/BAGEL/shRNA/training_nonessential.txt'
 
 
 #### CRISPhieRmix
