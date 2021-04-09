@@ -1,18 +1,17 @@
 
-token: "CRISPRi_countFrom_bam"
+token: "CRISPRi_CRISPhieRmix_FDR"
 
 ### Workflow inputs
 
 # Choose between "CRISPRi" and "shRNA/CRISPR"
 screen_type: "CRISPRi"
 
-count_from: "bam"
+start_from: "fastq"
 
 inputs:
   fastq_dir: "../data/fastq/"
   bam_dir: "../data/bam/"
-  count_table: "data/CRISPRi_countFrom_bam/screen.count.txt"
-  count_table_base_name: "data/CRISPRi_countFrom_bam/screen"
+  count_table: "data/CRISPRi_CRISPhieRmix_FDR/screen.count.txt"
   samples: "../data/metadata/CRISPRi/samples.txt"
   files: "../data/metadata/CRISPRi/files.txt"
   library: "../data/libraries/CRISPRi/SE_lib.csv"
@@ -22,18 +21,18 @@ inputs:
 #### MAGeCK
 MAGeCK:
   MLE:
-    activate: True
+    activate: False 
     norm-method: 'total'
   RRA:
-    activate: True
+    activate: False
 
 #### BAGEL
 BAGEL:
   activate: False
   essentials: '../data/BAGEL/CRISPRi/training_essentials.txt'
-  nonessential: '../data/BAGEL/CRISPRi/training_nonessential.txt'
+  nonessentials: '../data/BAGEL/CRISPRi/training_nonessential.txt'
 
 
 #### CRISPhieRmix
 CRISPhieRmix:
-  activate: True
+  activate: 'True'

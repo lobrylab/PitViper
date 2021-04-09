@@ -1,39 +1,38 @@
 
-token: "shRNA_test0"
-essential: None
+token: "shRNA"
+
 ### Workflow inputs
 
 # Choose between "CRISPRi" and "shRNA/CRISPR"
 screen_type: "shRNA"
 
-count_from: "bam"
+start_from: "count"
 
 inputs:
-  fastq_dir: ""
+  fastq_dir: "../data/fastq/"
   bam_dir: "../data/bam/"
-  count_table: "data/shRNA_test0/screen.count.txt"
-  count_table_base_name: "data/shRNA_test0/screen"
+  count_table: "../data/count_matrices/shRNA/screen.count.txt"
   samples: "../data/metadata/shRNA/samples.txt"
   files: "../data/metadata/shRNA/files.txt"
-  library: "../data/libraries/shRNA/sh_epi_lib.csv"
+  library: "../data/libraries/shRNA/SE_lib.csv"
 
 ### Tools config
 
 #### MAGeCK
 MAGeCK:
   MLE:
-    activate: False
+    activate: True 
     norm-method: 'total'
   RRA:
-    activate: False
+    activate: True
 
 #### BAGEL
 BAGEL:
-  activate: False
-  essentials: '../data/BAGEL/training_essentials.txt'
-  nonessential: '../data/BAGEL/training_nonessential.txt'
+  activate: True
+  essentials: '../data/BAGEL/shRNA/training_essentials.txt'
+  nonessentials: '../data/BAGEL/shRNA/training_nonessential.txt'
 
 
 #### CRISPhieRmix
 CRISPhieRmix:
-  activate: True
+  activate: 'True'
