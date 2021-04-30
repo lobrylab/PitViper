@@ -60,7 +60,7 @@ class ToolResult:
         
         
         
-def show_read_count_distribution(token):
+def show_read_count_distribution(token, width=800, height=400):
     path_qc = "./data/{token}/screen.count.txt".format(token=token)
     table = pd.read_csv(path_qc, sep='\t')
         
@@ -78,11 +78,11 @@ def show_read_count_distribution(token):
         counts = True,
         steps=200
     ).mark_line().encode(
-        alt.X('value:Q'),
+        alt.X('value:Q', axis=alt.Axis(title='log2(read count)')),
         alt.Y('density:Q'),
         alt.Color('Measurement_type:N'),
         tooltip = ['Measurement_type:N', 'value:Q', 'density:Q'],
-    ).properties(width=800, height=400)#.interactive()
+    ).properties(width=width, height=height)#.interactive()
     
     return chart
 
@@ -173,7 +173,7 @@ def gene_selection_table(results):
 
 
 
-def sgRNA_accross_conditions(result):
+def sgRNA_accross_conditions(result, width=500, height=250):
     conditions = [{'baseline':condition.split('_vs_')[1] , 'treatment':condition.split('_vs_')[0]} for condition in result.comparisons_dict.keys()]
     baselines=set([condition['baseline'] for condition in conditions])
     features=widgets.Text(value='MYC', placeholder='Feature to show...', description='Feature:')
@@ -218,7 +218,7 @@ def sgRNA_accross_conditions(result):
                     y=alt.X('value:Q', axis=alt.Axis(title='Count'), sort="ascending"),
                     color='sgrna',
                     tooltip=['sgrna', 'value']
-                ).properties(width=500)
+                ).properties(width=width, height=height, title=feature + " sgRNAs read count by condition")
                 with output:
                     display(chart)
 
@@ -615,7 +615,7 @@ def enrichr_plots(pitviper_res):
                 
                 
                 
-def test_plotting(data):
+def test_plotting(data, width=800, height=400):
     conditions = [{'baseline':condition.split('_vs_')[1] , 'treatment':condition.split('_vs_')[0]} for condition in data.comparisons_dict.keys()]
     baselines=set([condition['baseline'] for condition in conditions])
     @interact(baseline=baselines)
@@ -639,11 +639,11 @@ def test_plotting(data):
             
             def on_button_clicked(b):
                 chart = alt.Chart(source).mark_circle(size=60).encode(
-                    x=alt.X('default_rank:Q'),
+                    x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
                     y=alt.Y(treatment + '|beta:Q'),
                     tooltip=['Gene', 'sgRNA', treatment + '|beta', treatment + '|fdr', 'significant'],
                     color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:"))
-                ).properties(width=700).interactive()
+                ).properties(width=width, height=height).interactive()
 
                 line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
 
