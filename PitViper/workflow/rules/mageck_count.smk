@@ -1,10 +1,11 @@
 
 
 tsv = pd.read_csv(config['inputs']['tsv'], sep="\t")
-if "fastq" == tsv.columns[2]:
-    ruleorder: mageck_count_fastq > mageck_count_bam
-elif "bam" == tsv.columns[2]:
-    ruleorder: mageck_count_bam > mageck_count_fastq
+if len(tsv.columns) > 2:
+    if "fastq" == tsv.columns[2]:
+        ruleorder: mageck_count_fastq > mageck_count_bam
+    elif "bam" == tsv.columns[2]:
+        ruleorder: mageck_count_bam > mageck_count_fastq
 
 rule mageck_count_fastq:
     input:
