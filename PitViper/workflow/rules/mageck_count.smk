@@ -11,9 +11,9 @@ rule mageck_count_fastq:
         fastqs = getFastqFiles,
         library = config['inputs']['library']
     output:
-        file = config['inputs']['count_table']
+        file = "results/" + config['token'] + "/screen.count.txt"  #config['inputs']['count_table']
     params:
-        name = config['inputs']['count_table'].split('.count.txt')[0],
+        name = "results/" + config['token'] + "/screen.count.txt".split('.count.txt')[0],
         labels = getLabels,
         files = getFiles
     conda:
@@ -29,9 +29,9 @@ rule mageck_count_bam:
         bams = getBamFiles,
         library = config['inputs']['library']
     output:
-        file = config['inputs']['count_table']
+        file = "results/" + config['token'] + "/screen.count.txt"
     params:
-        name = config['inputs']['count_table'].split('/')[-1].split('.count.txt')[0],
+        name = "results/" + config['token'] + "/screen.count.txt".split('.count.txt')[0],
         labels = getLabels,
         files = getFiles
     conda:

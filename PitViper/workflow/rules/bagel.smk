@@ -6,7 +6,7 @@ rule bagel_generate_count_matrix:
     """ Generate count matrix between two conditions for BAGEL. """
     input:
         samples=config['inputs']['tsv'],
-        counts=config['inputs']['count_table']
+        counts="results/{token}/screen.count.txt"
     output:
         matrix="data/{token}/count_matrices/BAGEL/{treatment}_vs_{control}_count_matrix.txt"
     conda:
