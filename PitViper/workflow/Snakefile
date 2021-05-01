@@ -3,8 +3,11 @@ import pandas as pd
 from snakemake.utils import min_version
 min_version("5.24.0")
 
+tsv = pd.read_csv(config['inputs']['tsv'], sep="\t")
+
 include: "rules/commons.smk"
-include: "rules/mageck_count.smk"
+if "fastq" in tsv.columns or "bam" in tsv.columns:
+    include: "rules/mageck_count.smk"
 include: "rules/mageck_mle.smk"
 include: "rules/mageck_rra.smk"
 include: "rules/bagel.smk"
