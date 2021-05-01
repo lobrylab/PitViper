@@ -15,7 +15,7 @@ def getBamFiles(wildcards):
 def getLabels(wildcards):
     """Return concatenation of experiment's labels. Needed for MAGeCK count software."""
     samples_sheet = pd.read_csv(config['inputs']['tsv'], sep="\t")
-    labels = samples_sheet.condition.values
+    labels = samples_sheet.replicate.values
     labels_str = ",".join(labels)
     return labels_str
 
