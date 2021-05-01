@@ -5,9 +5,9 @@ import click
 class Design:
     def __init__(self, file, control, pairwise=False):
         self.file = file
-        self.sample_sheet = pd.read_csv(file, sep = ",")
+        self.sample_sheet = pd.read_csv(file, sep = "\t")
         self.control_name = control
-        self.conditions = self.sample_sheet.columns
+        self.conditions = list(set(self.sample_sheet.condition))
         self.samples_dict = None
         self.replicates = []
         self.design_matrix = None
@@ -25,9 +25,7 @@ class Design:
                 self.samples_dict[col]['isControl'] = 1
             else:
                 self.samples_dict[col]['isControl'] = 0
-            for replicate in self.sample_sheet[[col]].values:
-                self.samples_dict[col]['replicates'].append(replicate[0])
-
+            self.samples_dict[col]['replicates']  = self.sample_sheet.loc[self.sample_sheet.condition == col]['replicate'].values
 
     def getAllReplicates(self):
         for condition in self.conditions:

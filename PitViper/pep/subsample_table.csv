@@ -1,9 +1,0 @@
-sample_name,group,file
-1,Input,Input1_R1.fastq
-1,Ac,IP1_Ac_R1.fastq
-2,Input,Input2_R1_All.fastq
-2,Ac,IP2_Ac_R1.fastq
-3,Input,Input3_R1_All.fastq
-3,Ac,IP3_Ac_R1.fastq
-4,Input,Input4_R1.fastq
-4,Ac,IP4_Ac_R1.fastq

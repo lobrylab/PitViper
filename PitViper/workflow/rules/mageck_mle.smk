@@ -5,7 +5,7 @@
 rule generate_design_matrix:
     """Create design matrix for treatment versus control."""
     input:
-        config['inputs']['samples']
+        config['inputs']['tsv']
     output:
         matrix="data/{token}/design_matrices/MAGeCK/{treatment}_vs_{control}_design_matrix.txt"
     conda:

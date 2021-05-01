@@ -4,14 +4,14 @@ import click
 
 def getControl(table, samples_table, control):
     header = ['sgRNA', 'Gene']
-    replicates = [rep[0] for rep in samples_table[[str(control)]].values.tolist()]
+    replicates = samples_table.loc[samples_table.condition == control]['replicate'].values
     header.extend(replicates)
     replicates_counts = table[header]
     return replicates_counts
 
 def getTreatment(table, samples_table, treatment):
     header = ['sgRNA', 'Gene']
-    replicates = [rep[0] for rep in samples_table[[str(treatment)]].values.tolist()]
+    replicates = samples_table.loc[samples_table.condition == treatment]['replicate'].values
     header.extend(replicates)
     replicates_counts = table[header]
     return replicates_counts

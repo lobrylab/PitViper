@@ -5,7 +5,7 @@ import subprocess
 
 def run_pitviper(configfile, dry_run, jobs):
     if dry_run:
-        cmd = "snakemake -s workflow/Snakefile -n --configfile {configfile} --use-conda --cores 1".format(configfile=configfile)
+        cmd = "snakemake -s workflow/Snakefile -n --configfile {configfile} --use-conda --cores {jobs}".format(configfile=configfile, jobs=jobs)
     elif not dry_run:
         cmd = "snakemake -s workflow/Snakefile --configfile {configfile} --use-conda --cores {jobs}".format(configfile=configfile, jobs=jobs)
     print('Command:', cmd)
@@ -26,7 +26,7 @@ def main(run_snakemake, configfile, dry_run, jobs):
     except IOError:
         print("Error: cannot open and read configuration file {configfile}".format(configfile=configfile))
     if dry_run:
-        run_pitviper(configfile=configfile, dry_run=True)
+        run_pitviper(configfile=configfile, dry_run=True, jobs=jobs)
     elif run_snakemake:
         run_pitviper(configfile=configfile, dry_run=False, jobs=jobs)
     else:

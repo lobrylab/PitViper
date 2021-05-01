@@ -28,7 +28,7 @@ def generatedResults(wildcards):
     token = config['token']
 
     for comparaison in comparaisons:
-        if ((config['screen_type'] == "shRNA") or (config['screen_type'] == "CRISPR")) and (config['BAGEL']['activate'] == True):
+        if (config['BAGEL']['activate'] == True):
             results.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
             results.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_essentials_genes.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if (config['MAGeCK']['MLE']['activate'] == True):

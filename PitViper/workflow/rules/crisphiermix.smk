@@ -5,7 +5,7 @@
 rule crisphiermix_generate_count_matrix:
     """ Generate a count matrix between two conditions for CRISPhieRmix. """
     input:
-        samples=config['inputs']['samples'],
+        samples=config['inputs']['tsv'],
         counts=config['inputs']['count_table']
     output:
         matrix="data/{token}/count_matrices/CRISPhieRmix/{treatment}_vs_{control}_count_matrix.txt"

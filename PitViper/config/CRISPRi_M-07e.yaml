@@ -1,0 +1,17 @@
+BAGEL:
+  activate: 'False'
+  essentials: null
+  nonessentials: null
+CRISPhieRmix:
+  activate: 'True'
+MAGeCK:
+  MLE:
+    activate: 'True'
+    norm-method: total
+  RRA:
+    activate: 'True'
+inputs:
+  count_table: data/CRISPRi_M-07e/screen.count.txt
+  library: resources/libraries/CRISPRi/SE_lib_final.tab
+  tsv: resources/metadata/CRISPRi_M-07e/input.tsv
+token: CRISPRi_M-07e
