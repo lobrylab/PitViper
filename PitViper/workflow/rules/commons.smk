@@ -15,7 +15,7 @@ def getBamFiles(wildcards):
 def getLabels(wildcards):
     """Return concatenation of experiment's labels. Needed for MAGeCK count software."""
     samples_sheet = pd.read_csv(config['inputs']['tsv'], sep="\t")
-    labels = list(set(samples_sheet.condition.values))
+    labels = samples_sheet.condition.values
     labels_str = ",".join(labels)
     return labels_str
 
@@ -28,14 +28,14 @@ def getFiles(wildcards):
         fastqs = ""
         for condition in conditions:
             fastqs_condition = samples_sheet.loc[samples_sheet.condition == condition].fastq.values
-            fastqs = fastqs + " " + ",".join(fastqs_condition)
+            fastqs = fastqs + " " + " ".join(fastqs_condition)
         return fastqs
     elif 'bam' in samples_sheet.columns:
         conditions = list(set(samples_sheet.condition.values))
         bams = ""
         for condition in conditions:
             bams_condition = samples_sheet.loc[samples_sheet.condition == condition].bam.values
-            bams = bams + " " + ",".join(bams_condition)
+            bams = bams + " " + " ".join(bams_condition)
         return bams
 
 
