@@ -13,7 +13,7 @@ rule generate_design_matrix:
     log:
         "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}_design_matrix.log"
     shell:
-        "python3 workflow/scripts/readSamples.py --file {input} --directory data/{wildcards.token}/design_matrices/MAGeCK/ --control {wildcards.control} --treatment {wildcards.treatment}"
+        "python3 workflow/scripts/readSamples.py --file {input} --directory results/{wildcards.token}/design_matrices/MAGeCK/ --control {wildcards.control} --treatment {wildcards.treatment}"
 
 
 rule mageck_mle:

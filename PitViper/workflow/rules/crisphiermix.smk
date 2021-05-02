@@ -17,7 +17,7 @@ rule crisphiermix_generate_count_matrix:
         "python3 workflow/scripts/crisphiermix_count_files.py \
             --file {input.samples} \
             --counts {input.counts} \
-            --directory data/{wildcards.token}/count_matrices/CRISPhieRmix/ \
+            --directory results/{wildcards.token}/count_matrices/CRISPhieRmix/ \
             --control {wildcards.control} \
             --treatment {wildcards.treatment} > {log}"
 

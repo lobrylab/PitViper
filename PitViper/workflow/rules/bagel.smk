@@ -17,7 +17,7 @@ rule bagel_generate_count_matrix:
         "python3 workflow/scripts/bagel_count_files.py \
             --file {input.samples} \
             --counts {input.counts} \
-            --directory data/{wildcards.token}/count_matrices/BAGEL/ \
+            --directory results/{wildcards.token}/count_matrices/BAGEL/ \
             --control {wildcards.control} \
             --treatment {wildcards.treatment} > {log}"
 
