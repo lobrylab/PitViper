@@ -11,7 +11,8 @@ MAGeCK:
   RRA:
     activate: 'True'
 inputs:
-  count_table: data/CRISPRi_M-07e/screen.count.txt
+  count_table: screen.count.txt
+  normalized_count_table: screen.count_normalized.txt
   library: resources/libraries/CRISPRi/SE_lib_final.tab
   tsv: resources/metadata/CRISPRi_M-07e/input.tsv
 token: CRISPRi_M-07e
