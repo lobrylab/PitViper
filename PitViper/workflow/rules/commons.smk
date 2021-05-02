@@ -1,3 +1,5 @@
+from natsort import natsorted
+
 def getFastqFiles(wildcards):
     """Return a list of experiment's files  in fastq format."""
     samples_sheet = pd.read_csv(config['inputs']['tsv'], sep="\t")
@@ -15,7 +17,7 @@ def getBamFiles(wildcards):
 def getLabels(wildcards):
     """Return concatenation of experiment's labels. Needed for MAGeCK count software."""
     samples_sheet = pd.read_csv(config['inputs']['tsv'], sep="\t")
-    labels = samples_sheet.replicate.values
+    labels = list(set(samples_sheet.replicate.values))
     labels_str = ",".join(labels)
     return labels_str
 
@@ -88,12 +90,14 @@ def get_all_pairwise_comparaisons():
         return comparaisons
 
     samples_file = pd.read_csv(config['inputs']['tsv'], sep="\t")
-    samples_list = list(set(samples_file.condition.values))
+    samples_list = natsorted(list(set(samples_file.condition.values)))
+    print(samples_list)
     comparaisons = pairwiseComparaisons(samples_list)
 
-    l = [{'treatment': samples_list[duo[0]], 'control':samples_list[duo[0]]} for duo in comparaisons]
 
-    print("comparaison", l)
+    l = [{'treatment': samples_list[duo[1]], 'control':samples_list[duo[0]]} for duo in comparaisons]
+    print(l)
+
     return l
 
 def get_pipeline_outputs(wildcards):
