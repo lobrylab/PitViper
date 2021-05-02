@@ -7,7 +7,7 @@ rule generate_design_matrix:
     input:
         config['inputs']['tsv']
     output:
-        matrix="data/{token}/design_matrices/MAGeCK/{treatment}_vs_{control}_design_matrix.txt"
+        matrix="results/{token}/design_matrices/MAGeCK/{treatment}_vs_{control}_design_matrix.txt"
     conda:
         "../envs/commons.yaml"
     log:

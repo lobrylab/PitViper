@@ -8,7 +8,7 @@ rule bagel_generate_count_matrix:
         samples=config['inputs']['tsv'],
         counts="results/{token}/" + config['inputs']['count_table']
     output:
-        matrix="data/{token}/count_matrices/BAGEL/{treatment}_vs_{control}_count_matrix.txt"
+        matrix="results/{token}/count_matrices/BAGEL/{treatment}_vs_{control}_count_matrix.txt"
     conda:
         "../envs/commons.yaml"
     log:
