@@ -6,7 +6,7 @@ rule crisphiermix_generate_count_matrix:
     """ Generate a count matrix between two conditions for CRISPhieRmix. """
     input:
         samples=config['inputs']['tsv'],
-        counts="results/{token}/" + config['inputs']['count_table']
+        counts="results/{token}/" + "screen.count.txt"
     output:
         matrix="results/{token}/count_matrices/CRISPhieRmix/{treatment}_vs_{control}_count_matrix.txt"
     conda:
