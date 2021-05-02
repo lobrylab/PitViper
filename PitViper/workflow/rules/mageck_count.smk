@@ -13,7 +13,7 @@ rule mageck_count_fastq:
         library = config['inputs']['library']
     output:
         file = "results/" + config['token'] + "/" + config['inputs']['count_table'],  #config['inputs']['count_table']
-        normalized = "results/" + config['token'] + "/screen.count_normalized.txt"
+        normalized = "results/" + config['token'] + "/screen.count.txt"
     params:
         name = "results/" + config['token'] + "/" + config['inputs']['count_table'].split('.count_normalized.txt')[0],
         labels = getLabels,
@@ -32,7 +32,7 @@ rule mageck_count_bam:
         library = config['inputs']['library']
     output:
         file = "results/" + config['token'] + "/" + config['inputs']['count_table'],
-        normalized = "results/" + config['token'] + "/screen.count_normalized.txt"
+        normalized = "results/" + config['token'] + "/screen.count.txt"
     params:
         name = "results/" + config['token'] + "/" + config['inputs']['count_table'].split('.count_normalized.txt')[0],
         labels = getLabels,
