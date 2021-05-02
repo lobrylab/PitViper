@@ -91,9 +91,9 @@ def get_all_pairwise_comparaisons():
     samples_list = list(set(samples_file.condition.values))
     comparaisons = pairwiseComparaisons(samples_list)
 
+    l = [{'treatment': samples_list[duo[0]], 'control':samples_list[duo[0]]} for duo in comparaisons]
 
-    l = [{'treatment': samples_list[duo[1]], 'control':samples_list[duo[0]]} for duo in comparaisons]
-
+    print("comparaison", l)
     return l
 
 def get_pipeline_outputs(wildcards):
