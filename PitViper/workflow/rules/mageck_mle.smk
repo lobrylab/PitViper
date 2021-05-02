@@ -35,7 +35,7 @@ rule mageck_mle:
     log:
         "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}.log"
     shell:
-        "mageck mle -k {input.count_table} -d {input.designmat} -n {params.name} --norm-method {params.method} --threads 6 &> {log}"
+        "mageck mle -k {input.count_table} -d {input.designmat} -n {params.name} --threads 10 &> {log}"
 
 
 rule mageck_mle_notebooks:
