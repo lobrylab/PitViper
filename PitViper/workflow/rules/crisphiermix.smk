@@ -31,7 +31,8 @@ rule CRISPhieRmix:
     input:
         count_table = rules.crisphiermix_generate_count_matrix.output.matrix
     output:
-        gene_summary="results/{token}/CRISPhieRmix/{treatment}_vs_{control}/{treatment}_vs_{control}.txt"
+        gene_summary="results/{token}/CRISPhieRmix/{treatment}_vs_{control}/{treatment}_vs_{control}.txt",
+        deseq2="results/{token}/CRISPhieRmix/{treatment}_vs_{control}/{treatment}_vs_{control}_DESeq2_results.txt"
     params:
         n_treatment=getTreatmentIdsLen,
         n_control=getControlIdsLen

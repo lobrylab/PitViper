@@ -63,3 +63,4 @@ log2fcCRISPhieRmixScores$locfdr[which(log2fcCRISPhieRmixScores$locfdr < 0)] = 0
 log2fcCRISPhieRmixScores = log2fcCRISPhieRmixScores[order(log2fcCRISPhieRmixScores$locfdr, decreasing = FALSE), ]
 
 write.csv(log2fcCRISPhieRmixScores, file = snakemake@output[[1]], row.names = FALSE, quote = FALSE)
+write.csv(log2fc.cleaned, file = snakemake@output[[2]], row.names = FALSE, quote = FALSE)
