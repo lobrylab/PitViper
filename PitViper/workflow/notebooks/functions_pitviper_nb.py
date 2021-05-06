@@ -8,6 +8,8 @@ import requests
 import json
 import natsort as ns
 import numpy as np
+import os.path
+from os import path
 
 alt.data_transformers.disable_max_rows()
 
@@ -22,6 +24,8 @@ class ToolResult:
     TOOLS_sgRNA_PATH = {
         'MAGeCK_MLE': '{tool_path}{directory}/{directory}.sgrna_summary.txt',
         'MAGeCK_RRA': '{tool_path}{directory}/{directory}.sgrna_summary.txt'}
+    
+    DESEQ2_PATH = '{tool_path}{directory}/{directory}_DESeq2_results.txt'
     
     SEPARATORS = {
         'MAGeCK_MLE': '\t',
@@ -51,6 +55,9 @@ class ToolResult:
             if self.tool in ['MAGeCK_MLE', 'MAGeCK_RRA']:
                 sgRNA_table = self.TOOLS_sgRNA_PATH[self.tool].format(tool_path=self.path, directory=directory)
                 comparisons_dict[directory]['sgRNA'] = pd.read_csv(sgRNA_table, sep=self.SEPARATORS[self.tool])
+            if self.tool in ['CRISPhieRmix']:
+                DESeq2_results = self.DESEQ2_PATH.format(tool_path=self.path, directory=directory)
+                comparisons_dict[directory]['DESeq2'] = pd.read_csv(DESeq2_results, sep=self.SEPARATORS[self.tool])
                     
         self.comparisons_dict = comparisons_dict
 
@@ -61,7 +68,11 @@ class ToolResult:
         
         
 def show_read_count_distribution(token, width=800, height=400):
-    path_qc = "./data/{token}/screen.count.txt".format(token=token)
+    path_qc = "./results/{token}/screen.count.txt".format(token=token)
+    if not path.exists(path_qc):
+        print("No count fileto show.")
+        return 0
+    table = pd.read_csv(path_qc, sep='\t')
     table = pd.read_csv(path_qc, sep='\t')
         
     table.iloc[:, 2:] = table.iloc[:, 2:] +1 
@@ -89,8 +100,13 @@ def show_read_count_distribution(token, width=800, height=400):
 
         
 def show_mapping_qc(token):
-    path_qc = "./data/{token}/screen.countsummary.txt".format(token=token)
+    path_qc = "./results/{token}/screen.countsummary.txt".format(token=token)
+    if not path.exists(path_qc):
+        print("No mapping QC file to show.")
+        return 0
     table = pd.read_csv(path_qc, sep='\t')
+
+    
     
     table = table[['Label', 'Reads', 'Mapped', 'Percentage', 'Zerocounts', 'GiniIndex']]
     
@@ -176,7 +192,7 @@ def gene_selection_table(results):
 def sgRNA_accross_conditions(result, width=500, height=250):
     conditions = [{'baseline':condition.split('_vs_')[1] , 'treatment':condition.split('_vs_')[0]} for condition in result.comparisons_dict.keys()]
     baselines=set([condition['baseline'] for condition in conditions])
-    features=widgets.Text(value='MYC', placeholder='Feature to show...', description='Feature:')
+    features=widgets.Text(value='', placeholder='Feature to show...', description='Feature:')
     @interact(feature=features, baseline=baselines)
     def sgRNA_accross_conditions(feature, baseline):
         treatments = [condition['treatment'] for condition in conditions if condition['baseline'] == baseline]
@@ -185,50 +201,50 @@ def sgRNA_accross_conditions(result, width=500, height=250):
             print('Feature:', feature)
             print('Baseline', baseline)
             print('Treatment', treatment)
+            if feature != '':
+                tables_to_concatenate = []
+                comp = treatment + '_vs_' + baseline
+                table = result.comparisons_dict[comp]['sgRNA'].copy()
+                new_names = [(i,treatment + "|" + i) for i in table.iloc[:, 2:].columns.values]
+                table.rename(columns = dict(new_names), inplace=True)
+                tables_to_concatenate.append(table)
 
-            tables_to_concatenate = []
-            comp = treatment + '_vs_' + baseline
-            table = result.comparisons_dict[comp]['sgRNA'].copy()
-            new_names = [(i,treatment + "|" + i) for i in table.iloc[:, 2:].columns.values]
-            table.rename(columns = dict(new_names), inplace=True)
-            tables_to_concatenate.append(table)
-            
-            def on_button_clicked(b):
-                info = pd.concat(tables_to_concatenate, axis=1)
-                info = info.iloc[:,~info.columns.duplicated()]
+                def on_button_clicked(b):
+                    info = pd.concat(tables_to_concatenate, axis=1)
+                    info = info.iloc[:,~info.columns.duplicated()]
 
-                info = info.loc[info['Gene'] == feature]
+                    info = info.loc[info['Gene'] == feature]
 
-                info = info.filter(regex=r'sgrna$|\|control_count$|\|treatment_count$')
+                    info = info.filter(regex=r'sgrna$|\|control_count$|\|treatment_count$')
 
-                info[[baseline+'-1',baseline+'-2', baseline+'-3']] = info[treatment + '|control_count'].str.split("/",expand=True,)
-                
-                info[[treatment+'-1',treatment+'-2', treatment+'-3']] = info[treatment + '|treatment_count'].str.split("/",expand=True,)
-                
-                info = info.drop(columns=[treatment+'|control_count', treatment+'|treatment_count'])
-                                
-                info = info.melt(id_vars=('sgrna'))
-                
+                    info[[baseline+'-1',baseline+'-2', baseline+'-3']] = info[treatment + '|control_count'].str.split("/",expand=True,)
 
-                sort_cols = natural_sort([baseline] + treatments)
-    
-                
-                chart = alt.Chart(info).mark_line().encode(
-                    x=alt.X('variable', axis=alt.Axis(title='Condition'), sort=sort_cols),
-                    y=alt.X('value:Q', axis=alt.Axis(title='Count'), sort="ascending"),
-                    color='sgrna',
-                    tooltip=['sgrna', 'value']
-                ).properties(width=width, height=height, title=feature + " sgRNAs read count by condition")
-                with output:
-                    display(chart)
+                    info[[treatment+'-1',treatment+'-2', treatment+'-3']] = info[treatment + '|treatment_count'].str.split("/",expand=True,)
 
-            button = widgets.Button(description="Show sgRNA counts")
-            output = widgets.Output()
+                    info = info.drop(columns=[treatment+'|control_count', treatment+'|treatment_count'])
 
-            display(button, output)
+                    info = info.melt(id_vars=('sgrna'))
 
-            button.on_click(on_button_clicked)
 
+                    sort_cols = natural_sort([baseline] + treatments)
+
+
+                    chart = alt.Chart(info).mark_line().encode(
+                        x=alt.X('variable', axis=alt.Axis(title='Condition'), sort=sort_cols),
+                        y=alt.X('value:Q', axis=alt.Axis(title='Count'), sort="ascending"),
+                        color='sgrna',
+                        tooltip=['sgrna', 'value']
+                    ).properties(width=width, height=height, title=feature + " sgRNAs read count by condition")
+                    with output:
+                        display(chart)
+
+                button = widgets.Button(description="Show sgRNA counts")
+                output = widgets.Output()
+
+                display(button, output)
+
+                button.on_click(on_button_clicked)
+            else: return "No feature to show."
 
 
 def mageck_mle_feature_accros_conditions(mle, baseline, feature, fdr_cutoff, comparisons, treatments):
@@ -410,22 +426,23 @@ def bagel_feature_accros_conditions(bag, baseline, feature, fdr_cutoff, comparis
     
 def feature_accros_conditions(pitviper_res):
     conditions = [{'baseline':condition.split('_vs_')[1] , 'treatment':condition.split('_vs_')[0]} for condition in pitviper_res.comparisons_dict.keys()]
-    @interact(baseline=set([condition['baseline'] for condition in conditions]), feature=widgets.Text(value='MYC', placeholder='Feature to show...', description='Feature:'))
+    @interact(baseline=set([condition['baseline'] for condition in conditions]), feature=widgets.Text(value='', placeholder='Feature to show...', description='Feature:'))
     def feature_accros_conditions(baseline, feature):
         @interact(fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05))
         def feature_accros_conditions(fdr_cutoff):
-            treatments = [condition['treatment'] for condition in conditions if condition['baseline'] == baseline]
-            comparisons = [condition['treatment']+'_vs_'+baseline for condition in conditions if condition['baseline'] == baseline]
-            if pitviper_res.tool == 'MAGeCK_MLE':
-                plot = mageck_mle_feature_accros_conditions(pitviper_res, baseline, feature, fdr_cutoff, comparisons, treatments)
-            if pitviper_res.tool == 'MAGeCK_RRA':
-                plot = mageck_rra_feature_accros_conditions(pitviper_res, baseline, feature, fdr_cutoff, comparisons, treatments)
-            if pitviper_res.tool == 'CRISPhieRmix':
-                plot = crisphiermix_feature_accros_conditions(pitviper_res, baseline, feature, fdr_cutoff, comparisons, treatments)
-            if pitviper_res.tool == 'BAGEL':
-                plot = bagel_feature_accros_conditions(pitviper_res, baseline, feature, fdr_cutoff, comparisons, treatments)   
-            return plot
-        
+            if feature != '':
+                treatments = [condition['treatment'] for condition in conditions if condition['baseline'] == baseline]
+                comparisons = [condition['treatment']+'_vs_'+baseline for condition in conditions if condition['baseline'] == baseline]
+                if pitviper_res.tool == 'MAGeCK_MLE':
+                    plot = mageck_mle_feature_accros_conditions(pitviper_res, baseline, feature, fdr_cutoff, comparisons, treatments)
+                if pitviper_res.tool == 'MAGeCK_RRA':
+                    plot = mageck_rra_feature_accros_conditions(pitviper_res, baseline, feature, fdr_cutoff, comparisons, treatments)
+                if pitviper_res.tool == 'CRISPhieRmix':
+                    plot = crisphiermix_feature_accros_conditions(pitviper_res, baseline, feature, fdr_cutoff, comparisons, treatments)
+                if pitviper_res.tool == 'BAGEL':
+                    plot = bagel_feature_accros_conditions(pitviper_res, baseline, feature, fdr_cutoff, comparisons, treatments)   
+                return plot
+            else: return "no feature to show."
         
         
         
@@ -518,8 +535,8 @@ def enrichmentCirclePlot(source, n, description, col_1, col_2):
 
     source['n_overlap'] = source['Overlapping genes'].str.len()
         
-    domain = [source['Adjusted p-value'].min(), source['Adjusted p-value'].max()]
-    range_ = [col_1, col_2]
+    domain = [0, 0.05, 1]
+    range_ = [col_1, "grey", "grey"]
     
     chart = alt.Chart(source).mark_circle(size=60).encode(
         alt.X('Combined score',
@@ -539,8 +556,13 @@ def enrichmentCirclePlot(source, n, description, col_1, col_2):
                  'n_overlap'],
         size='n_overlap',
     ).properties(
-        title=description,
-    )
+        title=description
+    ).configure_axisY(
+        titleAngle=0, 
+        titleY=-10,
+        titleX=-60,
+        labelLimit=1000
+    ).interactive()
     
     chart = (chart).properties(height=20*n, width=500)
     

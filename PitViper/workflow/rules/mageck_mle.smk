@@ -38,16 +38,16 @@ rule mageck_mle:
         "mageck mle -k {input.count_table} -d {input.designmat} -n {params.name} --threads 10 &> {log}"
 
 
-rule mageck_mle_notebooks:
-    """ Generate a jupyter notebook for data analysis of MAGeCK MLE results. """
-    input:
-        gene_summary=rules.mageck_mle.output.gene_summary,
-        sgrna_summary=rules.mageck_mle.output.sgrna_summary
-    output:
-        txt="results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/MAGeCK_MLE_{treatment}_vs_{control}.txt"
-    conda:
-        "../envs/jupyter.yaml"
-    log:
-        notebook="notebooks/{token}/{treatment}_vs_{control}_mageck_mle_processed_notebook.ipynb"
-    notebook:
-        "../notebooks/MAGeCK_MLE.py.ipynb"
+# rule mageck_mle_notebooks:
+#     """ Generate a jupyter notebook for data analysis of MAGeCK MLE results. """
+#     input:
+#         gene_summary=rules.mageck_mle.output.gene_summary,
+#         sgrna_summary=rules.mageck_mle.output.sgrna_summary
+#     output:
+#         txt="results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/MAGeCK_MLE_{treatment}_vs_{control}.txt"
+#     conda:
+#         "../envs/jupyter.yaml"
+#     log:
+#         notebook="notebooks/{token}/{treatment}_vs_{control}_mageck_mle_processed_notebook.ipynb"
+#     notebook:
+#         "../notebooks/MAGeCK_MLE.py.ipynb"
