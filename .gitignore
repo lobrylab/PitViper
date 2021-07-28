@@ -27,3 +27,4 @@ PitViper/workflow/notebooks/archives/.ipynb_checkpoints
 *.bam
 *.gz
 *.bt2
+benchmarks/
