@@ -66,10 +66,7 @@ def result():
         if result_dict['bagel_activate'] == 'False':
             result_dict['nonessentials'] = ''
             result_dict['essentials'] = ''
-            print("ICI")
-            print(result_dict['bagel_activate'])
         else:
-            print("LA")
             ess = request.files['essentials']
             ess_filename = '../resources/' + result_dict['token'] + '/' + ess.filename
             ess.save(ess_filename)
