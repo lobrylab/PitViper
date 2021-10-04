@@ -5,7 +5,7 @@
 rule generate_design_matrix:
     """Create design matrix for treatment versus control."""
     input:
-        config['inputs']['tsv']
+        config['tsv_file']
     output:
         matrix="results/{token}/design_matrices/MAGeCK/{treatment}_vs_{control}_design_matrix.txt"
     conda:
@@ -23,13 +23,13 @@ rule mageck_mle:
         params: user must choose a normalization method"""
     input:
         designmat = rules.generate_design_matrix.output.matrix,
-        count_table = "results/{token}/" + config['inputs']['normalized_count_table']
+        count_table = config['count_table_file']
     output:
         gene_summary = "results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt",
         sgrna_summary = "results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.sgrna_summary.txt"
     params:
         name = "results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}",
-        method= config['MAGeCK']['MLE']['norm-method']
+        method= config['mageck_mle_normalization']
     conda:
         "../envs/mageck.yaml"
     log:

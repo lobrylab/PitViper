@@ -5,8 +5,8 @@
 rule bagel_generate_count_matrix:
     """ Generate count matrix between two conditions for BAGEL. """
     input:
-        samples=config['inputs']['tsv'],
-        counts="results/{token}/" + config['inputs']['count_table']
+        samples=config['tsv_file'],        #config['inputs']['tsv'],
+        counts=config['count_table_file']        #config['inputs']['count_table']
     output:
         matrix="results/{token}/count_matrices/BAGEL/{treatment}_vs_{control}_count_matrix.txt"
     conda:
@@ -49,8 +49,8 @@ rule bagel_bf:
     output:
         bf = "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf"
     params:
-        nonessential = config['BAGEL']['nonessentials'],
-        essentials = config['BAGEL']['essentials']
+        nonessential = config['nonessentials'],     #config['BAGEL']['nonessentials'],
+        essentials = config['essentials']       #config['BAGEL']['essentials']
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_bf.log"
     conda:

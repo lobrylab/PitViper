@@ -6,5 +6,6 @@ dependencies:
   - r-base
   - r-dplyr
   - r-readr
+  - r-stringr
   - bioconductor-fgsea
   - bioconductor-deseq2

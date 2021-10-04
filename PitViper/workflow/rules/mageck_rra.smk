@@ -7,12 +7,11 @@ rule mageck_rra:
         output: genes and sgrnas summaries
         params: user must choose a normalization method"""
     input:
-        count_table="results/{token}/" + config['inputs']['normalized_count_table']
+        count_table=config['count_table_file']
     output:
         gene_summary = "results/{token}/MAGeCK_RRA/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt",
     params:
         name = "results/{token}/MAGeCK_RRA/{treatment}_vs_{control}/{treatment}_vs_{control}",
-        method = config['MAGeCK']['MLE']['norm-method'],
         treatment = getTreatmentIds,
         control = getControlIds
     conda:

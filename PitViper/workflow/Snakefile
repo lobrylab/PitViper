@@ -3,7 +3,7 @@ import pandas as pd
 from snakemake.utils import min_version
 min_version("5.24.0")
 
-tsv = pd.read_csv(config['inputs']['tsv'], sep="\t")
+tsv = pd.read_csv(config['tsv_file'], sep="\t")
 
 include: "rules/commons.smk"
 if "fastq" in tsv.columns or "bam" in tsv.columns:

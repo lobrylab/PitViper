@@ -1,7 +1,11 @@
+filtering_method:
+  activate: 'True'
+GSEA-like_method:
+  activate: 'True'
 BAGEL:
-  activate: 'False'
-  essentials: null
-  nonessentials: null
+  activate: 'True'
+  essentials: "resources/BAGEL/shRNA/training_essentials.txt"
+  nonessentials: "resources/BAGEL/shRNA/training_nonessential.txt"
 CRISPhieRmix:
   activate: 'True'
 MAGeCK:
@@ -11,7 +15,8 @@ MAGeCK:
   RRA:
     activate: 'True'
 inputs:
-  count_table: results/shRNA/screen.count.txt
+  count_table: screen.count.txt
+  # normalized_count_table: screen.count_normalized.txt
   library: resources/libraries/shRNA/SE_lib_final.tab
   tsv: resources/metadata/shRNA/input.tsv
 token: shRNA

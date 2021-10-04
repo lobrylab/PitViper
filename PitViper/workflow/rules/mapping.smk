@@ -4,9 +4,9 @@
 
 rule library_convert:
     input:
-        csv=config['inputs']['library']
+        csv=config['library_file']
     output:
-        fa=config['inputs']['library'] + ".fa"
+        fa=config['library_file'] + ".fa"
     shell:
         "./workflow/scripts/convertLibrary.sh {input.csv} {output.fa}"
 
@@ -15,9 +15,9 @@ rule bowtie_build:
     input:
         rules.library_convert.output.fa
     output:
-        index=config['inputs']['library'][0:-4] + ".1.bt2"
+        index=config['library_file'][0:-4] + ".1.bt2"
     params:
-        config['inputs']['library'][0:-4]
+        config['library_file'][0:-4]
     conda:
         "../envs/bowtie.yaml"
     log:
@@ -27,7 +27,7 @@ rule bowtie_build:
 
 
 def index(wildcards):
-    full_name = config['inputs']['library']
+    full_name = config['library_file']
     m = re.match("(^.+)\.\w+$", full_name)
     if m:
         return m.group(1)

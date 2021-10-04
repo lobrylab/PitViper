@@ -55,9 +55,9 @@ class ToolResult:
             if self.tool in ['MAGeCK_MLE', 'MAGeCK_RRA']:
                 sgRNA_table = self.TOOLS_sgRNA_PATH[self.tool].format(tool_path=self.path, directory=directory)
                 comparisons_dict[directory]['sgRNA'] = pd.read_csv(sgRNA_table, sep=self.SEPARATORS[self.tool])
-            if self.tool in ['CRISPhieRmix']:
-                DESeq2_results = self.DESEQ2_PATH.format(tool_path=self.path, directory=directory)
-                comparisons_dict[directory]['DESeq2'] = pd.read_csv(DESeq2_results, sep=self.SEPARATORS[self.tool])
+#             if self.tool in ['CRISPhieRmix']:
+#                 DESeq2_results = self.DESEQ2_PATH.format(tool_path=self.path, directory=directory)
+#                 comparisons_dict[directory]['DESeq2'] = pd.read_csv(DESeq2_results, sep=self.SEPARATORS[self.tool])
                     
         self.comparisons_dict = comparisons_dict
 
@@ -418,7 +418,8 @@ def bagel_feature_accros_conditions(bag, baseline, feature, fdr_cutoff, comparis
                 color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
                 tooltip=['feature', 'BF', 'significant', 'STD', 'NumObs'],
         ).properties(
-                title=feature + " BF versus baseline (BAGEL)",
+                title=feature + " BF versus baseline" (
+    ),
                 width=100
         )
     return plot

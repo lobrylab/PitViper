@@ -3,13 +3,13 @@ BAGEL:
   essentials: null
   nonessentials: null
 CRISPhieRmix:
-  activate: 'False'
+  activate: 'True'
 MAGeCK:
   MLE:
-    activate: 'False'
+    activate: 'True'
     norm-method: total
   RRA:
-    activate: 'False'
+    activate: 'True'
 inputs:
   count_table: screen.count.txt
   normalized_count_table: screen.count_normalized.txt
