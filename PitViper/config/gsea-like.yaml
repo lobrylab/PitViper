@@ -15,4 +15,4 @@ inputs:
   normalized_count_table: screen.count_normalized.txt
   library: resources/libraries/CRISPRi/SE_lib_final.tab
   tsv: resources/metadata/CRISPRi/input.tsv
-token: DESeq2_rule_test
+token: params_test

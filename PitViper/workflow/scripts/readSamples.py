@@ -100,8 +100,6 @@ def readSamples(file, directory, control, treatment, dryrun):
     design = Design(file, control, [control, treatment])
     design.create_design_matrix()
     file_name = directory + '{treatment}_vs_{control}_design_matrix.txt'.format(control=control, treatment=treatment)
-    print(file_name)
-    print(design.design_matrix)
     if not dryrun:
         design.design_matrix.to_csv(file_name, index=False, sep="\t")
 
