@@ -29,13 +29,27 @@ rule mageck_mle:
         sgrna_summary = "results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.sgrna_summary.txt"
     params:
         name = "results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}",
-        method= config['mageck_mle_normalization']
+        method= config['mageck_mle_normalization'],
+        adj_opt = config['mageck_mle_adj'],
+        mean_var_opt = config['mageck_mle_mean_var'],
+        outliers_opt = lambda x: "--remove-outliers" if config['mageck_mle_outliers'] == 'True' else '',
+        perm_round_opt = config['mageck_mle_perm_N'],
+        no_perm_group_opt = lambda x: "--no-permutation-by-group" if config['mageck_mle_perm_all'] == 'True' else ''
     conda:
         "../envs/mageck.yaml"
     log:
         "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}.log"
     shell:
-        "mageck mle -k {input.count_table} -d {input.designmat} -n {params.name} --threads 10 &> {log}"
+        "mageck mle -k {input.count_table} \
+            -d {input.designmat} \
+            -n {params.name} \
+            --threads 10 \
+            --adjust-method {params.adj_opt} \
+            --genes-varmodeling {params.mean_var_opt} \
+            --norm-method {params.method} \
+            {params.outliers_opt} \
+            --permutation-round {params.perm_round_opt} \
+            {params.no_perm_group_opt} &> {log}"
 
 
 # rule mageck_mle_notebooks:

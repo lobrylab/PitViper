@@ -13,7 +13,13 @@ rule mageck_rra:
     params:
         name = "results/{token}/MAGeCK_RRA/{treatment}_vs_{control}/{treatment}_vs_{control}",
         treatment = getTreatmentIds,
-        control = getControlIds
+        control = getControlIds,
+        lfc_method_opt = config['mageck_rra_LFC'],
+        ajd_method_opt = config['mageck_rra_adj'],
+        rm_zero_threshold_opt = config['mageck_rra_count_min'],
+        sorting_criteria_opt = config['mageck_rra_criteria'],
+        test_threshold_opt = config['mageck_rra_pthreshold'],
+        remove_from_opt = config['mageck_rra_remove']
     conda:
         "../envs/mageck.yaml"
     log:
@@ -23,4 +29,10 @@ rule mageck_rra:
             -k {input.count_table} \
             -t {params.treatment} \
             -c {params.control} \
-            -n results/{wildcards.token}/MAGeCK_RRA/{wildcards.treatment}_vs_{wildcards.control}/{wildcards.treatment}_vs_{wildcards.control} &> {log}"
+            -n results/{wildcards.token}/MAGeCK_RRA/{wildcards.treatment}_vs_{wildcards.control}/{wildcards.treatment}_vs_{wildcards.control} \
+            --gene-lfc-method {params.lfc_method_opt} \
+            --adjust-method {params.ajd_method_opt} \
+            --remove-zero-threshold {params.rm_zero_threshold_opt} \
+            --sort-criteria {params.sorting_criteria_opt} \
+            --gene-test-fdr-threshold {params.test_threshold_opt} \
+            --remove-zero {params.remove_from_opt} &> {log}"
