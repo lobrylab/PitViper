@@ -1,4 +1,5 @@
 .snakemake
+PitViper/trash
 data/
 logs/
 results/
