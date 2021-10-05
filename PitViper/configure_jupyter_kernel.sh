@@ -1,4 +1,4 @@
-conda env create -f pitviper_jupyter.yml -n pitviper_jupyter -y
+conda env create -f pitviper_jupyter.yml -n pitviper_jupyter
 
 conda activate pitviper_jupyter
 
