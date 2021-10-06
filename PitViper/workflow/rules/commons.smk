@@ -103,13 +103,13 @@ def get_pipeline_outputs(wildcards):
 
     token = config['token']
 
-    #wanted_outputs.append("results/" + config['token'] + "/reports/PitViper_report.ipynb")
+    wanted_outputs.append("results/" + config['token'] + "/reports/PitViper_report_" + config['token'] + ".ipynb")
 
     for comparaison in comparaisons:
         if (config['filtering_activate'] == 'True'):
             wanted_outputs.append("results/{token}/in_house_method/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_in-house.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
-        wanted_outputs.append("results/{token}/GSEA-like/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_GSEA-like.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if (config['gsea_activate'] == 'True'):
+            wanted_outputs.append("results/{token}/GSEA-like/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_GSEA-like.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
             wanted_outputs.append("results/{token}/DESeq2/{treatment}_vs_{control}/{treatment}_vs_{control}_DESeq2_table.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if (config['bagel_activate'] == 'True'):
             wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))

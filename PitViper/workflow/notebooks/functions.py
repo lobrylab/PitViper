@@ -32,17 +32,17 @@ def setup_step_1(token):
     
     tools = ["DESeq2"]
     
-    if content[mageck_mle_activate] == 'True':
+    if content["mageck_mle_activate"] == 'True':
         tools.append("MAGeCK_MLE")
-    if content[mageck_rra_activate] == 'True':
+    if content["mageck_rra_activate"] == 'True':
         tools.append("MAGeCK_RRA")
-    if content[bagel_activate] == 'True':
+    if content["bagel_activate"] == 'True':
         tools.append("BAGEL")
-    if content[crisphiermix_activate] == 'True':
+    if content["crisphiermix_activate"] == 'True':
         tools.append("CRISPhieRmix")
-    if content[filtering_activate] == 'True':
+    if content["filtering_activate"] == 'True':
         tools.append("in_house_method")
-    if content[gsea_activate] == 'True':
+    if content["gsea_activate"] == 'True':
         tools.append("GSEA-like")
     
     results_directory = "results/%s/" % token
@@ -54,6 +54,20 @@ def setup_step_1(token):
         if tool in os.listdir(results_directory):
             print("\t-%s" % tool)
             tools_available[tool] = {}
+            
+    for tool in tools_available:
+        print("- Process %s results..." % tool)
+        for comparison in os.listdir(results_directory + tool):
+            tools_available[tool][comparison] = {}
+            for file in os.listdir(os.path.join(results_directory, tool, comparison)):
+                if file.endswith('.txt') or file.endswith('.bf'):
+                    if tool in ["CRISPhieRmix"]:
+                        sep = ","
+                    else:
+                        sep = "\t"
+                    tools_available[tool][comparison][file] = pd.read_csv(os.path.join(results_directory, tool, comparison, file), sep = sep)          
+            
+    return (results_directory, tools_available)
             
             
             
@@ -163,7 +177,7 @@ def CRISPhieRmix_results(results_directory, tools_available):
               gene=widgets.Text(value='', placeholder='Feature to show...', description='Feature:'))
     def CRISPhieRmix_results(control, fdr_cutoff, gene):    
         tool = "CRISPhieRmix"
-        result = CRISPhieRmix_data(comparison = "", control = control, tool = tool)
+        result = CRISPhieRmix_data(comparison = "", control = control, tool = tool, results_directory=results_directory, tools_available=tools_available)
         result.loc[result['locfdr'] < fdr_cutoff, 'significant'] = 'Yes' 
         result.loc[result['locfdr'] >= fdr_cutoff, 'significant'] = 'No'
         new_row = {'gene':gene, 'condition':control, 'significant': 'Baseline', 'locfdr':1, 'score': 0}
@@ -173,14 +187,15 @@ def CRISPhieRmix_results(results_directory, tools_available):
         range_ = ['red', 'grey', 'black']
         
         
+       
         def on_button_clicked(b):
-            sort_cols = natural_sort([control] + comparison.split("_vs_"))
+            sort_cols = natural_sort(list(res.condition.values))
             plot = alt.Chart(res).mark_circle(size=60).mark_point(
                 filled=True,
                 size=100,
                 ).encode(
                         y='locfdr',
-                        x=alt.X('condition:N', sort=sort_cols),
+                        x=alt.X('condition:O', sort=sort_cols),
                         color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
                         tooltip=['gene', 'locfdr', 'significant', 'score'],
                 ).properties(
@@ -225,7 +240,7 @@ def GSEA_like_results(results_directory, tools_available):
               gene=widgets.Text(value='', placeholder='Feature to show...', description='Feature:'))
     def GSEA_like_results(control, fdr_cutoff, gene):    
         tool = "GSEA-like"
-        result = GSEA_like_data(comparison = "", control = control, tool = tool)
+        result = GSEA_like_data(comparison = "", control = control, tool = tool, results_directory=results_directory, tools_available=tools_available)
         result.loc[result['padj'] < fdr_cutoff, 'significant'] = 'Yes' 
         result.loc[result['padj'] >= fdr_cutoff, 'significant'] = 'No'
         new_row = {'pathway':gene, 'condition':control, 'significant': 'Baseline', 'pval':1, 'padj':1 ,'ES': 0, 'NES': 0, 'nMoreExtreme':None, 'size':None}
@@ -236,8 +251,7 @@ def GSEA_like_results(results_directory, tools_available):
 
         
         def on_button_clicked(b):
-            sort_cols = natural_sort([control] + comparison.split("_vs_"))
-
+            sort_cols = natural_sort(list(res.condition.values))
             plot = alt.Chart(res).mark_circle(size=60).mark_point(
                 filled=True,
                 size=100,
@@ -288,7 +302,7 @@ def in_house_method_results(results_directory, tools_available):
               gene=widgets.Text(value='', placeholder='Feature to show...', description='Feature:'))
     def in_house_method_results(control, fdr_cutoff, gene):    
         tool = "in_house_method"
-        result = in_house_method_data(comparison = "", control = control, tool = tool)
+        result = in_house_method_data(comparison = "", control = control, tool = tool, results_directory=results_directory, tools_available=tools_available)
         result.loc[result['category'] == "down", 'significant'] = 'Yes' 
         result.loc[result['category'] != "down", 'significant'] = 'No'
         new_row = {'Gene':gene, 'condition':control, 'significant': 'Baseline', 'down':0 ,'score': 0, 'prop': 0, 'up': 0, 'n': 0, 'category': 'Baseline'}
@@ -299,8 +313,7 @@ def in_house_method_results(results_directory, tools_available):
 
         
         def on_button_clicked(b):
-            sort_cols = natural_sort([control] + comparison.split("_vs_"))
-
+            sort_cols = natural_sort(list(res.condition.values))
             plot = alt.Chart(res).mark_circle(size=60).mark_point(
                 filled=True,
                 size=100,
@@ -367,7 +380,7 @@ def MAGeCK_RRA_results(results_directory, tools_available):
               gene=widgets.Text(value='', placeholder='Feature to show...', description='Feature:'))
     def MAGeCK_RRA(control, fdr_cutoff, gene):    
         tool = "MAGeCK_RRA"
-        result = MAGeCK_RRA_data(comparison = "", control = control, tool = tool)
+        result = MAGeCK_RRA_data(comparison = "", control = control, tool = tool, results_directory=results_directory, tools_available=tools_available)
         result.loc[result['neg|fdr'] < fdr_cutoff, 'significant'] = 'Yes' 
         result.loc[result['neg|fdr'] >= fdr_cutoff, 'significant'] = 'No'
         new_row = {'id':gene, 'condition':control, 'significant': 'Baseline', 'neg|fdr':1, 'neg|lfc': 0}
@@ -378,8 +391,7 @@ def MAGeCK_RRA_results(results_directory, tools_available):
 
         
         def on_button_clicked(b):
-            sort_cols = natural_sort([control] + comparison.split("_vs_"))
-
+            sort_cols = natural_sort(list(res.condition.values))
             plot = alt.Chart(res).mark_circle(size=60).mark_point(
                 filled=True,
                 size=100,
@@ -449,7 +461,7 @@ def MAGeCK_MLE_results(results_directory, tools_available):
               gene=widgets.Text(value='', placeholder='Feature to show...', description='Feature:'))
     def MAGeCK_MLE(control, fdr_cutoff, gene):    
         tool = "MAGeCK_MLE"
-        result = MAGeCK_MLE_data(comparison = "", control = control, tool = tool)
+        result = MAGeCK_MLE_data(comparison = "", control = control, tool = tool, results_directory=results_directory, tools_available=tools_available)
         result.loc[result['fdr'] < fdr_cutoff, 'significant'] = 'Yes' 
         result.loc[result['fdr'] >= fdr_cutoff, 'significant'] = 'No'
         new_row = {'Gene':gene, 'condition':control, 'significant': 'Baseline', 'fdr':1, 'beta': 0}
@@ -461,8 +473,7 @@ def MAGeCK_MLE_results(results_directory, tools_available):
 
         
         def on_button_clicked(b):
-            sort_cols = natural_sort([control] + comparison.split("_vs_"))
-
+            sort_cols = natural_sort(list(res.condition.values))
             plot = alt.Chart(res).mark_circle(size=60).mark_point(
                 filled=True,
                 size=100,
@@ -534,7 +545,7 @@ def BAGEL_results(results_directory, tools_available):
               gene=widgets.Text(value='', placeholder='Feature to show...', description='Feature:'))
     def BAGEL(control, fdr_cutoff, gene):    
         tool = "BAGEL"
-        result = BAGEL_data(comparison = "", control = control, tool = tool)
+        result = BAGEL_data(comparison = "", control = control, tool = tool, results_directory=results_directory, tools_available=tools_available)
         result.loc[result['BF'] > 0, 'significant'] = 'Yes' 
         result.loc[result['BF'] <= 0, 'significant'] = 'No'
         new_row = {'GENE':gene, 'condition':control, 'significant': 'Baseline', 'BF':0,}
@@ -545,8 +556,7 @@ def BAGEL_results(results_directory, tools_available):
 
         
         def on_button_clicked(b):
-            sort_cols = natural_sort([control] + comparison.split("_vs_"))
-
+            sort_cols = natural_sort(list(res.condition.values))
             plot = alt.Chart(res).mark_circle(size=60).mark_point(
                 filled=True,
                 size=100,
@@ -571,13 +581,13 @@ def BAGEL_results(results_directory, tools_available):
 
         
         
-def MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig):
+def MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
     tool = "MAGeCK_MLE"
     print(tool)
     print(comparison)
     print(fdr_cutoff)
     treatment, control = comparison.split("_vs_")
-    source = MAGeCK_MLE_data(comparison = comparison, control = "", tool = tool)
+    source = MAGeCK_MLE_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
 
     source['default_rank'] = source[treatment + '|beta'].rank()
     source.loc[source[treatment + '|fdr'] < 0.05, 'significant'] = 'Yes' 
@@ -590,7 +600,8 @@ def MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig):
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y(treatment + '|beta:Q'),
             tooltip=['Gene', 'sgRNA', treatment + '|beta', treatment + '|fdr', 'significant'],
-            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:"))
+            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
+            order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
 
         line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
@@ -609,13 +620,13 @@ def MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig):
     
     
     
-def MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig):
+def MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
     tool = "MAGeCK_RRA"
     print(tool)
     print(comparison)
     print(fdr_cutoff)
     treatment, control = comparison.split("_vs_")
-    source = MAGeCK_RRA_data(comparison = comparison, control = "", tool = tool)
+    source = MAGeCK_RRA_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
 
     source['default_rank'] = source['neg|lfc'].rank()
     source.loc[source['neg|fdr'] < 0.05, 'significant'] = 'Yes' 
@@ -628,7 +639,8 @@ def MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig):
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('neg|lfc:Q'),
             tooltip=['id', 'num', 'neg|lfc', 'neg|fdr', 'significant', 'neg|rank'],
-            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:"))
+            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
+            order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
 
         line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
@@ -646,13 +658,13 @@ def MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig):
     
     
     
-def CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig):
+def CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig,results_directory, tools_available):
     tool = "CRISPhieRmix"
     print(tool)
     print(comparison)
     print(fdr_cutoff)
     treatment, control = comparison.split("_vs_")
-    source = CRISPhieRmix_data(comparison = comparison, control = "", tool = tool)
+    source = CRISPhieRmix_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
     source['default_rank'] = source['locfdr'].rank(method='dense')
     source.loc[source['FDR'] < 0.05, 'significant'] = 'Yes' 
     source.loc[source['FDR'] >= 0.05, 'significant'] = 'No'
@@ -664,7 +676,8 @@ def CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig):
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('locfdr:Q'),
             tooltip=['gene', 'locfdr', 'score', 'FDR', 'significant'],
-            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:"))
+            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
+            order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
 
         line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
@@ -683,13 +696,13 @@ def CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig):
 
 
 
-def in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig):
+def in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
     tool = "in_house_method"
     print(tool)
     print(comparison)
     print(fdr_cutoff)
     treatment, control = comparison.split("_vs_")
-    source = in_house_method_data(comparison = comparison, control = "", tool = tool)
+    source = in_house_method_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
     source['default_rank'] = source['score'].rank(method='dense')
     source.loc[abs(source['score']) > 0.5, 'significant'] = 'Yes' 
     source.loc[abs(source['score']) <= 0.5, 'significant'] = 'No'
@@ -701,7 +714,8 @@ def in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig):
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('score:Q'),
             tooltip=['Gene', 'up', 'down', 'n', 'significant', 'score'],
-            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:"))
+            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
+            order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
 
         line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
@@ -726,7 +740,7 @@ def GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig):
     print(comparison)
     print(fdr_cutoff)
     treatment, control = comparison.split("_vs_")
-    source = GSEA_like_data(comparison = comparison, control = "", tool = tool)
+    source = GSEA_like_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
     source['default_rank'] = source['NES'].rank(method='dense')
     source.loc[abs(source['pval']) < fdr_cutoff, 'significant'] = 'Yes' 
     source.loc[abs(source['pval']) >= fdr_cutoff, 'significant'] = 'No'
@@ -738,7 +752,8 @@ def GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig):
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('NES:Q'),
             tooltip=['pathway', 'pval', 'padj', 'ES', 'NES','significant', 'nMoreExtreme', 'size'],
-            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:"))
+            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
+            order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
 
         line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
@@ -755,13 +770,13 @@ def GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig):
     button.on_click(on_button_clicked)
     
     
-def BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig):
+def BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
     tool = "BAGEL"
     print(tool)
     print(comparison)
     print(fdr_cutoff)
     treatment, control = comparison.split("_vs_")
-    source = BAGEL_data(comparison = comparison, control = "", tool = tool)
+    source = BAGEL_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
     source['default_rank'] = source['BF'].rank(method='dense')
     source.loc[source['BF'] > 0, 'significant'] = 'Yes' 
     source.loc[source['BF'] <= 0, 'significant'] = 'No'
@@ -773,7 +788,8 @@ def BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig):
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('BF:Q'),
             tooltip=['GENE', 'BF', 'STD', 'significant'],
-            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:"))
+            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
+            order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
 
         line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
@@ -792,27 +808,27 @@ def BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig):
     
     
     
-def snake_plot():
+def snake_plot(results_directory, tools_available):
     @interact(tools=widgets.Dropdown(options=set(["CRISPhieRmix", "GSEA-like", "in_house_method", "MAGeCK_MLE", "MAGeCK_RRA", "BAGEL"]), description='Tool:', disabled=False))
     def snake_plot(tools):
-        comparisons_list = os.listdir(os.path.join(results_directory, tool))
-        ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
+        comparisons_list = os.listdir(os.path.join(results_directory, tools))
+        ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tools].keys())))
         @interact(comparison=widgets.Dropdown(options=comparisons_list, description='Treatment:', disabled=False),
             fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05),
             non_sig=widgets.ColorPicker(concise=False, description='Non-significant', value='#949494', disabled=False),
             sig=widgets.ColorPicker(concise=False, description='Significant', value='red', disabled=False))
         def snake_plot(comparison, fdr_cutoff, non_sig, sig):
             if tools == "MAGeCK_RRA":
-                MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig)
+                MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
             if tools == "MAGeCK_MLE":
-                MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig)
+                MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
             if tools == "CRISPhieRmix":
-                CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig)
+                CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
             if tools == "in_house_method":
-                in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig)
+                in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
             if tools == "GSEA-like":
-                GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig)
+                GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
             if tools == "BAGEL":
-                BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig)
+                BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
             else:
                 print("Choose a tool.")
