@@ -32,7 +32,7 @@ def get_config(form_results):
 
 def run_pitviper(token):
     configfile = 'config/{token}.yaml'.format(token=token)
-    cmd = "python3 pitviper.py --run_snakemake True --configfile {conf}".format(conf=configfile)
+    cmd = "python3 pitviper.py --run_snakemake True --configfile {conf} --jobs 5".format(conf=configfile)
     print(cmd)
     os.chdir('../')
     os.system(cmd)
