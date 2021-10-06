@@ -1,5 +1,6 @@
 .snakemake
 PitViper/trash
+PitViper/resources
 data/
 logs/
 results/
