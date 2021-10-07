@@ -10,8 +10,8 @@ rule DESeq2_counts:
     params:
         treatment="{treatment}",
         control="{control}"
-    conda:
-        "../envs/screen_enrichment_analysis.yml"
+    # conda:
+    #     "../envs/screen_enrichment_analysis.yml"
     log:
         "logs/{token}/DESeq2/{treatment}_vs_{control}.log"
     benchmark:
@@ -33,8 +33,8 @@ rule filtering_method:
     params:
         treatment="{treatment}",
         control="{control}"
-    conda:
-        "../envs/screen_enrichment_analysis.yml"
+    # conda:
+    #     "../envs/screen_enrichment_analysis.yml"
     log:
         "logs/{token}/in_house_method/{treatment}_vs_{control}.log"
     benchmark:

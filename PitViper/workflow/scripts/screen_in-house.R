@@ -42,6 +42,6 @@ in.house.up <- in.house.res %>%
 
 
 # Write results.
-write_tsv(data.frame(in.house.down), snakemake@output[[1]], quote = FALSE)
-write_tsv(data.frame(in.house.up), snakemake@output[[2]], quote = FALSE)
-write_tsv(data.frame(in.house.res), snakemake@output[[3]], quote = FALSE)
+write.table(data.frame(in.house.down), snakemake@output[[1]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
+write.table(data.frame(in.house.up), snakemake@output[[2]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
+write.table(data.frame(in.house.res), snakemake@output[[3]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)

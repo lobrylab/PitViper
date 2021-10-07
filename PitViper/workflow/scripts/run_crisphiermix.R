@@ -3,11 +3,11 @@ sink(con, append=TRUE)
 sink(con, append=TRUE, type="message")
 
 
-list.of.packages <- c('CRISPhieRmix')
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,'Package'])]
-if(length(new.packages)) {
-  devtools::install_github('timydaley/CRISPhieRmix')
-}
+# list.of.packages <- c('CRISPhieRmix')
+# new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,'Package'])]
+# if(length(new.packages)) {
+#   devtools::install_github('timydaley/CRISPhieRmix')
+# }
 
 print(snakemake@input[[1]])
 print(snakemake@params[[1]])

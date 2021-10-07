@@ -20,8 +20,8 @@ rule mageck_rra:
         sorting_criteria_opt = config['mageck_rra_criteria'],
         test_threshold_opt = config['mageck_rra_pthreshold'],
         remove_from_opt = config['mageck_rra_remove']
-    conda:
-        "../envs/mageck.yaml"
+    # conda:
+    #     "../envs/mageck.yaml"
     log:
         "logs/{token}/MAGeCK/RRA/{treatment}_vs_{control}.log"
     shell:

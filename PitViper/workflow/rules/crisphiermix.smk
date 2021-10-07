@@ -9,8 +9,8 @@ rule crisphiermix_generate_count_matrix:
         counts=config['count_table_file']
     output:
         matrix="results/{token}/count_matrices/CRISPhieRmix/{treatment}_vs_{control}_count_matrix.txt"
-    conda:
-        "../envs/commons.yaml"
+    # conda:
+    #     "../envs/commons.yaml"
     log:
         "logs/{token}/CRISPhieRmix/{treatment}_vs_{control}_count_matrix.log"
     shell:
@@ -36,8 +36,8 @@ rule CRISPhieRmix:
     params:
         n_control=getControlIdsLen,
         n_treatment=getTreatmentIdsLen
-    conda:
-        "../envs/crisphiermix.yaml"
+    # conda:
+    #     "../envs/crisphiermix.yaml"
     log:
         "logs/{token}/CRISPhieRmix/{treatment}_vs_{control}.log"
     benchmark:

@@ -45,4 +45,6 @@ res <- data.frame(res)
 res <- tibble::rownames_to_column(res, "sgRNA")
 
 # Write output
-write_tsv(data.frame(res), snakemake@output[[1]], quote = FALSE)
+print(snakemake@output[[1]])
+# write_delim(x = data.frame(res), file = snakemake@output[[1]], quote = FALSE, delim = "\t")
+write.table(x = data.frame(res), file = snakemake@output[[1]], append = FALSE, sep = "\t", quote = FALSE, row.names = FALSE)

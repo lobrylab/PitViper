@@ -23,8 +23,8 @@ rule mageck_count_fastq:
         length_opt = config['mageck_count_length'],
         align_all_opt = config['mageck_count_all_align'],
         count_N_opt = config['mageck_count_N']
-    conda:
-        "../envs/mageck.yaml"
+    # conda:
+    #     "../envs/mageck.yaml"
     log:
         "logs/mapping/MAGeCK_counts_fastq.log"
     shell:
@@ -55,8 +55,8 @@ rule mageck_count_bam:
         length_opt = config['mageck_count_length'],
         align_all_opt = config['mageck_count_all_align'],
         count_N_opt = config['mageck_count_N']
-    conda:
-        "../envs/mageck.yaml"
+    # conda:
+    #     "../envs/mageck.yaml"
     log:
         "logs/mapping/MAGeCK_counts_bam.log"
     shell:

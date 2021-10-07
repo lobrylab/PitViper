@@ -52,6 +52,6 @@ sign.down.res <- fgseaRes[ES < 0 & pval < 0.05] %>% arrange(pval)
 sign.up.res <- fgseaRes[ES > 0 & pval < 0.05] %>% arrange(pval)
 
 
-write_tsv(data.frame(sign.down.res), snakemake@output[[1]], quote = FALSE)
-write_tsv(data.frame(sign.up.res), snakemake@output[[2]], quote = FALSE)
-write_tsv(data.frame(fgseaRes), snakemake@output[[3]], quote = FALSE)
+write.table(data.frame(sign.down.res), snakemake@output[[1]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
+write.table(data.frame(sign.up.res), snakemake@output[[2]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
+write.table(data.frame(fgseaRes), snakemake@output[[3]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)

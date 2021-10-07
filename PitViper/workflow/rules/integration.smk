@@ -50,30 +50,46 @@ def generatedResults(wildcards):
 #     input:
 #         generatedResults
 #     output:
-#         pdf="results/" + config['token'] + "/reports/integration.pdf"
-#     conda:
-#         "../envs/jupyter.yaml"
+#         # nb="results/" + config['token'] + "/reports/PitViper_report_" + config['token'] + ".ipynb"
+#         "test.txt"
 #     log:
-#         notebook="notebooks/" + config['token'] + "/report_integration_notebook.ipynb"
+#         notebook="logs/notebooks/processed_notebook.ipynb"
+#         # notebook="results/" + config['token'] + "/reports/PitViper_report_" + config['token'] + ".ipynb"
 #     notebook:
-#         "../notebooks/Reports_Integration.py.ipynb"
+#         "notebooks/hello.py.ipynb"
+#         # "workflow/notebooks/Rapport_PitViper_copie.ipynb"
 
 
-rule generate_report:
+rule genes_integration:
     input:
         generatedResults
     output:
-        notebook="results/" + config['token'] + "/reports/PitViper_report_" + config['token'] + ".ipynb"
+        "results/" + config['token'] + "/dumpfile.txt"
     params:
-        template="workflow/notebooks/Rapport_PitViper.ipynb",
-        token=config['token']
-    conda:
-        "../envs/jupyter.yaml"
+        config['token']
+    # conda:
+    #     "../envs/jupyter.yaml"
     log:
-        "logs/" + config['token'] + "/reports/PitViper_report.log"
-    shell:
-        "papermill {params.template} {output.notebook} \
-            -p token {params.token}"
+        notebook="results/" + config['token'] + "/Report.ipynb"
+    notebook:
+        "workflow/notebooks/Report_template.py.ipynb"
+
+
+# rule generate_report:
+#     input:
+#         generatedResults
+#     output:
+#         notebook="results/" + config['token'] + "/reports/PitViper_report_" + config['token'] + ".ipynb"
+#     params:
+#         template="workflow/notebooks/Rapport_PitViper.ipynb",
+#         token=config['token']
+#     # conda:
+#     #     "../envs/jupyter.yaml"
+#     log:
+#         "logs/" + config['token'] + "/reports/PitViper_report.log"
+#     shell:
+#         "papermill {params.template} {output.notebook} \
+#             -p token {params.token}"
 
 
 # rule cp_report:

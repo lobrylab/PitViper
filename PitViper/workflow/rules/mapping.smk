@@ -18,8 +18,8 @@ rule bowtie_build:
         index=config['library_file'][0:-4] + ".1.bt2"
     params:
         config['library_file'][0:-4]
-    conda:
-        "../envs/bowtie.yaml"
+    # conda:
+    #     "../envs/bowtie.yaml"
     log:
         "logs/mapping/bowtie_build.log"
     shell:
@@ -43,8 +43,8 @@ rule bowtie_mapping:
         adap5="20",
         adap3="10",
         index_base_name=index
-    conda:
-        "../envs/bowtie.yaml"
+    # conda:
+    #     "../envs/bowtie.yaml"
     log:
         "logs/Bowtie_mapping/{sample}_bowtie_mapping.log"
     shell:

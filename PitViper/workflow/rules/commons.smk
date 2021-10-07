@@ -103,7 +103,7 @@ def get_pipeline_outputs(wildcards):
 
     token = config['token']
 
-    wanted_outputs.append("results/" + config['token'] + "/reports/PitViper_report_" + config['token'] + ".ipynb")
+    wanted_outputs.append("results/" + config['token'] + "/ExecutionComplete.txt")
 
     for comparaison in comparaisons:
         if (config['filtering_activate'] == 'True'):

@@ -8,8 +8,8 @@ rule generate_design_matrix:
         config['tsv_file']
     output:
         matrix="results/{token}/design_matrices/MAGeCK/{treatment}_vs_{control}_design_matrix.txt"
-    conda:
-        "../envs/commons.yaml"
+    # conda:
+    #     "../envs/commons.yaml"
     log:
         "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}_design_matrix.log"
     shell:
@@ -35,8 +35,8 @@ rule mageck_mle:
         outliers_opt = lambda x: "--remove-outliers" if config['mageck_mle_outliers'] == 'True' else '',
         perm_round_opt = config['mageck_mle_perm_N'],
         no_perm_group_opt = lambda x: "--no-permutation-by-group" if config['mageck_mle_perm_all'] == 'True' else ''
-    conda:
-        "../envs/mageck.yaml"
+    # conda:
+    #     "../envs/mageck.yaml"
     log:
         "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}.log"
     shell:
