@@ -1,0 +1,35 @@
+channels:
+  - anaconda
+  - conda-forge
+  - bioconda
+  - defaults
+  - r
+dependencies:
+  - altair=4.1.0=py_1
+  - altair_data_server=0.4.1=py_0
+  - altair_viewer=0.3.0=py_0
+  - bioconductor-deseq2= 1.32.0
+  - bioconductor-fgsea=1.18.0
+  - bowtie2=2.4.2
+  - click=7.1.2
+  - ipywidgets=7.6.3=pyhd3deb0d_0
+  - jupyter=1.0.0=py39hf3d152e_6
+  - mamba
+  - mageck=0.5.9
+  - natsort=7.0.1=py_0
+  - numpy=1.20.1=py39hdbf815f_0
+  - pandas=1.2.0
+  - pip=21.2.4
+  - r-devtools=2.4.2
+  - r-dplyr=1.0.7
+  - r-mixtools=1.2.0
+  - r-readr=2.0.2
+  - r-stringr=1.4.0
+  - samtools=1.11
+  - scipy=1.6.0=py39hee8e79c_0
+  - snakemake=6.1.0
+  - vega=3.4.0=py39hf3d152e_2
+  - vega_datasets=0.9.0=pyhd3deb0d_0
+  - pip:
+    - mc4==2.3.0
+    - pyyaml==5.4.1
