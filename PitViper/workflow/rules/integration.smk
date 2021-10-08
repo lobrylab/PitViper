@@ -72,7 +72,7 @@ rule genes_integration:
     log:
         notebook="results/" + config['token'] + "/Report.ipynb"
     notebook:
-        "workflow/notebooks/Report_template.py.ipynb"
+        "../notebooks/Report_template.py.ipynb"
 
 
 # rule generate_report:

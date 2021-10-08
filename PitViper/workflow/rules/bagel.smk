@@ -9,8 +9,8 @@ rule bagel_generate_count_matrix:
         counts=config['count_table_file']        #config['inputs']['count_table']
     output:
         matrix="results/{token}/count_matrices/BAGEL/{treatment}_vs_{control}_count_matrix.txt"
-    conda:
-        "../envs/commons.yaml"
+    # conda:
+    #     "../envs/commons.yaml"
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_count_matrix.log"
     shell:
