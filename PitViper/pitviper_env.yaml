@@ -15,6 +15,7 @@ dependencies:
   - ipywidgets=7.6.3=pyhd3deb0d_0
   - jupyter=1.0.0=py39hf3d152e_6
   - flask
+  - gawk
   - mamba
   - mageck=0.5.9
   - natsort=7.0.1=py_0
