@@ -22,22 +22,13 @@ def documentation():
     return 'Documentation!  '
 
 
-def get_config(form_results):
-    parameters_cmd = "python3 pitviper_config.py"
-    for parameter in form_results:
-        value = form_results[parameter]
-        if value == "":
-            value = "none"
-        parameters_cmd += " --{param} {value}".format(param=parameter, value=value)
-    print(parameters_cmd)
-    os.system(parameters_cmd)
-
 def run_pitviper(token):
     configfile = 'config/{token}.yaml'.format(token=token)
     cmd = "python3 pitviper.py --run_snakemake True --configfile {conf} --jobs 10".format(conf=configfile)
     print(cmd)
     # os.chdir('../')
     os.system(cmd)
+
 
 @app.route('/result',methods = ['POST', 'GET'])
 def result():
@@ -83,7 +74,6 @@ def result():
         yaml_file_name = 'config/' + result['token'] + '.yaml'
         with open(yaml_file_name, 'w') as file:
           documents = yaml.dump(result_dict, file)
-        # get_config(result)
         run_pitviper(token=result_dict['token'])
         return render_template("result.html",result = result)
 
