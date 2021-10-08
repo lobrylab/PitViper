@@ -444,7 +444,7 @@ def MAGeCK_MLE_data(comparison = "", control = "", tool = "", results_directory 
                 data['condition'] = trt
                 if mode:
                     data = data[data.columns.drop(list(data.filter(regex= '%s' % control)))]
-                    data = data.rename(columns=lambda x: re.sub('\w+\|','',x))
+                    data = data.rename(columns=lambda x: re.sub('.+\|','',x))
                     tables_list.append(data)
                 else:
                     tables_list.append(data)
