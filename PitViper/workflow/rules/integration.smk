@@ -64,7 +64,7 @@ rule genes_integration:
     input:
         generatedResults
     output:
-        "results/" + config['token'] + "/dumpfile.txt"
+        "results/" + config['token'] + "/ExecutionComplete.txt"
     params:
         config['token']
     # conda:
