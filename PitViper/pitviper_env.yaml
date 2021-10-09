@@ -13,6 +13,7 @@ dependencies:
   - bowtie2=2.4.2
   - click=7.1.2
   - ipywidgets=7.6.3=pyhd3deb0d_0
+  - jsonschema=3.2.0
   - jupyter=1.0.0=py39hf3d152e_6
   - flask
   - gawk
