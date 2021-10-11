@@ -55,6 +55,7 @@ def result():
             count_table_filename = 'resources/' + result_dict['token'] + '/' + count_table_file.filename
             count_table_file.save(count_table_filename)
             result_dict['count_table_file'] = count_table_filename
+            result_dict['normalized_count_table'] = 'results/' + result_dict['token'] + '/screen.count_normalized.txt'
 
         if result_dict['bagel_activate'] == 'False':
             result_dict['nonessentials'] = ''

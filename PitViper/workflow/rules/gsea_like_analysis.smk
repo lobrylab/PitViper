@@ -5,7 +5,7 @@
 rule gsea_like:
     """Implementation of a GSEA-like method for screened elements prioritization."""
     input:
-        count_table=config['count_table_file'],
+        count_table=config['normalized_count_table'],
         deseq2_table=rules.DESeq2_counts.output.deseq2_out
     output:
         down_elements="results/{token}/GSEA-like/{treatment}_vs_{control}/{treatment}_vs_{control}_down-elements_GSEA-like.txt",

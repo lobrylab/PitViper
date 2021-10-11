@@ -12,6 +12,10 @@ import yaml
 from mc4.algorithm import mc4_aggregator
 import os.path
 from os import path
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn import decomposition
+from sklearn import datasets
 
 
 def open_yaml(yml):
@@ -113,7 +117,7 @@ def show_mapping_qc(token):
 def show_read_count_distribution(token, width=800, height=400):
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
-    path_qc = content['count_table_file']
+    path_qc = content['normalized_count_table']
     if not path.exists(path_qc):
         print("No count file to show.")
         return 0
@@ -599,7 +603,7 @@ def MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_director
         chart = alt.Chart(source).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y(treatment + '|beta:Q'),
-            tooltip=['Gene', 'sgRNA', treatment + '|beta', treatment + '|fdr', 'significant'],
+            tooltip=['Gene', 'sgRNA', treatment + '|beta', treatment + '|fdr', 'significant', 'default_rank'],
             color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
             order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
@@ -638,7 +642,7 @@ def MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_director
         chart = alt.Chart(source).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('neg|lfc:Q'),
-            tooltip=['id', 'num', 'neg|lfc', 'neg|fdr', 'significant', 'neg|rank'],
+            tooltip=['id', 'num', 'neg|lfc', 'neg|fdr', 'significant', 'neg|rank', 'default_rank'],
             color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
             order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
@@ -666,8 +670,8 @@ def CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig,results_directo
     treatment, control = comparison.split("_vs_")
     source = CRISPhieRmix_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
     source['default_rank'] = source['locfdr'].rank(method='dense')
-    source.loc[source['FDR'] < 0.05, 'significant'] = 'Yes'
-    source.loc[source['FDR'] >= 0.05, 'significant'] = 'No'
+    source.loc[source['locfdr'] < 0.05, 'significant'] = 'Yes'
+    source.loc[source['locfdr'] >= 0.05, 'significant'] = 'No'
     domain = ['Yes', 'No']
     range_ = [sig, non_sig]
 
@@ -675,7 +679,7 @@ def CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig,results_directo
         chart = alt.Chart(source).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('locfdr:Q'),
-            tooltip=['gene', 'locfdr', 'score', 'FDR', 'significant'],
+            tooltip=['gene', 'locfdr', 'score', 'FDR', 'significant', 'default_rank'],
             color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
             order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
@@ -704,8 +708,8 @@ def in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory,
     treatment, control = comparison.split("_vs_")
     source = in_house_method_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
     source['default_rank'] = source['score'].rank(method='dense')
-    source.loc[abs(source['score']) > 0.5, 'significant'] = 'Yes'
-    source.loc[abs(source['score']) <= 0.5, 'significant'] = 'No'
+    source.loc[abs(source['score']) > 1, 'significant'] = 'Yes'
+    source.loc[abs(source['score']) <= 1, 'significant'] = 'No'
     domain = ['Yes', 'No']
     range_ = [sig, non_sig]
 
@@ -713,7 +717,7 @@ def in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory,
         chart = alt.Chart(source).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('score:Q'),
-            tooltip=['Gene', 'up', 'down', 'n', 'significant', 'score'],
+            tooltip=['Gene', 'up', 'down', 'n', 'significant', 'score', 'default_rank'],
             color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
             order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
@@ -741,9 +745,9 @@ def GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory
     print(fdr_cutoff)
     treatment, control = comparison.split("_vs_")
     source = GSEA_like_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
-    source['default_rank'] = source['NES'].rank(method='dense')
-    source.loc[abs(source['pval']) < fdr_cutoff, 'significant'] = 'Yes'
-    source.loc[abs(source['pval']) >= fdr_cutoff, 'significant'] = 'No'
+    source['default_rank'] = source[['NES']].rank(method='dense')
+    source.loc[abs(source['padj']) < fdr_cutoff, 'significant'] = 'Yes'
+    source.loc[abs(source['padj']) >= fdr_cutoff, 'significant'] = 'No'
     domain = ['Yes', 'No']
     range_ = [sig, non_sig]
 
@@ -751,7 +755,7 @@ def GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory
         chart = alt.Chart(source).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('NES:Q'),
-            tooltip=['pathway', 'pval', 'padj', 'ES', 'NES','significant', 'nMoreExtreme', 'size'],
+            tooltip=['pathway', 'pval', 'padj', 'ES', 'NES','significant', 'nMoreExtreme', 'size', 'default_rank'],
             color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
             order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
@@ -787,7 +791,7 @@ def BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, to
         chart = alt.Chart(source).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('BF:Q'),
-            tooltip=['GENE', 'BF', 'STD', 'significant'],
+            tooltip=['GENE', 'BF', 'STD', 'significant', 'default_rank'],
             color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
             order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
@@ -832,3 +836,280 @@ def snake_plot(results_directory, tools_available):
                 BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
             else:
                 print("Choose a tool.")
+
+
+
+def show_sgRNA_counts(token):
+    config = "./config/%s.yaml" % token
+    content = open_yaml(config)
+    cts_file = content['normalized_count_table']
+    cts = pd.read_csv(cts_file, sep="\t")
+    @interact(element=widgets.Text(value='', placeholder='Element:', description='Element:'),
+              conditions=widgets.Text(value=",".join(cts.columns[2:]), placeholder='Conditions to show, in order and comma-separated:', description='Conditions:'))
+    def show_sgRNA_counts(element, conditions):
+
+        sort_cols = conditions.split(",")
+
+        button = widgets.Button(description="Show sgRNA counts...")
+        output = widgets.Output()
+        display(button, output)
+
+        def on_button_clicked(b):
+            cts = pd.read_csv(cts_file, sep="\t")
+            cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
+
+            if not element in list(cts.Gene):
+                print("Element '%s' not in counts matrix." % element)
+
+            if not len(conditions.split(",")) > 1:
+                print("Choose more conditions to show.")
+
+            boolean_series = cts.variable.isin(sort_cols)
+            cts = cts[boolean_series]
+            gene_cts = cts.loc[cts.Gene == element]
+            source = gene_cts
+            out = alt.Chart(source).mark_line().encode(
+                x=alt.X('variable', axis=alt.Axis(title='Condition'), sort=sort_cols),
+                y='value',
+                color='sgRNA'
+            ).interactive()
+            with output:
+                display(out)
+
+
+        button.on_click(on_button_clicked)
+
+
+### Enrichr
+def getEnrichrResults(genes, description, gene_set_library):
+    ENRICHR_URL = 'http://maayanlab.cloud/Enrichr/addList'
+    genes_str = '\n'.join(genes)
+    description = description
+    payload = {
+        'list': (None, genes_str),
+        'description': (None, description)
+    }
+
+    response = requests.post(ENRICHR_URL, files=payload)
+    if not response.ok:
+        raise Exception('Error analyzing gene list')
+
+    data = json.loads(response.text)
+
+    userListId = data['userListId']
+
+    ENRICHR_URL = 'http://maayanlab.cloud/Enrichr/enrich'
+    query_string = '?userListId=%s&backgroundType=%s'
+    user_list_id = userListId
+    gene_set_library = gene_set_library[:-1]
+    response = requests.get(
+        ENRICHR_URL + query_string % (user_list_id, gene_set_library)
+     )
+    if not response.ok:
+        raise Exception('Error fetching enrichment results')
+
+    data = json.loads(response.text)
+    return data
+
+
+def createEnrichrTable(enrichrResults):
+    cols = ['Rank', 'Term name', 'P-value', 'Z-score', 'Combined score', 'Overlapping genes', 'Adjusted p-value', 'Old p-value', 'Old adjusted p-value']
+    for base in enrichrResults:
+        rows = []
+        for pathway in enrichrResults[base]:
+            row = pd.DataFrame([pathway])
+            rows.append(row)
+
+    table = pd.concat(rows)
+    table.columns = cols
+    return table
+
+
+def enrichmentBarPlot(source, n, description, col_1, col_2):
+    if n == 'max':
+        n = len(source.index)
+    source = source.sort_values(by=['Combined score'], ascending=False).head(n)
+
+    domain = [source['Adjusted p-value'].min(), source['Adjusted p-value'].max()]
+    range_ = [col_1, col_2]
+
+
+    bars = alt.Chart(source).mark_bar().encode(
+        x='Combined score',
+        y=alt.Y('Term name', sort='-x'),
+        tooltip=['Rank',
+                 'Term name',
+                 'P-value',
+                 'Z-score',
+                 'Combined score',
+                 'Overlapping genes',
+                 'Adjusted p-value',
+                 'Old p-value',
+                 'Old adjusted p-value'],
+        color=alt.Color('Adjusted p-value', scale=alt.Scale(domain=domain, range=range_),
+                        legend=alt.Legend(title="Adjusted p-value:")),
+    ).properties(
+        title=description,
+    )
+
+
+    chart = (bars).properties(height=15*n, width=500)
+    return chart
+
+
+def enrichmentCirclePlot(source, n, description, col_1, col_2):
+    if n == 'max':
+        n = int(len(source.index))
+
+    source = source.sort_values(by=['Combined score'], ascending=False).head(n)
+
+    source['n_overlap'] = source['Overlapping genes'].str.len()
+
+    domain = [source['Adjusted p-value'].min(), source['Adjusted p-value'].max()]
+    range_ = [col_1, col_2]
+
+    chart = alt.Chart(source).mark_circle(size=60).encode(
+        alt.X('Combined score',
+            scale=alt.Scale(domain=(source.min()['Combined score'], source.max()['Combined score']*1.05))),
+        y=alt.Y('Term name', sort='-x'),
+        color=alt.Color('Adjusted p-value', scale=alt.Scale(domain=domain, range=range_),
+                        legend=alt.Legend(title="Adjusted p-value:")),
+        tooltip=['Rank',
+                 'Term name',
+                 'P-value',
+                 'Z-score',
+                 'Combined score',
+                 'Overlapping genes',
+                 'Adjusted p-value',
+                 'Old p-value',
+                 'Old adjusted p-value',
+                 'n_overlap'],
+        size='n_overlap',
+    ).properties(
+        title=description
+    ).configure_axisY(
+        titleAngle=0,
+        titleY=-10,
+        titleX=-60,
+        labelLimit=1000
+    ).interactive()
+
+    chart = (chart).properties(height=20*n, width=500)
+
+    return chart
+
+
+
+
+
+
+
+def enrichr_plots(pitviper_res):
+    BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
+    TOOLS = [tool for tool in pitviper_res.keys() if tool != "DESeq2"]
+    @interact(tool=TOOLS)
+    def enrichr_plots(tool):
+        tool_res = pitviper_res[tool]
+        conditions = tool_res.keys()
+        @interact(description=widgets.Text(value='My gene list', placeholder='Description', description='Description:'), base=BASES, conditions=conditions)
+        def enrichr_plots(description, base, conditions):
+            treatment, baseline = conditions.split("_vs_")
+            @interact(col_2=widgets.ColorPicker(concise=False, description='Top color', value='blue', disabled=False), col_1=widgets.ColorPicker(concise=False, description='Bottom color', value='red', disabled=False), plot_type=['Circle', 'Bar'], size=[5, 10, 20, 50, 100, 200, 'max'], fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05), score_cutoff=widgets.Text(value='0', placeholder='0', description='Score cut-off:'))
+            def enrichr_plots(score_cutoff, fdr_cutoff, size, plot_type, col_2, col_1):
+                print('Description:', description)
+                print('Baseline:', baseline)
+                print('Treatment:', treatment)
+                print('FDR cut-off:', fdr_cutoff)
+                print('Score cut-off', score_cutoff)
+                print('Tool:', tool)
+                print('Gene set library:', base)
+
+                score_cutoff = float(score_cutoff)
+
+                def on_button_clicked(b):
+                    if tool == 'MAGeCK_MLE':
+                        info = tool_res[conditions][conditions + ".gene_summary.txt"]
+                        info = info.loc[info[treatment+'|fdr'] < fdr_cutoff]
+                        if score_cutoff < 0:
+                            info = info.loc[info[treatment+'|beta'] < score_cutoff]
+                        elif score_cutoff > 0:
+                            info = info.loc[info[treatment+'|beta'] > score_cutoff]
+                        genes = info['Gene']
+
+                    if tool == 'MAGeCK_RRA':
+                        info = tool_res[conditions][conditions + ".gene_summary.txt"]
+                        info = info.loc[info['neg|fdr'] < fdr_cutoff]
+                        genes = info['id']
+
+                    if tool == 'BAGEL':
+                        info = tool_res[conditions][conditions + "_BAGEL_output.bf"]
+                        info = info.loc[info['BF'] > score_cutoff]
+                        genes = info['GENE']
+
+                    if tool == 'in_house_method':
+                        info = tool_res[conditions][conditions + "_all-elements_in-house.txt"]
+                        info = info.loc[info['score'] < score_cutoff]
+                        genes = info['Gene']
+
+                    if tool == "GSEA-like":
+                        info = tool_res[conditions][conditions + "_all-elements_GSEA-like.txt"]
+                        if score_cutoff > 0:
+                            info = info.loc[info['NES'] > score_cutoff]
+                        elif score_cutoff < 0:
+                            info = info.loc[info['NES'] < score_cutoff]
+                        info = info.loc[info['padj'] < fdr_cutoff]
+                        genes = info['pathway']
+
+                    print("Size (gene set):", len(genes))
+
+                    enrichr_res = getEnrichrResults(genes, description, base)
+                    table = createEnrichrTable(enrichr_res)
+                    if plot_type == 'Bar':
+                        chart = enrichmentBarPlot(table, size, description, col_1, col_2)
+                    else:
+                        chart = enrichmentCirclePlot(table, size, description, col_1, col_2)
+                    with output:
+                        display(chart)
+
+
+                button = widgets.Button(description="Show EnrichR results")
+                output = widgets.Output()
+
+                display(button, output)
+
+                button.on_click(on_button_clicked)
+
+
+def pca_counts(token):
+    config = "./config/%s.yaml" % token
+    content = open_yaml(config)
+
+    TSV = pd.read_csv(content['tsv_file'], sep="\t")
+    cts_file = content['normalized_count_table']
+    cts = pd.read_csv(cts_file, sep="\t")
+    X = cts[cts.columns[2:]].to_numpy().T
+    d = dict(zip(TSV.replicate, TSV.condition))
+    y = [d[k] for k in cts.columns[2:]]
+    y = np.array(y)
+    y_bis = np.array(cts.columns[2:])
+
+    pca = decomposition.PCA(n_components=2)
+    pca.fit(X)
+    X = pca.transform(X)
+
+    a = pd.DataFrame(X, columns=['dim1', 'dim2'])
+    b = pd.DataFrame(y, columns=['condition'])
+    c = pd.DataFrame(y_bis, columns=['replicate'])
+
+    df_c = pd.concat([a, b, c], axis=1)
+
+    source = df_c
+
+    pca_2d = alt.Chart(source).mark_circle(size=60).encode(
+        x='dim1',
+        y='dim2',
+        color='condition:N',
+        tooltip=['dim1', 'dim2', 'condition', 'replicate']
+    ).interactive()
+
+    return pca_2d

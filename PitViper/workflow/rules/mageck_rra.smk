@@ -7,7 +7,7 @@ rule mageck_rra:
         output: genes and sgrnas summaries
         params: user must choose a normalization method"""
     input:
-        count_table=config['count_table_file']
+        count_table=config['normalized_count_table']
     output:
         gene_summary = "results/{token}/MAGeCK_RRA/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt",
     params:
@@ -20,8 +20,6 @@ rule mageck_rra:
         sorting_criteria_opt = config['mageck_rra_criteria'],
         test_threshold_opt = config['mageck_rra_pthreshold'],
         remove_from_opt = config['mageck_rra_remove']
-    # conda:
-    #     "../envs/mageck.yaml"
     log:
         "logs/{token}/MAGeCK/RRA/{treatment}_vs_{control}.log"
     shell:

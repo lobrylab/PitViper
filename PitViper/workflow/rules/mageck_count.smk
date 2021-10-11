@@ -69,3 +69,19 @@ rule mageck_count_bam:
             --sgrna-len {params.length_opt} \
             --count-pair {params.align_all_opt} \
             --count-n {params.count_N_opt} &> {log}"
+
+
+rule MAGeCK_counts_normalize:
+    input:
+        config['count_table_file']
+    output:
+        "results/" + config['token'] + "/screen.count_normalized.txt"
+    params:
+        name = "results/" + config['token'] + "/screen",
+    log:
+        "logs/normalization/MAGeCK_counts_normalize.log"
+    shell:
+        "mageck count \
+            -k {input} \
+            -n {params.name} \
+            --norm-method total > {log}"
