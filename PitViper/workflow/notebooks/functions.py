@@ -77,7 +77,7 @@ def setup_step_1(token):
 
 
 def show_mapping_qc(token):
-    path_qc = "./results/%s/screen.countsummary.txt" % token
+    path_qc = "./resources/%s/screen.countsummary.txt" % token
     if not path.exists(path_qc):
         print("No mapping QC file to show.")
         return 0
