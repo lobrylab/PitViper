@@ -542,46 +542,49 @@ def BAGEL_data(comparison = "", control = "", tool = "BAGEL", results_directory 
 
 def BAGEL_results(results_directory, tools_available):
     tool = "BAGEL"
-    comparisons_list = os.listdir(os.path.join(results_directory, tool))
-    ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
-    @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),
-              fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05),
-              gene=widgets.Text(value='', placeholder='Feature to show...', description='Feature:'))
-    def BAGEL(control, fdr_cutoff, gene):
-        tool = "BAGEL"
-        result = BAGEL_data(comparison = "", control = control, tool = tool, results_directory=results_directory, tools_available=tools_available)
-        result.loc[result['BF'] > 0, 'significant'] = 'Yes'
-        result.loc[result['BF'] <= 0, 'significant'] = 'No'
-        new_row = {'GENE':gene, 'condition':control, 'significant': 'Baseline', 'BF':0,}
-        result = result.append(new_row, ignore_index=True)
-        res = result.loc[result.GENE == gene]
-        domain = ['Yes', 'No', 'Baseline']
-        range_ = ['red', 'grey', 'black']
+    if not tool in tools_available.keys():
+        print("BAGEL is not activated.")
+    else:
+        comparisons_list = os.listdir(os.path.join(results_directory, tool))
+        ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
+        @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),
+                  fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05),
+                  gene=widgets.Text(value='', placeholder='Feature to show...', description='Feature:'))
+        def BAGEL(control, fdr_cutoff, gene):
+            tool = "BAGEL"
+            result = BAGEL_data(comparison = "", control = control, tool = tool, results_directory=results_directory, tools_available=tools_available)
+            result.loc[result['BF'] > 0, 'significant'] = 'Yes'
+            result.loc[result['BF'] <= 0, 'significant'] = 'No'
+            new_row = {'GENE':gene, 'condition':control, 'significant': 'Baseline', 'BF':0,}
+            result = result.append(new_row, ignore_index=True)
+            res = result.loc[result.GENE == gene]
+            domain = ['Yes', 'No', 'Baseline']
+            range_ = ['red', 'grey', 'black']
 
 
-        def on_button_clicked(b):
-            sort_cols = natural_sort(list(res.condition.values))
-            plot = alt.Chart(res).mark_circle(size=60).mark_point(
-                filled=True,
-                size=100,
-                ).encode(
-                        y='BF',
-                        x=alt.X('condition:N', sort=sort_cols),
-                        color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
-                        tooltip=["GENE", "BF", "STD", "NumObs", "condition"],
-                ).properties(
-                        title=gene + " Bayes Factor versus baseline (BAGEL)",
-                        width=100
-                )
-            with output:
-                display(plot)
+            def on_button_clicked(b):
+                sort_cols = natural_sort(list(res.condition.values))
+                plot = alt.Chart(res).mark_circle(size=60).mark_point(
+                    filled=True,
+                    size=100,
+                    ).encode(
+                            y='BF',
+                            x=alt.X('condition:N', sort=sort_cols),
+                            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
+                            tooltip=["GENE", "BF", "STD", "NumObs", "condition"],
+                    ).properties(
+                            title=gene + " Bayes Factor versus baseline (BAGEL)",
+                            width=100
+                    )
+                with output:
+                    display(plot)
 
-        button = widgets.Button(description="Show plot")
-        output = widgets.Output()
+            button = widgets.Button(description="Show plot")
+            output = widgets.Output()
 
-        display(button, output)
+            display(button, output)
 
-        button.on_click(on_button_clicked)
+            button.on_click(on_button_clicked)
 
 
 
@@ -813,7 +816,8 @@ def BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, to
 
 
 def snake_plot(results_directory, tools_available):
-    @interact(tools=widgets.Dropdown(options=set(["CRISPhieRmix", "GSEA-like", "in_house_method", "MAGeCK_MLE", "MAGeCK_RRA", "BAGEL"]), description='Tool:', disabled=False))
+    tools = [tool for tool in tools_available.keys() if tool != "DESeq2"]
+    @interact(tools=widgets.Dropdown(options=set(tools), description='Tool:', disabled=False))
     def snake_plot(tools):
         comparisons_list = os.listdir(os.path.join(results_directory, tools))
         ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tools].keys())))
