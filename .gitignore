@@ -1,6 +1,8 @@
 .snakemake
 PitViper/trash
 PitViper/resources
+resources/
+PitViper/config
 data/
 logs/
 results/
@@ -30,3 +32,5 @@ PitViper/workflow/notebooks/archives/.ipynb_checkpoints
 *.gz
 *.bt2
 benchmarks/
+
+PitViper/workflow/envs/jupyter.yaml
