@@ -387,7 +387,7 @@ def MAGeCK_RRA_results(results_directory, tools_available):
         result = MAGeCK_RRA_data(comparison = "", control = control, tool = tool, results_directory=results_directory, tools_available=tools_available)
         result.loc[result['neg|fdr'] < fdr_cutoff, 'significant'] = 'Yes'
         result.loc[result['neg|fdr'] >= fdr_cutoff, 'significant'] = 'No'
-        new_row = {'id':gene, 'condition':control, 'significant': 'Baseline', 'neg|fdr':1, 'neg|lfc': 0}
+        new_row = {'id':gene, 'condition':control, 'significant': 'Baseline', 'neg|fdr':1, 'neg|score': 0}
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.id == gene]
         domain = ['Yes', 'No', 'Baseline']
@@ -400,10 +400,10 @@ def MAGeCK_RRA_results(results_directory, tools_available):
                 filled=True,
                 size=100,
                 ).encode(
-                        y='neg|lfc',
+                        y='neg|score',
                         x=alt.X('condition:N', sort=sort_cols),
                         color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
-                        tooltip=['id', 'neg|lfc', 'significant', 'neg|fdr', 'condition'],
+                        tooltip=['id', 'neg|score', 'significant', 'neg|fdr', 'condition'],
                 ).properties(
                         title=gene + " LFC versus baseline (MAGeCK RRA)",
                         width=100
@@ -635,7 +635,8 @@ def MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_director
     treatment, control = comparison.split("_vs_")
     source = MAGeCK_RRA_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
 
-    source['default_rank'] = source['neg|lfc'].rank()
+    source['logarithm_base2'] = np.log2(source['neg|score']) * sign()
+    source['default_rank'] = source['neg|score'].rank()
     source.loc[source['neg|fdr'] < 0.05, 'significant'] = 'Yes'
     source.loc[source['neg|fdr'] >= 0.05, 'significant'] = 'No'
     domain = ['Yes', 'No']
@@ -644,8 +645,8 @@ def MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_director
     def on_button_clicked(b):
         chart = alt.Chart(source).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
-            y=alt.Y('neg|lfc:Q'),
-            tooltip=['id', 'num', 'neg|lfc', 'neg|fdr', 'significant', 'neg|rank', 'default_rank'],
+            y=alt.Y('logarithm_base2:Q'),
+            tooltip=['id', 'num', 'neg|score', 'neg|fdr', 'significant', 'neg|rank', 'default_rank', 'logarithm_base2'],
             color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
             order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()

@@ -17,28 +17,25 @@ def getBamFiles(wildcards):
 def getLabels(wildcards):
     """Return concatenation of experiment's labels. Needed for MAGeCK count software."""
     samples_sheet = pd.read_csv(config['tsv_file'], sep="\t")
-    labels = list(samples_sheet.replicate.values)
-    labels_str = ",".join(labels)
-    return labels_str
+    labels = []
+    for i in range(0, len(samples_sheet.index)):
+        labels.append(samples_sheet.loc[i].replicate)
+    return ",".join(labels)
 
 
 def getFiles(wildcards):
     """Return concatenation of experiment's files. Needed for MAGeCK count software."""
     samples_sheet = pd.read_csv(config['tsv_file'], sep="\t")
     if 'fastq' in samples_sheet.columns:
-        conditions = list(set(samples_sheet.condition.values))
-        fastqs = ""
-        for condition in conditions:
-            fastqs_condition = samples_sheet.loc[samples_sheet.condition == condition].fastq.values
-            fastqs = fastqs + " " + " ".join(fastqs_condition)
-        return fastqs
+        fastqs = []
+        for i in range(0, len(samples_sheet.index)):
+            fastqs.append(samples_sheet.loc[i].fastq)
+        return " ".join(fastqs)
     elif 'bam' in samples_sheet.columns:
-        conditions = list(set(samples_sheet.condition.values))
-        bams = ""
-        for condition in conditions:
-            bams_condition = samples_sheet.loc[samples_sheet.condition == condition].bam.values
-            bams = bams + " " + " ".join(bams_condition)
-        return bams
+        bams = []
+        for i in range(0, len(samples_sheet.index)):
+            bams.append(samples_sheet.loc[i].bams)
+        return " ".join(bams)
 
 
 
