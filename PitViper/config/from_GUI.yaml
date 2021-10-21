@@ -1,9 +1,0 @@
-{bagel_activate: 'False', count_table_file: resources/from_GUI/screen.count.txt, crisphiermix_activate: 'False',
-  essentials: '', filtering_activate: 'False', gsea_activate: 'True', library_file: resources/from_GUI/sh_epi_lib.csv,
-  mageck_count_N: 'False', mageck_count_all_align: 'False', mageck_count_length: '20',
-  mageck_count_normalization: total, mageck_count_pdf: 'False', mageck_count_rev_comp: 'False',
-  mageck_mle_activate: 'False', mageck_mle_adj: fdr, mageck_mle_mean_var: '0', mageck_mle_normalization: total,
-  mageck_mle_outliers: 'False', mageck_mle_perm_N: '2', mageck_mle_perm_all: 'False',
-  mageck_rra_LFC: median, mageck_rra_activate: 'False', mageck_rra_adj: fdr, mageck_rra_count_min: '0',
-  mageck_rra_criteria: neg, mageck_rra_pthreshold: '0.25', mageck_rra_remove: both,
-  nonessentials: '', screen_type: is_gene, start_from: count, token: from_GUI, tsv_file: resources/from_GUI/input.tsv}
