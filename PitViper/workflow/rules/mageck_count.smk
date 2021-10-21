@@ -2,12 +2,15 @@
 
 tsv = pd.read_csv(config['tsv_file'], sep="\t")
 if len(tsv.columns) > 2:
-    if "fastq" == tsv.columns[2]:
+    if "fastq" in tsv.columns:
         ruleorder: mageck_count_fastq > mageck_count_bam
         ruleorder: mageck_count_fastq > MAGeCK_counts_normalize
-    elif "bam" == tsv.columns[2]:
+    elif "bam" in tsv.columns:
         ruleorder: mageck_count_bam > mageck_count_fastq
         ruleorder: mageck_count_bam > MAGeCK_counts_normalize
+else:
+    ruleorder: MAGeCK_counts_normalize > mageck_count_bam
+    ruleorder: MAGeCK_counts_normalize > mageck_count_fastq
 
 rule mageck_count_fastq:
     input:
@@ -67,19 +70,3 @@ rule mageck_count_bam:
             --sgrna-len {params.length_opt} \
             --count-pair {params.align_all_opt} \
             {params.count_N_opt} &> {log}"
-
-
-rule MAGeCK_counts_normalize:
-    input:
-        config['count_table_file']
-    output:
-        "results/" + config['token'] + "/screen.count_normalized.txt"
-    params:
-        name = "results/" + config['token'] + "/screen",
-    log:
-        "logs/normalization/MAGeCK_counts_normalize.log"
-    shell:
-        "mageck count \
-            -k {input} \
-            -n {params.name} \
-            --norm-method total > {log}"
