@@ -38,7 +38,6 @@ def getFiles(wildcards):
         return " ".join(bams)
 
 
-
 def getTreatmentIdsLen(wildcards):
     samples_file = pd.read_csv(config['tsv_file'], sep="\t")
     list_ids = samples_file.loc[samples_file["condition"] == wildcards.treatment].values
@@ -93,6 +92,7 @@ def get_all_pairwise_comparaisons():
     l = [{'treatment': samples_list[duo[1]], 'control':samples_list[duo[0]]} for duo in comparaisons]
     return l
 
+
 def get_pipeline_outputs(wildcards):
     wanted_outputs = []
 
@@ -119,3 +119,20 @@ def get_pipeline_outputs(wildcards):
             wanted_outputs.append("results/{token}/CRISPhieRmix/{treatment}_vs_{control}/{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
 
     return wanted_outputs
+
+
+
+rule MAGeCK_counts_normalize:
+    input:
+        config['count_table_file']
+    output:
+        config['normalized_count_table']
+    params:
+        name = "resources/" + config['token'] + "/screen",
+    log:
+        "logs/normalization/MAGeCK_counts_normalize.log"
+    shell:
+        "mageck count \
+            -k {input} \
+            -n {params.name} \
+            --norm-method total > {log}"
