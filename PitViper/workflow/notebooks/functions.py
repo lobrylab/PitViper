@@ -635,8 +635,8 @@ def MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_director
     treatment, control = comparison.split("_vs_")
     source = MAGeCK_RRA_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
 
-    source['logarithm_base2'] = np.log2(source['neg|score']) * sign()
-    source['default_rank'] = source['neg|score'].rank()
+    source['logarithm_base2'] = np.log2(source['neg|score']) * np.sign(source['neg|lfc'])
+    source['default_rank'] = source['logarithm_base2'].rank(ascending=False)
     source.loc[source['neg|fdr'] < 0.05, 'significant'] = 'Yes'
     source.loc[source['neg|fdr'] >= 0.05, 'significant'] = 'No'
     domain = ['Yes', 'No']
