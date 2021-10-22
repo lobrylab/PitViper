@@ -8,6 +8,16 @@ PitViper is intended to facilitate the analysis of functional screening data fro
 
 The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/stable/), a workflow management system to create reproducible and scalable data analysis and [`Flask`](https://flask.palletsprojects.com/en/2.0.x/), a lightweight web framework.
 
+
+##### Table of contents
+
+- [Prerequisites](#prerequisites)
+
+- [Set-up](#set-up)
+
+- [Inputs](#inputs)
+
+
 ### Prerequisites
 
 To retrieve, install and run PitViper, we need [`Conda`](https://docs.conda.io/en/latest/) and [`Git`](https://git-scm.com/) available from the commande-line.
