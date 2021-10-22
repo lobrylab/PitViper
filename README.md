@@ -60,7 +60,15 @@ $ conda env list
   pitviper_env             /home/paularthur/miniconda3/envs/pitviper_env
 ```
 
-Once `pitviper_env` is created, you can run `run.sh` script, it should open PitViper GUI in your default web browser.
+Once `pitviper_env` is created, you can run `run.sh` script, it should run a server with `Flask` in background and open PitViper GUI in your default web browser:
+
+```bash
+$ ./run.sh
+```
+
+
+<img src="PitViper/docs/PitViper.png" alt="alt text">
+
 
 ### Inputs
 
