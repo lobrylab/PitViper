@@ -19,6 +19,8 @@ The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/sta
 
   - [Starting from raw FASTQ](#starting-from-raw-fastq-files)
 
+  - [Starting from count matrix](#starting-from-count-matrix)
+
 
 ### Prerequisites
 
