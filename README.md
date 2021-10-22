@@ -32,3 +32,24 @@ $ git clone https://github.com/PaulArthurM/PitViper.git  # Clone PitViper reposi
 $ cd PitViper/PitViper  # Your are now in PitViper root directory
 ```
 
+### Set-up
+
+Then, we need to install PitViper dependancies. To facilitate dependancy management, a Conda YAML file containing all dependancies have been created and can be used along with `Mamba` to automatically install them: `pitviper_env.yaml`.
+
+Furthermore, `install_PitViper_env.sh` was created to perform this step in one command:
+
+```bash
+$ ./install_PitViper_env.sh
+```
+
+`./install_PitViper_env.sh` first create a Conda environment call `pitviper_env` that should be visible as follow if you run:
+
+```bash
+$ conda env list
+  # conda environments:
+  #
+  base                  *  /home/paularthur/miniconda3
+  pitviper_env             /home/paularthur/miniconda3/envs/pitviper_env
+```
+
+Once `pitviper_env` is created, you can run `run.sh` script, it should open PitViper GUI in your default web browser.
