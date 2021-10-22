@@ -35,13 +35,9 @@ Now, Mamba should be available from the command-line.
 Choose in wich directory you want to install PitViper and change your working directory for it, then clone PitViper repository at this location using `Git`:
 
 ```bash
-$ mkdir myDir  # Create ./myDir/ directory in working directory
+$ git clone https://github.com/PaulArthurM/PitViper.git  # Clone PitViper reposity in ~/PitViper/
 
-$ cd myDir  # Change working directory for ./myDir/
-
-$ git clone https://github.com/PaulArthurM/PitViper.git  # Clone PitViper reposity in ./myDir/PitViper/
-
-$ cd PitViper/PitViper  # Your are now in PitViper root directory
+$ cd PitViper/PitViper  # Your are now in PitViper main directory
 ```
 
 ### Set-up
