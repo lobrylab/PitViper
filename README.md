@@ -6,7 +6,7 @@
 
 PitViper is intended to facilitate the analysis of functional screening data from various experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).
 
-The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/stable/) and [`Flask`](https://flask.palletsprojects.com/en/2.0.x/), a workflow management system to create reproducible and scalable data analyses and a web framework.
+The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/stable/), a workflow management system to create reproducible and scalable data analyses and and [`Flask`](https://flask.palletsprojects.com/en/2.0.x/), a lightweight web framework.
 
 ### Prerequisites
 
