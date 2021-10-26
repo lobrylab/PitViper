@@ -103,11 +103,11 @@ Those name will be used for differentiation in results report.
 
 ##### Library file
 
-First column indicate the ID of the shRNA. This ID in this column should not be redundant.
+First column indicate the ID of the guide. This ID in this column should not be redundant.
 
-Second column is shRNA sequence.
+Second column is guide sequence.
 
-Thirs column indicate the element targeted by the corresponding shRNA sequence. Note: Multiple shRNA can target the same element.
+Thirs column indicate the element targeted by the corresponding guide. Note: Multiple guides can target the same element.
 
 ```
 element_A.1,CTTAGTTTTGAACAAGTACA,element_A
