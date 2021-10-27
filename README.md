@@ -110,11 +110,11 @@ Second column is guide sequence.
 Thirs column indicate the element targeted by the corresponding guide. Note: Multiple guides can target the same element.
 
 ```
-element_A.1,CTTAGTTTTGAACAAGTACA,element_A
-element_A.2,GTTGAGTTATCACACATCAT,element_A
-element_A.3,AATGTAGTGTAGCTACAGTG,element_A
-element_B.1,TTAGTTTATATCTTATGGCA,element_B
-element_B.2,GATTGTCTGTGAAATTTCTG,element_B
+guide_A.1,CTTAGTTTTGAACAAGTACA,element_A
+guide_A.2,GTTGAGTTATCACACATCAT,element_A
+guide_A.3,AATGTAGTGTAGCTACAGTG,element_A
+guide_B.1,TTAGTTTATATCTTATGGCA,element_B
+guide_B.2,GATTGTCTGTGAAATTTCTG,element_B
 ```
 
 #### Starting from count matrix
@@ -134,5 +134,5 @@ However, its mandatory that `replicate` column contain the same labels that in c
 
 | shRNA       | Gene      | A_1 | A_2 | A_3 | B_1 | B_2 | B_3 |
 |-------------|-----------|-----|-----|-----|-----|-----|-----|
-| element_A.1 | element_A | 456 | 273 | 345 | 354 | 587 | 258 |
-| element_A.2 | element_A | 354 | 234 | 852 | 546 | 64  | 452 |
+| guide_A.1 | element_A | 456 | 273 | 345 | 354 | 587 | 258 |
+| guide_A.2 | element_A | 354 | 234 | 852 | 546 | 64  | 452 |
