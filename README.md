@@ -13,7 +13,7 @@ The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/sta
 
 - [Prerequisites](#prerequisites)
 
-- [Set-up](#set-up)
+- [Installation](#installation)
 
 - [Inputs](#inputs)
 
@@ -42,7 +42,7 @@ $ git clone https://github.com/PaulArthurM/PitViper.git  # Clone PitViper reposi
 $ cd PitViper/PitViper  # Your are now in PitViper main directory
 ```
 
-### Set-up
+### Installation
 
 Then, we need to install PitViper dependancies. To facilitate dependancy management, a Conda YAML file containing all dependancies have been created and can be used along with `Mamba` to automatically install them: `pitviper_env.yaml`.
 
