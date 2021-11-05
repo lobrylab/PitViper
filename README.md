@@ -29,7 +29,7 @@ To retrieve, install and run PitViper, we need [`Conda`](https://docs.conda.io/e
 Once Conda is installed and in order to speed-up installation process, we recommand to install [`Mamba`](https://github.com/mamba-org/mamba):
 
 ```bash
-$  conda install -c conda-forge mamba
+$ conda install -c conda-forge mamba
 ```
 
 Now, Mamba should be available from the command-line.
@@ -39,7 +39,7 @@ Choose in wich directory you want to install PitViper and change your working di
 ```bash
 $ git clone https://github.com/PaulArthurM/PitViper.git  # Clone PitViper reposity in ~/PitViper/
 
-$ cd PitViper/PitViper  # Your are now in PitViper main directory
+$ cd PitViper/PitViper  # You are now in PitViper main directory
 ```
 
 ### Installation
