@@ -5,12 +5,11 @@
 rule bagel_generate_count_matrix:
     """ Generate count matrix between two conditions for BAGEL. """
     input:
-        samples=config['tsv_file'],        #config['inputs']['tsv'],
-        counts=config['normalized_count_table']        #config['inputs']['count_table']
+        samples=config['tsv_file'],
+        counts=config['normalized_count_table']
     output:
         matrix="results/{token}/count_matrices/BAGEL/{treatment}_vs_{control}_count_matrix.txt"
-    # conda:
-    #     "../envs/commons.yaml"
+
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_count_matrix.log"
     shell:
@@ -42,6 +41,14 @@ rule bagel_foldchange:
             -c 1 > {log}"
 
 
+def bagel_bf_columns(wildcards):
+    file = "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL.foldchange".format(token=wildcards.token, treatment=wildcards.treatment, control=wildcards.control)
+    print('File:', file)
+    content = pd.read_csv(file, sep="\t")
+    out = ",".join([ str(i + 1) for i in range(len(content.columns)-2)])
+    print(out)
+    return out
+
 rule bagel_bf:
     "Use BAGEL's foldchanges for gene essentiality analysis."
     input:
@@ -49,8 +56,9 @@ rule bagel_bf:
     output:
         bf = "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf"
     params:
-        nonessential = config['nonessentials'],     #config['BAGEL']['nonessentials'],
-        essentials = config['essentials']       #config['BAGEL']['essentials']
+        nonessential = config['nonessentials'],
+        essentials = config['essentials'],
+        columns = bagel_bf_columns#",".join([ i + 1 for i in range(len())])
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_bf.log"
     conda:
@@ -61,7 +69,7 @@ rule bagel_bf:
             -o {output.bf} \
             -e {params.essentials} \
             -n {params.nonessential} \
-            -c 1,2,3 > {log}"
+            -c {params.columns} > {log}"
 
 
 rule bagel_essentials_genes:

@@ -23,7 +23,7 @@
 
 def generatedResults(wildcards):
     results = []
-    comparaisons = get_all_pairwise_comparaisons()
+    comparaisons = get_all_pairwise_comparisons()
 
     token = config['token']
 
@@ -67,8 +67,6 @@ rule genes_integration:
         "results/" + config['token'] + "/ExecutionComplete.txt"
     params:
         config['token']
-    # conda:
-    #     "../envs/jupyter.yaml"
     log:
         notebook="results/" + config['token'] + "/Report.ipynb"
     notebook:

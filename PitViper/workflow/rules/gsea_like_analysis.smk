@@ -14,8 +14,6 @@ rule gsea_like:
     params:
         treatment="{treatment}",
         control="{control}"
-    # conda:
-    #     "../envs/screen_enrichment_analysis.yml"
     log:
         "logs/{token}/GSEA-like/{treatment}_vs_{control}.log"
     benchmark:

@@ -62,41 +62,29 @@ def getControlIds(wildcards):
     return ",".join(list_ids)
 
 
-def get_all_pairwise_comparaisons():
-    def compareTuples(t1, t2):
-        comparaison = set(t1) & set(t2)
-        return (len(comparaison) == len(t1)) & (len(comparaison) == len(t2))
-
-
-    def tupleInList(t, comparaisons):
-        inList = False
-        for comparaison in comparaisons:
-            if compareTuples(t, comparaison):
-                inList = True
-                break
-        return inList
-
-
-    def pairwiseComparaisons(samples_list):
-        comparaisons = []
-        for i in range(0, len(samples_list)):
-            for j in range(0, len(samples_list)):
-                if (i != j) and not (tupleInList((i, j), comparaisons)):
-                    comparaisons.append((i, j))
-        return comparaisons
-
-    samples_file = pd.read_csv(config['tsv_file'], sep="\t")
-    samples_list = natsorted(list(set(samples_file.condition.values)))
-    comparaisons = pairwiseComparaisons(samples_list)
-
-    l = [{'treatment': samples_list[duo[1]], 'control':samples_list[duo[0]]} for duo in comparaisons]
-    return l
+def get_all_pairwise_comparisons():
+    design = pd.read_csv(config['tsv_file'], sep="\t")
+    design_dict = {}
+    comparisons = []
+    for (k, v) in zip(design.order, design.condition):
+        if not k in design_dict.keys():
+            design_dict[k] = []
+        if not v in design_dict[k]:
+            design_dict[k].append(v)
+    for i in range(len(design_dict)-1):
+        for control in design_dict[i]:
+            for k in range(i+1, len(design_dict)):
+                for treatment in design_dict[k]:
+                    comparisons.append({'treatment': treatment, 'control': control})
+    return comparisons
 
 
 def get_pipeline_outputs(wildcards):
     wanted_outputs = []
 
-    comparaisons = get_all_pairwise_comparaisons()
+    samples_file = pd.read_csv(config['tsv_file'], sep="\t")
+
+    comparaisons = get_all_pairwise_comparisons()
 
     token = config['token']
 

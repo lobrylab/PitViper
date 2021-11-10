@@ -7,24 +7,24 @@ pitviper_R <- function() {
 
 
 RobustRankAggregate <- function(df_merged_reduced) {
-    mle <- df_merged_reduced %>% 
-        select(id, mle_rank) %>% 
+    mle <- df_merged_reduced %>%
+        select(id, mle_rank) %>%
         arrange(mle_rank) %>% pull(id)
 
-    rra <- df_merged_reduced %>% 
-        select(id, rra_rank) %>% 
+    rra <- df_merged_reduced %>%
+        select(id, rra_rank) %>%
         arrange(rra_rank) %>% pull(id)
 
-    bagel <- df_merged_reduced %>% 
-        select(id, bagel_rank) %>% 
+    bagel <- df_merged_reduced %>%
+        select(id, bagel_rank) %>%
         arrange(bagel_rank) %>% pull(id)
 
-    in_house <- df_merged_reduced %>% 
-        select(id, in_house_rank) %>% 
+    in_house <- df_merged_reduced %>%
+        select(id, in_house_rank) %>%
         arrange(in_house_rank) %>% pull(id)
 
-    gsea <- df_merged_reduced %>% 
-        select(id, gsea_rank) %>% 
+    gsea <- df_merged_reduced %>%
+        select(id, gsea_rank) %>%
         arrange(gsea_rank) %>% pull(id)
 
     glist <- list(mle, rra, bagel, in_house, gsea)
@@ -32,7 +32,9 @@ RobustRankAggregate <- function(df_merged_reduced) {
 
     res <- aggregateRanks(glist = glist)
 
-    res <- res %>% filter(Score < 0.01) %>% mutate(rank=rank(Score, ties.method= "min"))       
-    
+    res <- res %>% mutate(Rank=rank(Score, ties.method= "min"))
+
+    rownames(res) <- NULL
+
     return(res)
 }

@@ -9,9 +9,8 @@ rule DESeq2_counts:
         deseq2_out="results/{token}/DESeq2/{treatment}_vs_{control}/{treatment}_vs_{control}_DESeq2_table.txt"
     params:
         treatment="{treatment}",
-        control="{control}"
-    # conda:
-    #     "../envs/screen_enrichment_analysis.yml"
+        control="{control}",
+        design=config['tsv_file']
     log:
         "logs/{token}/DESeq2/{treatment}_vs_{control}.log"
     benchmark:
@@ -33,8 +32,6 @@ rule filtering_method:
     params:
         treatment="{treatment}",
         control="{control}"
-    # conda:
-    #     "../envs/screen_enrichment_analysis.yml"
     log:
         "logs/{token}/in_house_method/{treatment}_vs_{control}.log"
     benchmark:

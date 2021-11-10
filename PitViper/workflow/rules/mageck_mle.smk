@@ -8,8 +8,6 @@ rule generate_design_matrix:
         config['tsv_file']
     output:
         matrix="results/{token}/design_matrices/MAGeCK/{treatment}_vs_{control}_design_matrix.txt"
-    # conda:
-    #     "../envs/commons.yaml"
     log:
         "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}_design_matrix.log"
     shell:
@@ -48,18 +46,3 @@ rule mageck_mle:
             {params.outliers_opt} \
             --permutation-round {params.perm_round_opt} \
             {params.no_perm_group_opt} &> {log}"
-
-
-# rule mageck_mle_notebooks:
-#     """ Generate a jupyter notebook for data analysis of MAGeCK MLE results. """
-#     input:
-#         gene_summary=rules.mageck_mle.output.gene_summary,
-#         sgrna_summary=rules.mageck_mle.output.sgrna_summary
-#     output:
-#         txt="results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/MAGeCK_MLE_{treatment}_vs_{control}.txt"
-#     conda:
-#         "../envs/jupyter.yaml"
-#     log:
-#         notebook="notebooks/{token}/{treatment}_vs_{control}_mageck_mle_processed_notebook.ipynb"
-#     notebook:
-#         "../notebooks/MAGeCK_MLE.py.ipynb"
