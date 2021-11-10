@@ -4,7 +4,7 @@
 
 ## Introduction
 
-PitViper is intended to facilitate the analysis of functional screening data from various experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).
+PitViper is intended to facilitate analysis of functional screening data from various experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).
 
 The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/stable/), a workflow management system to create reproducible and scalable data analysis and [`Flask`](https://flask.palletsprojects.com/en/2.0.x/), a lightweight web framework.
 
@@ -26,7 +26,7 @@ The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/sta
 
 To retrieve, install and run PitViper, we need [`Conda`](https://docs.conda.io/en/latest/) and [`Git`](https://git-scm.com/) available from the commande-line.
 
-Once Conda is installed and in order to speed-up installation process, we recommand to install [`Mamba`](https://github.com/mamba-org/mamba):
+Once Conda is installed and in order to speed-up installation process, we will install [`Mamba`](https://github.com/mamba-org/mamba):
 
 ```bash
 $ conda install -c conda-forge mamba
@@ -44,7 +44,7 @@ $ cd PitViper/PitViper  # You are now in PitViper main directory
 
 ### Installation
 
-Then, we need to install PitViper dependancies. To facilitate dependancy management, a Conda YAML file containing all dependancies have been created and can be used along with `Mamba` to automatically install them: `pitviper_env.yaml`.
+Then, we need to install PitViper dependancies. To facilitate dependancy management, a Conda YAML file containing all dependancies have been created and can be used along with `Mamba` to automatically install dependencies: `pitviper_env.yaml`.
 
 Furthermore, `install_PitViper_env.sh` is a bash script created to perform this step in one command:
 
