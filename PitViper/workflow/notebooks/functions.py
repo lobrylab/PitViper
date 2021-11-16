@@ -9,7 +9,6 @@ import json
 import natsort as ns
 import numpy as np
 import yaml
-from mc4.algorithm import mc4_aggregator
 import os.path
 from os import path
 import matplotlib.pyplot as plt
@@ -122,7 +121,7 @@ def show_read_count_distribution(token, width=800, height=400):
         print("No count file to show.")
         return 0
     table = pd.read_csv(path_qc, sep='\t')
-    table = pd.read_csv(path_qc, sep='\t')
+    # table = pd.read_csv(path_qc, sep='\t')
 
     table.iloc[:, 2:] = table.iloc[:, 2:] +1
     table.iloc[:, 2:] = table.iloc[:, 2:].apply(np.log2)
