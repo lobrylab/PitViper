@@ -24,17 +24,17 @@ The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/sta
 
 ### Prerequisites
 
-To retrieve, install and run PitViper, we need [`Conda`](https://docs.conda.io/en/latest/) and [`Git`](https://git-scm.com/) available from the commande-line.
+To retrieve, install and run PitViper, [`Conda`](https://docs.conda.io/en/latest/) and [`Git`](https://git-scm.com/) need to be available from commande-line.
 
-Once Conda is installed and in order to speed-up installation process, we will install [`Mamba`](https://github.com/mamba-org/mamba):
+Once Conda is installed and in order to speed-up installation process, [`Mamba`](https://github.com/mamba-org/mamba) is needed:
 
 ```bash
 $ conda install -c conda-forge mamba
 ```
 
-Now, Mamba should be available from the command-line.
+Once installed, Mamba should be available from the command-line.
 
-Choose in wich directory you want to install PitViper and change your working directory for it, then clone PitViper repository at this location using `Git`:
+Choose in wich directory PitViper will be intalled and change working directory for it, then clone PitViper repository at this location using `Git`:
 
 ```bash
 $ git clone https://github.com/PaulArthurM/PitViper.git  # Clone PitViper reposity in ~/PitViper/
@@ -44,7 +44,7 @@ $ cd PitViper/PitViper  # You are now in PitViper main directory
 
 ### Installation
 
-Then, we need to install PitViper dependancies. To facilitate dependancy management, a Conda YAML file containing all dependancies have been created and can be used along with `Mamba` to automatically install dependencies: `pitviper_env.yaml`.
+Then, install PitViper dependancies. To facilitate dependancy management, a Conda YAML file containing all dependancies have been created and can be used along with `Mamba` to automatically install all dependencies: `pitviper_env.yaml`.
 
 Furthermore, `install_PitViper_env.sh` is a bash script created to perform this step in one command:
 
@@ -52,7 +52,7 @@ Furthermore, `install_PitViper_env.sh` is a bash script created to perform this 
 $ ./install_PitViper_env.sh
 ```
 
-`./install_PitViper_env.sh` first create a Conda environment call `pitviper_env` that should be visible as follow if you run:
+`./install_PitViper_env.sh` first create a Conda environment call `pitviper_env` that should be visible once installation is over, as follow if you run:
 
 ```bash
 $ conda env list
