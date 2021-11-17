@@ -8,15 +8,16 @@ dependencies:
   - altair=4.1.0=py_1
   - altair_data_server=0.4.1=py_0
   - altair_viewer=0.3.0=py_0
-  - bioconductor-deseq2
-  - bioconductor-fgsea
+  - bioconductor-deseq2=1.34.0
+  - bioconductor-fgsea=1.20.0
+  - bioconductor-depmap=1.8.0
   - bowtie2=2.4.2
   - click=7.1.2
   - ipywidgets=7.6.3=pyhd3deb0d_0
   - jsonschema=3.2.0
   - jupyter=1.0.0=py39hf3d152e_6
-  - flask
-  - gawk
+  - flask=1.1.2
+  - gawk=5.1.0
   - mageck=0.5.9
   - mamba
   - matplotlib=3.4.3
@@ -26,11 +27,16 @@ dependencies:
   - pip=21.2.4
   - r-devtools=2.4.2
   - r-dplyr=1.0.7
+  - r-ggplot2=3.3.5
+  - r-ggridges=0.5.3
+  - r-forcats=0.5.1
   - r-mixtools=1.2.0
   - r-robustrankaggreg=1.1
   - r-readr=2.0.2
   - r-stringr=1.4.0
-  - rpy2
+  - r-venn=1.10
+  - r-yaml=2.2.1
+  - rpy2=3.4.5
   - samtools=1.11
   - scipy=1.6.0=py39hee8e79c_0
   - snakemake=6.1.0
@@ -38,5 +44,4 @@ dependencies:
   - vega=3.4.0=py39hf3d152e_2
   - vega_datasets=0.9.0=pyhd3deb0d_0
   - pip:
-    - mc4==2.3.0
     - pyyaml==5.4.1
