@@ -82,9 +82,10 @@ mean_counts_by_condition <- function(conditions, gene) {
 
 venn_diagram <- function(occ_df, treatment, control) {
     library(venn)
-    venn_plot <- venn(occ_df, ilabels = TRUE, zcolor = "style", ggplot=TRUE)
-    print(venn_plot + theme(plot.title = element_text(face="bold.italic", colour="black", size=14)) +
-          ggtitle(paste("Venn diagram for", treatment, "versus", control)))
+    venn(occ_df, ilabels = FALSE, zcolor = "style", ilcs= 1, sncs = 1, borders = FALSE, box = FALSE)
+    # print(venn_plot + theme(plot.title = element_text(face="bold.italic", colour="black", size=14)) +
+    #       ggtitle(paste("Venn diagram for", treatment, "versus", control)))
+    # print(venn_plot)
 }
 
 
