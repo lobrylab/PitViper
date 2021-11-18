@@ -24,9 +24,8 @@ def documentation():
 
 def run_pitviper(token):
     configfile = 'config/{token}.yaml'.format(token=token)
-    cmd = "python3 pitviper.py --run_snakemake True --configfile {conf} --jobs 1".format(conf=configfile)
+    cmd = "python3 pitviper.py --run_snakemake True --configfile {conf} --jobs 4".format(conf=configfile)
     print(cmd)
-    # os.chdir('../')
     os.system(cmd)
 
 
