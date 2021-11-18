@@ -121,18 +121,18 @@ guide_B.2,GATTGTCTGTGAAATTTCTG,element_B
 
 When starting from a count matrix, fastq/bam column isn't necessary:
 
-| condition | replicate | 
-|-----------|-----------|
-| A         | A_1       |
-| A         | A_2       |
-| A         | A_3       |
-| B         | B_1       |
-| B         | B_2       |
-| B         | B_3       |
+| condition | replicate | order |
+|-----------|-----------|-------|
+| A         | A_1       | 0     |
+| A         | A_2       | 0     |
+| A         | A_3       | 0     |
+| B         | B_1       | 1     |
+| B         | B_2       | 1     |
+| B         | B_3       | 1     |
 
 However, its mandatory that `replicate` column contain the same labels that in count matrix header:
 
 | shRNA       | Gene      | A_1 | A_2 | A_3 | B_1 | B_2 | B_3 |
 |-------------|-----------|-----|-----|-----|-----|-----|-----|
-| guide_A.1 | element_A | 456 | 273 | 345 | 354 | 587 | 258 |
-| guide_A.2 | element_A | 354 | 234 | 852 | 546 | 64  | 452 |
+| guide_A.1   | element_A | 456 | 273 | 345 | 354 | 587 | 258 |
+| guide_A.2   | element_A | 354 | 234 | 852 | 546 | 64  | 452 |
