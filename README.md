@@ -90,16 +90,16 @@ You will need:
 
 Let say that you have two conditions, A and B, with 3 replicates for each. The associated matrix should look as below:
 
-| condition | replicate | fastq                 |
-|-----------|-----------|-----------------------|
-| A         | A_1       | /path/to/A_rep1.fastq |
-| A         | A_2       | /path/to/A_rep2.fastq |
-| A         | A_3       | /path/to/A_rep3.fastq |
-| B         | B_1       | /path/to/B_rep1.fastq |
-| B         | B_2       | /path/to/B_rep2.fastq |
-| B         | B_3       | /path/to/B_rep3.fastq |
+| condition | replicate | fastq                 | order |
+|-----------|-----------|-----------------------|-------|
+| A         | A_1       | /path/to/A_rep1.fastq | 0     |
+| A         | A_2       | /path/to/A_rep2.fastq | 0     |
+| A         | A_3       | /path/to/A_rep3.fastq | 0     |
+| B         | B_1       | /path/to/B_rep1.fastq | 1     |
+| B         | B_2       | /path/to/B_rep2.fastq | 1     |
+| B         | B_3       | /path/to/B_rep3.fastq | 1     |
 
-Those name will be used for differentiation in results report. 
+Those name will be used for differentiation in results report. `order` define which condition to treat as a control and a treatment.
 
 ##### Library file
 
