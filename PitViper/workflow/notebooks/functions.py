@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn import decomposition
 from sklearn import datasets
+from functools import reduce
 
 
 def open_yaml(yml):
@@ -246,7 +247,7 @@ def GSEA_like_results(results_directory, tools_available):
         result = GSEA_like_data(comparison = "", control = control, tool = tool, results_directory=results_directory, tools_available=tools_available)
         result.loc[result['padj'] < fdr_cutoff, 'significant'] = 'Yes'
         result.loc[result['padj'] >= fdr_cutoff, 'significant'] = 'No'
-        new_row = {'pathway':gene, 'condition':control, 'significant': 'Baseline', 'pval':1, 'padj':1 ,'ES': 0, 'NES': 0, 'nMoreExtreme':None, 'size':None}
+        new_row = {'pathway':gene, 'condition':control, 'significant': 'Baseline', 'pval':1, 'padj':1 ,'ES': 0, 'NES': 0, 'size':None}
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.pathway == gene]
         domain = ['Yes', 'No', 'Baseline']
@@ -386,7 +387,7 @@ def MAGeCK_RRA_results(results_directory, tools_available):
         result = MAGeCK_RRA_data(comparison = "", control = control, tool = tool, results_directory=results_directory, tools_available=tools_available)
         result.loc[result['neg|fdr'] < fdr_cutoff, 'significant'] = 'Yes'
         result.loc[result['neg|fdr'] >= fdr_cutoff, 'significant'] = 'No'
-        new_row = {'id':gene, 'condition':control, 'significant': 'Baseline', 'neg|fdr':1, 'neg|score': 0}
+        new_row = {'id':gene, 'condition':control, 'significant': 'Baseline', 'neg|fdr':1, 'neg|lfc': 0}
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.id == gene]
         domain = ['Yes', 'No', 'Baseline']
@@ -399,10 +400,10 @@ def MAGeCK_RRA_results(results_directory, tools_available):
                 filled=True,
                 size=100,
                 ).encode(
-                        y='neg|score',
+                        y='neg|lfc',
                         x=alt.X('condition:N', sort=sort_cols),
                         color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
-                        tooltip=['id', 'neg|score', 'significant', 'neg|fdr', 'condition'],
+                        tooltip=['id', 'neg|lfc', 'significant', 'neg|fdr', 'condition'],
                 ).properties(
                         title=gene + " LFC versus baseline (MAGeCK RRA)",
                         width=100
@@ -634,8 +635,8 @@ def MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_director
     treatment, control = comparison.split("_vs_")
     source = MAGeCK_RRA_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
 
-    source['logarithm_base2'] = np.log2(source['neg|score']) * np.sign(source['neg|lfc'])
-    source['default_rank'] = source['logarithm_base2'].rank(ascending=False)
+    # source['logarithm_base2'] = np.log2(source['neg|lfc']) * np.sign(source['neg|lfc'])
+    source['default_rank'] = source['neg|lfc'].rank(ascending=False)
     source.loc[source['neg|fdr'] < 0.05, 'significant'] = 'Yes'
     source.loc[source['neg|fdr'] >= 0.05, 'significant'] = 'No'
     domain = ['Yes', 'No']
@@ -644,8 +645,8 @@ def MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_director
     def on_button_clicked(b):
         chart = alt.Chart(source).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
-            y=alt.Y('logarithm_base2:Q'),
-            tooltip=['id', 'num', 'neg|score', 'neg|fdr', 'significant', 'neg|rank', 'default_rank', 'logarithm_base2'],
+            y=alt.Y('neg|lfc:Q'),
+            tooltip=['id', 'num', 'neg|lfc', 'neg|fdr', 'significant', 'neg|rank', 'default_rank'],
             color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
             order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
@@ -758,7 +759,7 @@ def GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory
         chart = alt.Chart(source).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('NES:Q'),
-            tooltip=['pathway', 'pval', 'padj', 'ES', 'NES','significant', 'nMoreExtreme', 'size', 'default_rank'],
+            tooltip=['pathway', 'pval', 'padj', 'ES', 'NES','significant', 'size', 'default_rank'],
             color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
             order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
@@ -1117,3 +1118,187 @@ def pca_counts(token):
     ).interactive()
 
     return pca_2d
+
+
+def ranking(treatment, control, token, tools_available):
+
+    def get_occurence_df(data):
+        essential_genes = []
+        for key in list(data.keys()):
+            essential_genes.extend(data[key])
+        df = pd.DataFrame(np.zeros((len(set(essential_genes)), len(data.keys()))),
+                          index = set(essential_genes),
+                          columns = data.keys(),
+                          dtype = int)
+        for tool in data.keys():
+            for gene in set(essential_genes):
+                if gene in data[tool]:
+                    df.loc[gene, tool] = 1
+        return df
+
+    config = "./config/%s.yaml" % token
+    content = open_yaml(config)
+
+    tool_results = {}
+    pdList = []
+    tool_genes = []
+
+    comparison = treatment + "_vs_" + control
+
+    if content["mageck_mle_activate"] == 'True':
+        mle = tools_available["MAGeCK_MLE"][comparison][comparison + ".gene_summary.txt"]
+        mle['default_rank'] = mle[treatment + '|beta'].rank(method="dense")
+        mle = mle[(mle["%s|beta" % treatment] < 0) & (mle["%s|fdr" % treatment] < 0.05)]
+        mle = mle[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "mle_rank"})
+        mle_genes = list(mle.id)
+        tool_results["MAGeCK MLE"] = mle_genes
+        tool_genes.append(mle_genes)
+
+    if content["mageck_rra_activate"] == 'True':
+        rra = tools_available["MAGeCK_RRA"][comparison][comparison + ".gene_summary.txt"]
+        rra = rra[(rra["neg|lfc"] < 0) & (rra["neg|fdr"] < 0.05)]
+        rra = rra[["id", "neg|rank"]].rename(columns={"neg|rank": "rra_rank"})
+        rra_genes = list(rra.id)
+        tool_results["MAGeCK RRA"] = rra_genes
+        tool_genes.append(rra_genes)
+
+
+    if content["bagel_activate"] == 'True':
+        bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.bf"]
+        bagel['default_rank'] = bagel['BF'].rank(method="dense", ascending=False)
+        bagel = bagel[(bagel["BF"] > 0)]
+        bagel = bagel[["GENE", "default_rank"]].rename(columns={"GENE": "id", "default_rank": "bagel_rank"})
+        bagel_genes = list(bagel.id)
+        tool_results["BAGEL"] = bagel_genes
+        tool_genes.append(bagel_genes)
+
+
+    if content["filtering_activate"] == 'True':
+        in_house = tools_available["in_house_method"][comparison][comparison + "_all-elements_in-house.txt"]
+        in_house['default_rank'] = in_house['score'].rank(method="dense")
+        in_house = in_house[(in_house["down"] > 1) & (in_house["up"] < 2) & (in_house["score"] < 0)]
+        in_house = in_house[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "in_house_rank"})
+        in_house_genes = list(in_house.id)
+        tool_results["In-house"] = in_house_genes
+        tool_genes.append(in_house_genes)
+
+    if content["gsea_activate"] == 'True':
+        gsea = tools_available["GSEA-like"][comparison][comparison + "_all-elements_GSEA-like.txt"]
+        gsea['default_rank'] = gsea['NES'].rank(method="dense")
+        gsea = gsea[(gsea["NES"] < 0) & (gsea["pval"] < 0.05)]
+        gsea = gsea[["pathway", "default_rank"]].rename(columns={"pathway": "id", "default_rank": "gsea_rank"})
+        gsea_genes = list(gsea.id)
+        tool_results["GSEA-like"] = gsea_genes
+        tool_genes.append(gsea_genes)
+
+
+    l = []
+    for genes in tool_genes:
+        for gene in genes:
+            l.append(gene)
+
+    if content["mageck_mle_activate"] == 'True':
+        mle = tools_available["MAGeCK_MLE"][comparison][comparison + ".gene_summary.txt"]
+        mle['default_rank'] = mle[treatment + '|beta'].rank(method="dense")
+        mle = mle[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "mle_rank"})
+        pdList.append(mle)
+
+
+    if content["mageck_rra_activate"] == 'True':
+        rra = tools_available["MAGeCK_RRA"][comparison][comparison + ".gene_summary.txt"]
+        rra = rra[["id", "neg|rank"]].rename(columns={"neg|rank": "rra_rank"})
+        pdList.append(rra)
+
+
+    if content["bagel_activate"] == 'True':
+        bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.bf"]
+        bagel['default_rank'] = bagel['BF'].rank(method="dense", ascending=False)
+        bagel = bagel[["GENE", "default_rank"]].rename(columns={"GENE": "id", "default_rank": "bagel_rank"})
+        pdList.append(bagel)
+
+    if content["filtering_activate"] == 'True':
+        in_house = tools_available["in_house_method"][comparison][comparison + "_all-elements_in-house.txt"]
+        in_house['default_rank'] = in_house['score'].rank(method="dense")
+        in_house = in_house[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "in_house_rank"})
+        pdList.append(in_house)
+
+    if content["gsea_activate"] == 'True':
+        gsea = tools_available["GSEA-like"][comparison][comparison + "_all-elements_GSEA-like.txt"]
+        gsea['default_rank'] = gsea['NES'].rank(method="dense")
+        gsea = gsea[["pathway", "default_rank"]].rename(columns={"pathway": "id", "default_rank": "gsea_rank"})
+        pdList.append(gsea)
+
+    df_merged_reduced = reduce(lambda  left,right: pd.merge(left,right,on=['id'],
+                                                how='outer'), pdList)
+
+    df_merged_reduced = df_merged_reduced[df_merged_reduced['id'].isin(l)]
+
+    occurence_df = get_occurence_df(tool_results)
+
+    return (df_merged_reduced, occurence_df)
+
+
+def genemania_link_results(tools_available):
+    TOOLS = [tool for tool in tools_available.keys() if tool != "DESeq2"]
+    @interact(tool=TOOLS)
+    def genemania_link_results(tool):
+        tool_res = tools_available[tool]
+        conditions = tool_res.keys()
+        @interact(conditions=conditions)
+        def genemania_link_results(conditions):
+            treatment, baseline = conditions.split("_vs_")
+            @interact(fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05),
+                      score_cutoff=widgets.FloatText(value=0, description='Score cut-off:'))
+            def genemania_link_results( fdr_cutoff, score_cutoff):
+                print('Baseline:', baseline)
+                print('Treatment:', treatment)
+                print('FDR cut-off:', fdr_cutoff)
+                print('Score cut-off', score_cutoff)
+                print('Tool:', tool)
+                html = ""
+
+                def on_button_clicked(b):
+                    if tool == 'MAGeCK_MLE':
+                        info = tool_res[conditions][conditions + ".gene_summary.txt"]
+                        info = info.loc[info[treatment+'|fdr'] < fdr_cutoff]
+                        if float(score_cutoff) < 0:
+                            info = info.loc[info[treatment+'|beta'] < score_cutoff]
+                        elif float(score_cutoff) > 0:
+                            info = info.loc[info[treatment+'|beta'] > score_cutoff]
+                        genes = info['Gene']
+
+                    if tool == 'MAGeCK_RRA':
+                        info = tool_res[conditions][conditions + ".gene_summary.txt"]
+                        info = info.loc[info['neg|fdr'] < fdr_cutoff]
+                        genes = info['id']
+
+                    if tool == 'BAGEL':
+                        info = tool_res[conditions][conditions + "_BAGEL_output.bf"]
+                        info = info.loc[info['BF'] > float(score_cutoff)]
+                        genes = info['GENE']
+
+                    if tool == 'in_house_method':
+                        info = tool_res[conditions][conditions + "_all-elements_in-house.txt"]
+                        info = info.loc[info['score'] < float(score_cutoff)]
+                        genes = info['Gene']
+
+                    if tool == "GSEA-like":
+                        info = tool_res[conditions][conditions + "_all-elements_GSEA-like.txt"]
+                        if float(score_cutoff) > 0:
+                            info = info.loc[info['NES'] > float(score_cutoff)]
+                        elif float(score_cutoff) < 0:
+                            info = info.loc[info['NES'] < float(score_cutoff)]
+                        info = info.loc[info['padj'] < fdr_cutoff]
+                        genes = info['pathway']
+
+                    print("Size (gene set):", len(genes))
+
+                    link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes)
+                    print(link)
+
+                button = widgets.Button(description="Show EnrichR results")
+                output = widgets.Output()
+
+                display(button, output)
+
+                button.on_click(on_button_clicked)

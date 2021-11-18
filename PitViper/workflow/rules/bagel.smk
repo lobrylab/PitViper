@@ -43,10 +43,8 @@ rule bagel_foldchange:
 
 def bagel_bf_columns(wildcards):
     file = "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL.foldchange".format(token=wildcards.token, treatment=wildcards.treatment, control=wildcards.control)
-    print('File:', file)
     content = pd.read_csv(file, sep="\t")
     out = ",".join([ str(i + 1) for i in range(len(content.columns)-2)])
-    print(out)
     return out
 
 rule bagel_bf:

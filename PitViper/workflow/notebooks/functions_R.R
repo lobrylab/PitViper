@@ -1,5 +1,10 @@
 library(dplyr)
 library(RobustRankAggreg)
+library(yaml)
+library(readr)
+library(ggplot2)
+library(tidyr)
+
 
 pitviper_R <- function() {
     message("Hello, world!")
@@ -37,4 +42,57 @@ RobustRankAggregate <- function(df_merged_reduced) {
     rownames(res) <- NULL
 
     return(res)
+}
+
+
+mean_counts_by_condition <- function(conditions, gene) {
+    conditions <- unlist(strsplit(conditions, ","))
+
+    order.dict <- tsv_file %>%
+        filter(condition %in% conditions) %>%
+        distinct(condition, replicate)
+
+
+    replicates <- tsv_file %>%
+        filter(condition %in% conditions) %>%
+        pull(replicate)
+
+
+    cts.vertival <- cts_file %>%
+        filter(Gene == gene) %>%
+        select(Gene, sgRNA, replicates) %>%
+        gather(key = "replicate", value = "count", -Gene, -sgRNA)
+
+    merged <- merge(x = cts.vertival, y = order.dict, by = "replicate")
+
+    merged$condition = factor(merged$condition, levels = conditions)
+
+
+    plot <- merged %>%
+        group_by(sgRNA, condition) %>%
+        summarize(mean = mean(count)) %>%
+        ggplot(aes(x = condition, y = mean, group = sgRNA)) +
+            geom_line(aes(color=sgRNA)) +
+            geom_point(aes(color=sgRNA)) +
+            theme_classic() +
+            ggtitle(paste0(gene, ": average number of reads"))
+    return(plot)
+}
+
+
+venn_diagram <- function(occ_df, treatment, control) {
+    library(venn)
+    venn_plot <- venn(occ_df, ilabels = TRUE, zcolor = "style", ggplot=TRUE)
+    print(venn_plot + theme(plot.title = element_text(face="bold.italic", colour="black", size=14)) +
+          ggtitle(paste("Venn diagram for", treatment, "versus", control)))
+}
+
+
+get_data <- function(token) {
+    config <- paste0("./config/",token,".yaml")
+    content = read_yaml(config)
+    tsv_file = read_delim(content$tsv_file, "\t", escape_double = FALSE, trim_ws = TRUE)
+    cts_file = read_delim(content$normalized_count_table, "\t", escape_double = FALSE, trim_ws = TRUE)
+
+    return(list("tsv" = tsv_file, "cts" = cts_file))
 }

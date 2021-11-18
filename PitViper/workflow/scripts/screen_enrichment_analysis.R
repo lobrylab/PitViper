@@ -16,7 +16,7 @@ baseline <- snakemake@params[2]
 
 
 # Process counts file (must be tab delimited and have a 'sgRNA' column).
-cts <- read.csv(cts_file, sep="\t", row.names="sgRNA")
+cts <- read.csv(cts_file, sep="\t", row.names="sgRNA", check.names=FALSE)
 cts <- cbind(cts[ , grepl( c(baseline) , names( cts ) ) ], cts[ , grepl( c(treatment) , names( cts ) ) ])
 
 
@@ -25,7 +25,7 @@ res <- read_delim(res_file, "\t", escape_double = FALSE, trim_ws = TRUE)
 
 
 # Rank sgRNAs using p-value and log2Fold-Change.
-res <- res %>% mutate(rank_metric = log2FoldChange) %>% select(rank_metric, sgRNA)
+res <- res %>% mutate(rank_metric = log2FoldChange) %>% filter(!is.na(rank_metric)) %>% select(rank_metric, sgRNA)
 ranking <- setNames(res$rank_metric, res$sgRNA)
 
 
@@ -35,12 +35,13 @@ count_table <- read.table(cts_file, header = TRUE)
 gene.sgrna <- count_table[c('sgRNA', 'Gene')]
 pathways <- unstack(gene.sgrna)
 
+print(ranking)
+
 # Use fgsea library for gsea-like element prioritization.
 fgseaRes <- fgsea(pathways = pathways,
                   stats    = ranking,
                   minSize  = 1,
-                  maxSize  = Inf,
-                  nperm = 1000)
+                  maxSize  = Inf)
 
 
 # Define leadingEdge as a string.

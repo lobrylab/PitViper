@@ -14,14 +14,16 @@ treatment <- snakemake@params[1]
 baseline <- snakemake@params[2]
 design_file <- snakemake@params[[3]]
 
+print(cts_file)
 
 # Process counts file (must be tab delimited and have a 'sgRNA' column).
-cts <- read.csv(cts_file, sep="\t", row.names="sgRNA")
+cts <- read.csv(cts_file, sep="\t", row.names="sgRNA", check.names=FALSE)
+print(colnames(cts))
 cts <- cbind(cts[ , grepl( c(baseline) , names( cts ) ) ], cts[ , grepl( c(treatment) , names( cts ) ) ])
 
 
 # Read design file for replicate/condition associations.
-design <- read.csv(design_file, sep="\t")
+design <- read.csv(design_file, sep="\t",  check.names=FALSE)
 treatment.name <- design %>% filter(condition == treatment) %>% pull(replicate) %>% unique()
 baseline.name <- design %>% filter(condition == baseline) %>% pull(replicate) %>% unique()
 n.treatment <- ncol(select(cts, all_of(treatment.name)))
