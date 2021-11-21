@@ -122,7 +122,6 @@ def show_read_count_distribution(token, width=800, height=400):
         print("No count file to show.")
         return 0
     table = pd.read_csv(path_qc, sep='\t')
-    # table = pd.read_csv(path_qc, sep='\t')
 
     table.iloc[:, 2:] = table.iloc[:, 2:] +1
     table.iloc[:, 2:] = table.iloc[:, 2:].apply(np.log2)
@@ -174,6 +173,8 @@ def CRISPhieRmix_data(comparison = "", control = "", tool = "", results_director
 
 def CRISPhieRmix_results(results_directory, tools_available):
     tool = "CRISPhieRmix"
+    if not tool in tools_available.keys():
+        return "CRISPhieRmix wasn't activated."
     comparisons_list = os.listdir(os.path.join(results_directory, tool))
     ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
     @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),
@@ -237,6 +238,8 @@ def GSEA_like_data(comparison = "", control = "", tool = "", results_directory =
 
 def GSEA_like_results(results_directory, tools_available):
     tool = "GSEA-like"
+    if not tool in tools_available.keys():
+        return "GSEA-like method wasn't activated."
     comparisons_list = os.listdir(os.path.join(results_directory, tool))
     ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
     @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),
@@ -299,6 +302,8 @@ def in_house_method_data(comparison = "", control = "", tool = "", results_direc
 
 def in_house_method_results(results_directory, tools_available):
     tool = "in_house_method"
+    if not tool in tools_available.keys():
+        return "In-house method wasn't activated."
     comparisons_list = os.listdir(os.path.join(results_directory, tool))
     ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
     @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),
@@ -377,6 +382,8 @@ def MAGeCK_RRA_data(comparison = "", control = "", tool = "MAGeCK_RRA", results_
 
 def MAGeCK_RRA_results(results_directory, tools_available):
     tool = "MAGeCK_RRA"
+    if not tool in tools_available.keys():
+        return "MAGeCK method wasn't activated."
     comparisons_list = os.listdir(os.path.join(results_directory, tool))
     ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
     @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),
@@ -458,6 +465,8 @@ def MAGeCK_MLE_data(comparison = "", control = "", tool = "", results_directory 
 
 def MAGeCK_MLE_results(results_directory, tools_available):
     tool = "MAGeCK_MLE"
+    if not tool in tools_available.keys():
+        return "MAGeCK MLE method wasn't activated."
     comparisons_list = os.listdir(os.path.join(results_directory, tool))
     ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
     @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),

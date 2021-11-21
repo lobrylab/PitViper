@@ -1,4 +1,3 @@
-from natsort import natsorted
 
 def getFastqFiles(wildcards):
     """Return a list of experiment's files  in fastq format."""
