@@ -4,33 +4,39 @@ library(yaml)
 library(readr)
 library(ggplot2)
 library(tidyr)
+library(venn)
 
 
-pitviper_R <- function() {
-    message("Hello, world!")
-}
+RobustRankAggregate <- function(ranks) {
+    if ("mle_rank" %in% colnames(ranks)) {
+        mle <- ranks %>%
+            select(id, mle_rank) %>%
+            arrange(mle_rank) %>% pull(id)
+    }
+    
+    if ("rra_rank" %in% colnames(ranks)) {
+        rra <- ranks %>%
+            select(id, rra_rank) %>%
+            arrange(rra_rank) %>% pull(id)
+    }
 
-
-RobustRankAggregate <- function(df_merged_reduced) {
-    mle <- df_merged_reduced %>%
-        select(id, mle_rank) %>%
-        arrange(mle_rank) %>% pull(id)
-
-    rra <- df_merged_reduced %>%
-        select(id, rra_rank) %>%
-        arrange(rra_rank) %>% pull(id)
-
-    bagel <- df_merged_reduced %>%
+    if ("bagel_rank" %in% colnames(ranks)) {
+    bagel <- ranks %>%
         select(id, bagel_rank) %>%
         arrange(bagel_rank) %>% pull(id)
+    }
 
-    in_house <- df_merged_reduced %>%
-        select(id, in_house_rank) %>%
-        arrange(in_house_rank) %>% pull(id)
+    if ("in_house_rank" %in% colnames(ranks)) {
+        in_house <- ranks %>%
+            select(id, in_house_rank) %>%
+            arrange(in_house_rank) %>% pull(id)
+    }
 
-    gsea <- df_merged_reduced %>%
-        select(id, gsea_rank) %>%
-        arrange(gsea_rank) %>% pull(id)
+    if ("gsea_rank" %in% colnames(ranks)) {
+        gsea <- ranks %>%
+            select(id, gsea_rank) %>%
+            arrange(gsea_rank) %>% pull(id)
+    }
 
     glist <- list(mle, rra, bagel, in_house, gsea)
     glist
@@ -81,11 +87,7 @@ mean_counts_by_condition <- function(conditions, gene) {
 
 
 venn_diagram <- function(occ_df, treatment, control) {
-    library(venn)
     venn(occ_df, ilabels = FALSE, zcolor = "style", ilcs= 1, sncs = 1, borders = FALSE, box = FALSE)
-    # print(venn_plot + theme(plot.title = element_text(face="bold.italic", colour="black", size=14)) +
-    #       ggtitle(paste("Venn diagram for", treatment, "versus", control)))
-    # print(venn_plot)
 }
 
 
