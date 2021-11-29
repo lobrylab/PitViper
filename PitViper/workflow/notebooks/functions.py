@@ -20,16 +20,31 @@ from IPython.display import display, clear_output
 from clustergrammer2 import net, Network, CGM2
 import rpy2
 import IPython
+import math
 from rpy2.robjects.packages import importr
 import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
+import rpy2.robjects as robjects
+
+alt.renderers.enable('html')
 
 
-# global occurences
-# occurences = None
+def working_directory_update(output):
+    switch = True
+    while os.path.basename(os.getcwd()) != "PitViper":
+        if switch:
+            switch = False
+            os.system("cd ../../")
+        else:
+            os.system("cd ../")
 
+    print('Working directory: ', os.getcwd())
 
+    with open(output, "w") as out:
+        print("Notebook was runned.", file=out)
+
+        
 def open_yaml(yml):
     """Open a YAML file and return it's content."""
     with open(yml, "r") as stream:
@@ -82,10 +97,45 @@ def setup_step_1(token):
                     else:
                         sep = "\t"
                     tools_available[tool][comparison][file] = pd.read_csv(os.path.join(results_directory, tool, comparison, file), sep = sep)
-
+    add_columns(tools_available)
     return (results_directory, tools_available)
 
 
+def add_columns(tools_available):
+    if 'MAGeCK_MLE' in tools_available:
+        for condition in tools_available['MAGeCK_MLE']:
+            treatment = condition.split('_vs_')[0]
+            for file_suffixe in ['%s.gene_summary.txt', '%s.sgrna_summary.txt']:
+                table = tools_available['MAGeCK_MLE'][condition][file_suffixe % condition]
+                if (not 'log10(invFDR)' in list(table.columns))  and ('%s|fdr' % treatment in list(table.columns)):
+                    array = table['%s|fdr' % treatment].values
+                    min_fdr = np.min(array[np.nonzero(array)])
+                    table['%s|fdr_nozero' % treatment] = table['%s|fdr' % treatment].replace(0, min_fdr)
+                    min_fdr = table['%s|fdr' % treatment].values
+                    table['log10(invFDR)'] = - np.log2(table['%s|fdr_nozero' % treatment])
+    if 'MAGeCK_RRA' in tools_available:
+        for condition in tools_available['MAGeCK_RRA']:
+            treatment = condition.split('_vs_')[0]
+            for file_suffixe in ['%s.gene_summary.txt', '%s.sgrna_summary.txt']:
+                table = tools_available['MAGeCK_RRA'][condition][file_suffixe % condition]
+                for direction in ['neg', 'pos']:
+                    if not '%s|log10(invFDR)' % direction in list(table.columns) and ('%s|fdr' % direction in list(table.columns)):
+                        array = table['%s|fdr' % direction].values
+                        min_fdr = np.min(array[np.nonzero(array)])
+                        table['%s|fdr_nozero' % direction] = table['%s|fdr' % direction].replace(0, min_fdr)
+                        min_fdr = table['%s|fdr' % direction].values
+                        table['%s|log10(invFDR)' % direction] = - np.log2(table['%s|fdr_nozero' % direction])
+    if 'GSEA-like' in tools_available:
+        for condition in tools_available['GSEA-like']:
+            treatment = condition.split('_vs_')[0]
+            for file_suffixe in ['%s_all-elements_GSEA-like.txt']:
+                table = tools_available['GSEA-like'][condition][file_suffixe % condition]
+                if (not 'log10(invPadj)' in list(table.columns))  and ('padj' in list(table.columns)):
+                    array = table['padj'].values
+                    min_fdr = np.min(array[np.nonzero(array)])
+                    table['padj_nozero'] = table['padj'].replace(0, min_fdr)
+                    min_fdr = table['padj'].values
+                    table['log10(invPadj)'] = - np.log2(table['padj'])
 
 
 def show_mapping_qc(token):
@@ -1037,7 +1087,7 @@ def enrichr_plots(pitviper_res):
     def enrichr_plots(tool):
         tool_res = pitviper_res[tool]
         conditions = tool_res.keys()
-        @interact(description=widgets.Text(value='My gene list', placeholder='Description', description='Description:'), base=BASES, conditions=conditions)
+        @interact(description=widgets.Text(value='My gene list', placeholder='Description', description='Description:'), base=widgets.SelectMultiple(options=BASES), conditions=conditions)
         def enrichr_plots(description, base, conditions):
             treatment, baseline = conditions.split("_vs_")
             @interact(col_2=widgets.ColorPicker(concise=False, description='Top color', value='blue', disabled=False), col_1=widgets.ColorPicker(concise=False, description='Bottom color', value='red', disabled=False), plot_type=['Circle', 'Bar'], size=[5, 10, 20, 50, 100, 200, 'max'], fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05), score_cutoff=widgets.Text(value='0', placeholder='0', description='Score cut-off:'))
@@ -1185,12 +1235,20 @@ def ranking(treatment, control, token, tools_available, params):
         score = params['MAGeCK_RRA']['score']
         fdr = params['MAGeCK_RRA']['fdr']
         greater = params['MAGeCK_RRA']['greater']
+        direction = params['MAGeCK_RRA']['direction']
         rra = tools_available["MAGeCK_RRA"][comparison][comparison + ".gene_summary.txt"]
-        if not greater:
-            rra = rra[(rra["neg|lfc"] < score) & (rra["neg|fdr"] < fdr)]
+        if direction == 'Negative':
+            if not greater:
+                rra = rra[(rra["neg|lfc"] < score) & (rra["neg|fdr"] < fdr)]
+            else:
+                rra = rra[(rra["neg|lfc"] > score) & (rra["neg|fdr"] < fdr)]
+            rra = rra[["id", "neg|rank"]].rename(columns={"neg|rank": "rra_rank"})
         else:
-            rra = rra[(rra["neg|lfc"] > score) & (rra["neg|fdr"] < fdr)]
-        rra = rra[["id", "neg|rank"]].rename(columns={"neg|rank": "rra_rank"})
+            if not greater:
+                rra = rra[(rra["pos|lfc"] < score) & (rra["pos|fdr"] < fdr)]
+            else:
+                rra = rra[(rra["pos|lfc"] > score) & (rra["pos|fdr"] < fdr)]
+            rra = rra[["id", "pos|rank"]].rename(columns={"pos|rank": "rra_rank"})
         rra_genes = list(rra.id)
         tool_results["MAGeCK RRA"] = rra_genes
         tool_genes.append(rra_genes)
@@ -1199,7 +1257,6 @@ def ranking(treatment, control, token, tools_available, params):
     if params['BAGEL']['on']:
         score = params['BAGEL']['score']
         greater = params['BAGEL']['greater']
-    # if content["bagel_activate"] == 'True':
         bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.bf"]
         if greater:
             bagel = bagel[(bagel["BF"] > score)]
@@ -1276,7 +1333,10 @@ def ranking(treatment, control, token, tools_available, params):
 
     if params['MAGeCK_RRA']['on']:
         rra = tools_available["MAGeCK_RRA"][comparison][comparison + ".gene_summary.txt"]
-        rra = rra[["id", "neg|rank"]].rename(columns={"neg|rank": "rra_rank"})
+        if params['MAGeCK_RRA']['direction'] == 'Negative':
+            rra = rra[["id", "neg|rank"]].rename(columns={"neg|rank": "rra_rank"})
+        elif params['MAGeCK_RRA']['direction'] == 'Positive':
+            rra = rra[["id", "pos|rank"]].rename(columns={"pos|rank": "rra_rank"})
         pdList.append(rra)
 
     if params['BAGEL']['on']:
@@ -1366,13 +1426,13 @@ def genemania_link_results(tools_available):
                             info = info.loc[info['NES'] < float(score_cutoff)]
                         info = info.loc[info['padj'] < fdr_cutoff]
                         genes = info['pathway']
+                        
+                    with output:
+                        print("Size (gene set):", len(genes))
+                        link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes)
+                        print(link)
 
-                    print("Size (gene set):", len(genes))
-
-                    link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes)
-                    print(link)
-
-                button = widgets.Button(description="Show EnrichR results")
+                button = widgets.Button(description="Genemania")
                 output = widgets.Output()
 
                 display(button, output)
@@ -1387,11 +1447,22 @@ def plot_venn(occurences):
     venn_lib = importr('venn')
     grdevices = importr('grDevices')
     with localconverter(ro.default_converter + pandas2ri.converter):
-        r_from_pd_df = ro.conversion.py2rpy(occurences)
+        r_occurences = ro.conversion.py2rpy(occurences)
 
     with rpy2.robjects.lib.grdevices.render_to_bytesio(grdevices.png, width=1024, height=896, res=150) as img:
-        venn_lib.venn(r_from_pd_df, ilabels = False, zcolor = "style", ilcs= 1, sncs = 1, borders = False, box = False)
-    IPython.display.display(IPython.display.Image(data=img.getvalue(), format='png', embed=True))                
+        venn_lib.venn(r_occurences, ilabels = False, zcolor = "style", ilcs= 1, sncs = 1, borders = False, box = False)
+    IPython.display.display(IPython.display.Image(data=img.getvalue(), format='png', embed=True))
+    
+    
+def run_rra(ranks):
+    rra_lib = importr('RobustRankAggreg')
+    r_source = robjects.r['source']
+    r_source("workflow/notebooks/functions_R.R")
+    with localconverter(ro.default_converter + pandas2ri.converter):
+        r_ranks = ro.conversion.py2rpy(ranks)
+    RobustRankAggregate = robjects.r['RobustRankAggregate']
+    res = RobustRankAggregate(r_ranks)
+    print(res)
                 
 
 def intersection(tools_available, token):
@@ -1412,7 +1483,8 @@ def intersection(tools_available, token):
               'MAGeCK_RRA': {'on': False,
                              'fdr': 0.05,
                              'score': 0,
-                             'greater': True},
+                             'greater': True,
+                             'direction': 'Positive'},
               'BAGEL': {'on': False,
                              'score': 0,
                              'greater': True},
@@ -1421,7 +1493,7 @@ def intersection(tools_available, token):
                              'score': 0,
                              'greater': True},
               'in_house_method': {'on': False,
-                             'direction': None,
+                             'direction': 'Positive',
                              'score': 0,
                              'greater': True},
               'GSEA_like': {'on': False,
@@ -1457,6 +1529,9 @@ def intersection(tools_available, token):
         def rra_score_update(change):
             with output:
                 params['MAGeCK_RRA']['score'] = change['new']
+        def rra_direction_update(change):
+            with output:
+                params['MAGeCK_RRA']['direction'] = change['new']
 
         def bagel_order_update(change):
             with output:
@@ -1511,7 +1586,7 @@ def intersection(tools_available, token):
             with output:
                 params['GSEA_like']['score'] = change['new']
 
-        def on_button_clicked(b):
+        def venn_button_clicked(b):
             with output:
                 global treatment
                 global control
@@ -1525,13 +1600,29 @@ def intersection(tools_available, token):
                 print("Genes at intersection of all methods:")
                 for gene in intersection_genes:
                     print(gene)
+                    
+                    
+        def rra_button_clicked(b):
+            with output:
+                global treatment
+                global control
+                treatment, control = condition_selected.split("_vs_")
+                global ranks
+                global occurences
+                ranks, occurences = ranking(treatment, control, token, tools_available, params)
+                run_rra(ranks)
                 
+                
+        # def reset_button_clicked(b):
+        #     intersection(tools_available, token)
 
         # Output
         global intersection_run
         intersection_run = True
         output = widgets.Output()
-        button = widgets.Button(description="Click Me!")
+        venn_button = widgets.Button(description="Venn diagram")
+        rra_button = widgets.Button(description="RRA ranking")
+        # reset_button = widgets.Button(description="Reset")
         if 'MAGeCK_MLE' in tools_selected:
             params['MAGeCK_MLE']['on'] = True
             mle_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
@@ -1546,13 +1637,15 @@ def intersection(tools_available, token):
             mle_fdr.observe(mle_fdr_update, 'value')
         if 'MAGeCK_RRA' in tools_selected:
             params['MAGeCK_RRA']['on'] = True
+            rra_direction = widgets.ToggleButtons(options=['Positive', 'Negative'], description='Direction:')
             rra_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
             rra_score=widgets.FloatText(value=0, description='Score cut-off:')
             rra_text=widgets.HTML(value="MAGeCK RRA:")
             rra_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
             display(rra_text)
-            rra_box = HBox([rra_fdr, rra_score, rra_order])
+            rra_box = HBox([rra_fdr, rra_direction, rra_score, rra_order])
             display(rra_box)
+            rra_direction.observe(rra_direction_update, 'value')
             rra_order.observe(rra_order_update, 'value')
             rra_score.observe(rra_score_update, 'value')
             rra_fdr.observe(rra_fdr_update, 'value')
@@ -1602,8 +1695,105 @@ def intersection(tools_available, token):
             GSEA_like_order.observe(GSEA_like_order_update, 'value')
             GSEA_like_score.observe(GSEA_like_score_update, 'value')
             GSEA_like_fdr.observe(GSEA_like_fdr_update, 'value')
-        display(button, output)
-        button.on_click(on_button_clicked)
+        buttons_box = HBox([venn_button, rra_button])
+        display(buttons_box, output)
+        venn_button.on_click(venn_button_clicked)
+        rra_button.on_click(rra_button_clicked)
+        # reset_button.on_click(reset_button_clicked)
 
 
     _ = interact(run, condition_selected=conditions_widget, tools_selected=tools_widget)
+    
+    
+    
+def plot_chart(data, tool, condition, file, x, y, method, column_filter='', cutoff=0, greater=False, element='', column_element='', elem_color='', pass_color='', fail_color='', category_column = '', color_scheme='', reverse=''):
+    source = data[tool][condition][file].copy()
+    show_plot = True
+    if method == 'Cut-off':
+        if (source[column_filter].dtype in [np.float64, np.int64]):
+            elements = element.split(',')
+            print(elements)
+            if not greater:
+                pass_value = "%s < %s" % (column_filter,cutoff)
+                fail_value = "%s >= %s" % (column_filter,cutoff)
+                source.loc[source[column_filter] < cutoff, 'filter'] = pass_value
+                source.loc[source[column_filter] >= cutoff, 'filter'] = fail_value
+            else:
+                pass_value = "%s >= %s" % (column_filter,cutoff)
+                fail_value = "%s < %s" % (column_filter,cutoff)
+                source.loc[source[column_filter] >= cutoff, 'filter'] = pass_value
+                source.loc[source[column_filter] < cutoff, 'filter'] = fail_value
+            source['filter'] = np.where(source[column_element].isin(elements), element, source['filter'])
+            domain = [pass_value, fail_value, element]
+            range_ = [pass_color, fail_color, elem_color]
+        else:
+            source['filter'] = 'pass'
+            show_plot = False
+            print('Choose a column of integer or float type.')
+    if show_plot:
+        if method == 'Cut-off':
+            chart = alt.Chart(source).transform_calculate(
+                order="{'%s': 2, '%s': 1, '%s': 0}[datum.filter]" % (element, pass_value, fail_value)
+            ).mark_circle().encode(
+                x=x,
+                y=y,
+                tooltip = list(source.columns),
+                color=alt.Color('filter', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Pass filter:")),
+                order='order:Q'
+            ).interactive()
+            display(chart)
+        else:
+            chart = alt.Chart(source).mark_circle().encode(
+                x=x,
+                y=y,
+                tooltip = list(source.columns),
+                color=alt.Color(category_column, legend=alt.Legend(title="%s:" % category_column), scale=alt.Scale(scheme=color_scheme, reverse=reverse))
+            ).interactive()
+            display(chart)
+
+
+def call_form(tools_available):
+    SCHEMES = ["reds", "accent", "redblue", "rainbow"]
+    tools = list(tools_available.keys())
+    display(widgets.HTML(value="First, choose a <b>tool</b> to browse results:"))
+    @interact(
+        tool = widgets.Dropdown(options=tools,value=tools[0],description='Tool:',disabled=False))
+    def form(tool):
+        display(widgets.HTML(value="Choose a <b>condition</b> available for this tool:"))
+        conditions = list(tools_available[tool].keys())
+        @interact(
+            condition = widgets.Dropdown(options=conditions,value=conditions[0],description='Condition:',disabled=False))
+        def form(condition):
+            display(widgets.HTML(value="Choose a <b>file</b>:"))
+            files = list(tools_available[tool][condition].keys())
+            @interact(file = widgets.Dropdown(options=files,value=files[0],description='File:',disabled=False))
+            def form(file):
+                display(widgets.HTML(value="Choose which columns to use as <b>x</b> and <b>y</b> axis:"))
+                columns = tools_available[tool][condition][file].columns
+                @interact(x = widgets.Dropdown(options=columns,value=columns[0],description='x:',disabled=False),
+                          y = widgets.Dropdown(options=columns,value=columns[1],description='y:',disabled=False))
+                def form(x , y):
+                    display(widgets.HTML(value="Results can be colored using two <b>methods</b>.</br> <ul><li>Cut-off: Choose a <b>column</b> with numerical values on which you want to apply a <b>cut-off</b></li><li>Category: choose a column and a color scheme.</li></ul>"))
+                    @interact(method = widgets.ToggleButtons(options=['Cut-off', 'Category'],value='Cut-off', description='Method:'))
+                    def form(method):
+                        if method == 'Cut-off':
+                            display(widgets.HTML(value="Now choose a column with numerical data and a set a <b>cut-off</b> value."))
+                            @interact(column_filter = widgets.Dropdown(options=columns,value=columns[0],description='Column:',disabled=False),
+                                      cutoff = widgets.FloatText(value=0.0,description='Cut-off:'),
+                                      greater = widgets.Checkbox(value=False,description='Greater?',disabled=False,indent=True),
+                                      pass_color = widgets.ColorPicker(concise=False,description='Pass color:',value='red',disabled=False),
+                                      fail_color = widgets.ColorPicker(concise=False,description='Fail color:',value='gray',disabled=False),
+                                      column_element = widgets.Dropdown(options=columns,value=columns[0],description='Column:',disabled=False))
+                            def form(column_filter, cutoff, greater, pass_color, fail_color, column_element):
+                                display(widgets.HTML(value="It is possible to highlight an <b>element</b> based on a column and value from that column."))
+                                first_element = str(tools_available[tool][condition][file][column_element][0])
+                                @interact(element = widgets.Text(value=first_element,placeholder='Element:',description='Element:',disabled=False),
+                                          elem_color = widgets.ColorPicker(concise=False,description='Element color:',value='blue',disabled=False))
+                                def form(element, elem_color):
+                                    plot_chart(tools_available, tool, condition, file, x, y, method, column_filter, cutoff, greater, element, column_element, elem_color, pass_color, fail_color)
+                        elif method == 'Category':
+                            @interact(category_column = widgets.Dropdown(options=columns,value=columns[0],description='Category:',disabled=False),
+                                      reverse = widgets.Checkbox(value=False,description='Reverse?',disabled=False,indent=True),
+                                      color_scheme = widgets.Dropdown(options=SCHEMES,value=SCHEMES[0],description='Scheme:',disabled=False))
+                            def form(category_column, reverse, color_scheme):
+                                plot_chart(tools_available, tool, condition, file, x, y, method, category_column=category_column, color_scheme=color_scheme, reverse=reverse)

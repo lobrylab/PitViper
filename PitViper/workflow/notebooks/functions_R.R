@@ -7,46 +7,52 @@ library(tidyr)
 library(venn)
 
 
-RobustRankAggregate <- function(ranks) {
+RobustRankAggregate <- function(ranks) {  
+    glist <- list()
+    i <- 1
     if ("mle_rank" %in% colnames(ranks)) {
         mle <- ranks %>%
             select(id, mle_rank) %>%
             arrange(mle_rank) %>% pull(id)
+        glist[[i]] <- mle
+        i <- i + 1
     }
     
     if ("rra_rank" %in% colnames(ranks)) {
         rra <- ranks %>%
             select(id, rra_rank) %>%
             arrange(rra_rank) %>% pull(id)
+        glist[[i]] <- rra
+        i <- i + 1
     }
 
     if ("bagel_rank" %in% colnames(ranks)) {
-    bagel <- ranks %>%
-        select(id, bagel_rank) %>%
-        arrange(bagel_rank) %>% pull(id)
+        bagel <- ranks %>%
+            select(id, bagel_rank) %>%
+            arrange(bagel_rank) %>% pull(id)
+        glist[[i]] <- bagel
+        i <- i + 1
     }
 
     if ("in_house_rank" %in% colnames(ranks)) {
         in_house <- ranks %>%
             select(id, in_house_rank) %>%
             arrange(in_house_rank) %>% pull(id)
+        glist[[i]] <- in_house
+        i <- i + 1
     }
 
     if ("gsea_rank" %in% colnames(ranks)) {
         gsea <- ranks %>%
             select(id, gsea_rank) %>%
             arrange(gsea_rank) %>% pull(id)
+        glist[[i]] <- gsea
+        i <- i + 1
     }
-
-    glist <- list(mle, rra, bagel, in_house, gsea)
-    glist
-
+    
     res <- aggregateRanks(glist = glist)
-
     res <- res %>% mutate(Rank=rank(Score, ties.method= "min"))
-
     rownames(res) <- NULL
-
     return(res)
 }
 
