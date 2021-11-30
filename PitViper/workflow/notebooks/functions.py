@@ -920,12 +920,8 @@ def show_sgRNA_counts(token):
     content = open_yaml(config)
     cts_file = content['normalized_count_table']
     cts = pd.read_csv(cts_file, sep="\t")
-    @interact(element=widgets.Text(value='', placeholder='Element:', description='Element:'),
-              conditions=widgets.Text(value=",".join(cts.columns[2:]), placeholder='Conditions to show, in order and comma-separated:', description='Conditions:'))
-    def show_sgRNA_counts(element, conditions):
-
-        sort_cols = conditions.split(",")
-
+    @interact(element=widgets.Text(value='', placeholder='Element:', description='Element:'))
+    def show_sgRNA_counts(element):
         button = widgets.Button(description="Show sgRNA counts...")
         output = widgets.Output()
         display(button, output)
@@ -935,24 +931,17 @@ def show_sgRNA_counts(token):
             cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
 
             if not element in list(cts.Gene):
-                print("Element '%s' not in counts matrix." % element)
-
-            if not len(conditions.split(",")) > 1:
-                print("Choose more conditions to show.")
-
-            boolean_series = cts.variable.isin(sort_cols)
-            cts = cts[boolean_series]
-            gene_cts = cts.loc[cts.Gene == element]
-            source = gene_cts
-            out = alt.Chart(source).mark_line().encode(
-                x=alt.X('variable', axis=alt.Axis(title='Condition'), sort=sort_cols),
-                y='value',
-                color='sgRNA'
-            ).interactive()
+                gene_cts = cts
+            else:
+                gene_cts = cts.loc[cts.Gene == element]
+                
+            gene_cts = gene_cts.pivot(index="sgRNA", columns="variable", values="value")
+            net.load_df(gene_cts)
+            net.normalize(axis='row', norm_type='zscore')
+            net.cluster()
             with output:
-                display(out)
-
-
+                display(net.widget())
+        
         button.on_click(on_button_clicked)
 
 
@@ -1001,7 +990,7 @@ def createEnrichrTable(enrichrResults):
     return table
 
 
-def enrichmentBarPlot(source, n, description, col_1, col_2):
+def enrichmentBarPlot(source, n, description, col_1, col_2, base):
     if n == 'max':
         n = len(source.index)
     source = source.sort_values(by=['Combined score'], ascending=False).head(n)
@@ -1025,7 +1014,7 @@ def enrichmentBarPlot(source, n, description, col_1, col_2):
         color=alt.Color('Adjusted p-value', scale=alt.Scale(domain=domain, range=range_),
                         legend=alt.Legend(title="Adjusted p-value:")),
     ).properties(
-        title=description,
+        title=description + " (%s)" % base[:-1],
     )
 
 
@@ -1033,13 +1022,13 @@ def enrichmentBarPlot(source, n, description, col_1, col_2):
     return chart
 
 
-def enrichmentCirclePlot(source, n, description, col_1, col_2):
+def enrichmentCirclePlot(source, n, description, col_1, col_2, base):
     if n == 'max':
         n = int(len(source.index))
 
     source = source.sort_values(by=['Combined score'], ascending=False).head(n)
 
-    source['n_overlap'] = source['Overlapping genes'].str.len()
+    source['Overlap size'] = source['Overlapping genes'].str.len()
 
     domain = [source['Adjusted p-value'].min(), source['Adjusted p-value'].max()]
     range_ = [col_1, col_2]
@@ -1059,15 +1048,15 @@ def enrichmentCirclePlot(source, n, description, col_1, col_2):
                  'Adjusted p-value',
                  'Old p-value',
                  'Old adjusted p-value',
-                 'n_overlap'],
-        size='n_overlap',
+                 'Overlap size'],
+        size='Overlap size',
     ).properties(
-        title=description
+        title=description + " (%s)" % base[:-1]
     ).configure_axisY(
         titleAngle=0,
         titleY=-10,
         titleX=-60,
-        labelLimit=1000
+        labelLimit=250
     ).interactive()
 
     chart = (chart).properties(height=20*n, width=500)
@@ -1087,8 +1076,8 @@ def enrichr_plots(pitviper_res):
     def enrichr_plots(tool):
         tool_res = pitviper_res[tool]
         conditions = tool_res.keys()
-        @interact(description=widgets.Text(value='My gene list', placeholder='Description', description='Description:'), base=widgets.SelectMultiple(options=BASES), conditions=conditions)
-        def enrichr_plots(description, base, conditions):
+        @interact(description=widgets.Text(value='My gene list', placeholder='Description', description='Description:'), bases=widgets.SelectMultiple(options=BASES), conditions=conditions)
+        def enrichr_plots(description, bases, conditions):
             treatment, baseline = conditions.split("_vs_")
             @interact(col_2=widgets.ColorPicker(concise=False, description='Top color', value='blue', disabled=False), col_1=widgets.ColorPicker(concise=False, description='Bottom color', value='red', disabled=False), plot_type=['Circle', 'Bar'], size=[5, 10, 20, 50, 100, 200, 'max'], fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05), score_cutoff=widgets.Text(value='0', placeholder='0', description='Score cut-off:'))
             def enrichr_plots(score_cutoff, fdr_cutoff, size, plot_type, col_2, col_1):
@@ -1098,54 +1087,58 @@ def enrichr_plots(pitviper_res):
                 print('FDR cut-off:', fdr_cutoff)
                 print('Score cut-off', score_cutoff)
                 print('Tool:', tool)
-                print('Gene set library:', base)
+                print('Gene set library:', bases)
 
                 score_cutoff = float(score_cutoff)
 
                 def on_button_clicked(b):
-                    if tool == 'MAGeCK_MLE':
-                        info = tool_res[conditions][conditions + ".gene_summary.txt"]
-                        info = info.loc[info[treatment+'|fdr'] < fdr_cutoff]
-                        if score_cutoff < 0:
-                            info = info.loc[info[treatment+'|beta'] < score_cutoff]
-                        elif score_cutoff > 0:
-                            info = info.loc[info[treatment+'|beta'] > score_cutoff]
-                        genes = info['Gene']
+                    charts = []
+                    for base in bases:
+                        if tool == 'MAGeCK_MLE':
+                            info = tool_res[conditions][conditions + ".gene_summary.txt"]
+                            info = info.loc[info[treatment+'|fdr'] < fdr_cutoff]
+                            if score_cutoff < 0:
+                                info = info.loc[info[treatment+'|beta'] < score_cutoff]
+                            elif score_cutoff > 0:
+                                info = info.loc[info[treatment+'|beta'] > score_cutoff]
+                            genes = info['Gene']
 
-                    if tool == 'MAGeCK_RRA':
-                        info = tool_res[conditions][conditions + ".gene_summary.txt"]
-                        info = info.loc[info['neg|fdr'] < fdr_cutoff]
-                        genes = info['id']
+                        if tool == 'MAGeCK_RRA':
+                            info = tool_res[conditions][conditions + ".gene_summary.txt"]
+                            info = info.loc[info['neg|fdr'] < fdr_cutoff]
+                            genes = info['id']
 
-                    if tool == 'BAGEL':
-                        info = tool_res[conditions][conditions + "_BAGEL_output.bf"]
-                        info = info.loc[info['BF'] > score_cutoff]
-                        genes = info['GENE']
+                        if tool == 'BAGEL':
+                            info = tool_res[conditions][conditions + "_BAGEL_output.bf"]
+                            info = info.loc[info['BF'] > score_cutoff]
+                            genes = info['GENE']
 
-                    if tool == 'in_house_method':
-                        info = tool_res[conditions][conditions + "_all-elements_in-house.txt"]
-                        info = info.loc[info['score'] < score_cutoff]
-                        genes = info['Gene']
+                        if tool == 'in_house_method':
+                            info = tool_res[conditions][conditions + "_all-elements_in-house.txt"]
+                            info = info.loc[info['score'] < score_cutoff]
+                            genes = info['Gene']
 
-                    if tool == "GSEA-like":
-                        info = tool_res[conditions][conditions + "_all-elements_GSEA-like.txt"]
-                        if score_cutoff > 0:
-                            info = info.loc[info['NES'] > score_cutoff]
-                        elif score_cutoff < 0:
-                            info = info.loc[info['NES'] < score_cutoff]
-                        info = info.loc[info['padj'] < fdr_cutoff]
-                        genes = info['pathway']
+                        if tool == "GSEA-like":
+                            info = tool_res[conditions][conditions + "_all-elements_GSEA-like.txt"]
+                            if score_cutoff > 0:
+                                info = info.loc[info['NES'] > score_cutoff]
+                            elif score_cutoff < 0:
+                                info = info.loc[info['NES'] < score_cutoff]
+                            info = info.loc[info['padj'] < fdr_cutoff]
+                            genes = info['pathway']
 
-                    print("Size (gene set):", len(genes))
+                        # print("Size (gene set):", len(genes))
 
-                    enrichr_res = getEnrichrResults(genes, description, base)
-                    table = createEnrichrTable(enrichr_res)
-                    if plot_type == 'Bar':
-                        chart = enrichmentBarPlot(table, size, description, col_1, col_2)
-                    else:
-                        chart = enrichmentCirclePlot(table, size, description, col_1, col_2)
+                        enrichr_res = getEnrichrResults(genes, description, base)
+                        table = createEnrichrTable(enrichr_res)
+                        if plot_type == 'Bar':
+                            chart = enrichmentBarPlot(table, size, description, col_1, col_2, base)
+                        else:
+                            chart = enrichmentCirclePlot(table, size, description, col_1, col_2, base)
+                        charts.append(chart)
                     with output:
-                        display(chart)
+                        for chart in charts:
+                            display(chart)
 
 
                 button = widgets.Button(description="Show EnrichR results")
@@ -1463,19 +1456,9 @@ def run_rra(ranks):
     RobustRankAggregate = robjects.r['RobustRankAggregate']
     res = RobustRankAggregate(r_ranks)
     print(res)
-                
-
-def intersection(tools_available, token):
-    TOOLS = [tool for tool in tools_available.keys() if not tool in ["DESeq2", "CRISPhieRmix"]]
-
-    # Define widgets's options
-    conditions_options = tools_available[TOOLS[0]].keys()
-    tools_options = TOOLS
-
-    # Define widgets
-    conditions_widget = widgets.Dropdown(options=conditions_options)
-    tools_widget = widgets.SelectMultiple(options=tools_options)
-
+    
+    
+def reset_params():
     params = {'MAGeCK_MLE': {'on': False,
                              'fdr': 0.05,
                              'score': 0,
@@ -1500,10 +1483,26 @@ def intersection(tools_available, token):
                              'fdr': 0.05,
                              'score': 0,
                              'greater': True}}
+    return params
 
+
+
+def intersection(tools_available, token):
+    TOOLS = [tool for tool in tools_available.keys() if not tool in ["DESeq2", "CRISPhieRmix"]]
+
+    # Define widgets's options
+    conditions_options = tools_available[TOOLS[0]].keys()
+    tools_options = TOOLS
+
+    # Define widgets
+    conditions_widget = widgets.Dropdown(options=conditions_options)
+    tools_widget = widgets.SelectMultiple(options=tools_options)
 
     # Show form selection
     def run(condition_selected, tools_selected):
+        
+        params = reset_params()
+        
         def mle_order_update(change):
             with output:
                 if change['new'] == 'Greater than score':
@@ -1588,6 +1587,7 @@ def intersection(tools_available, token):
 
         def venn_button_clicked(b):
             with output:
+                clear_output(wait=True)
                 global treatment
                 global control
                 treatment, control = condition_selected.split("_vs_")
@@ -1604,6 +1604,7 @@ def intersection(tools_available, token):
                     
         def rra_button_clicked(b):
             with output:
+                clear_output(wait=True)
                 global treatment
                 global control
                 treatment, control = condition_selected.split("_vs_")
@@ -1613,8 +1614,20 @@ def intersection(tools_available, token):
                 run_rra(ranks)
                 
                 
-        # def reset_button_clicked(b):
-        #     intersection(tools_available, token)
+        def genemania_button_clicked(b):
+            with output:
+                clear_output(wait=True)
+                global treatment
+                global control
+                treatment, control = condition_selected.split("_vs_")
+                global ranks
+                global occurences
+                ranks, occurences = ranking(treatment, control, token, tools_available, params)
+                genes_list = list(occurences[occurences.all(axis='columns')].index)
+                link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
+                print('Link to Genemania website: (%s elements)\n' % len(genes_list))
+                print(link)
+
 
         # Output
         global intersection_run
@@ -1622,7 +1635,7 @@ def intersection(tools_available, token):
         output = widgets.Output()
         venn_button = widgets.Button(description="Venn diagram")
         rra_button = widgets.Button(description="RRA ranking")
-        # reset_button = widgets.Button(description="Reset")
+        genemania_button = widgets.Button(description="Genemania")
         if 'MAGeCK_MLE' in tools_selected:
             params['MAGeCK_MLE']['on'] = True
             mle_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
@@ -1695,12 +1708,11 @@ def intersection(tools_available, token):
             GSEA_like_order.observe(GSEA_like_order_update, 'value')
             GSEA_like_score.observe(GSEA_like_score_update, 'value')
             GSEA_like_fdr.observe(GSEA_like_fdr_update, 'value')
-        buttons_box = HBox([venn_button, rra_button])
+        buttons_box = HBox([venn_button, rra_button, genemania_button])
         display(buttons_box, output)
         venn_button.on_click(venn_button_clicked)
         rra_button.on_click(rra_button_clicked)
-        # reset_button.on_click(reset_button_clicked)
-
+        genemania_button.on_click(genemania_button_clicked)
 
     _ = interact(run, condition_selected=conditions_widget, tools_selected=tools_widget)
     
@@ -1712,7 +1724,6 @@ def plot_chart(data, tool, condition, file, x, y, method, column_filter='', cuto
     if method == 'Cut-off':
         if (source[column_filter].dtype in [np.float64, np.int64]):
             elements = element.split(',')
-            print(elements)
             if not greater:
                 pass_value = "%s < %s" % (column_filter,cutoff)
                 fail_value = "%s >= %s" % (column_filter,cutoff)
