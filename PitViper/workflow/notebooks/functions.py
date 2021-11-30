@@ -21,6 +21,7 @@ from clustergrammer2 import net, Network, CGM2
 import rpy2
 import IPython
 import math
+import functools
 from rpy2.robjects.packages import importr
 import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri
@@ -1627,6 +1628,47 @@ def intersection(tools_available, token):
                 link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
                 print('Link to Genemania website: (%s elements)\n' % len(genes_list))
                 print(link)
+                
+                
+        def run_enrichr_button_clicked(b, bases, size, plot_type, col_1, col_2):
+            charts = []
+            for base in bases:
+                enrichr_res = getEnrichrResults(genes, description, base)
+                table = createEnrichrTable(enrichr_res)
+                if plot_type == 'Bar':
+                    chart = enrichmentBarPlot(table, size, description, col_1, col_2, base)
+                else:
+                    chart = enrichmentCirclePlot(table, size, description, col_1, col_2, base)
+                charts.append(chart)
+            with output:
+                print(bases, size, plot_type, col_1, col_2)
+                print(charts)
+                for chart in charts:
+                    display(chart)
+                
+                
+        def enrichr_button_clicked(b):
+            clear_output(wait=True)
+            global treatment
+            global control
+            treatment, control = condition_selected.split("_vs_")
+            global ranks
+            global occurences
+            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            genes_list = list(occurences[occurences.all(axis='columns')].index)
+            BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
+            bases_widget = widgets.SelectMultiple(options=BASES, description='Bases:')
+            size_widget = widgets.Dropdown(options = [5, 10, 20, 50, 100, 200, 'max'], description='Size:')
+            type_widget = widgets.Dropdown(options = ['Circle', 'Bar'], description='Type:')
+            col_2_widget = widgets.ColorPicker(concise=False, description='Top color', value='blue', disabled=False)
+            col_1_widget = widgets.ColorPicker(concise=False, description='Bottom color', value='red', disabled=False)
+            run_enrichr_button = widgets.Button(description="Run EnrichR!")
+            with output:
+                display(VBox([bases_widget, size_widget, type_widget]))
+                display(HBox([col_1_widget, col_2_widget]))
+                display(run_enrichr_button)
+                print(bases_widget.value)
+                run_enrichr_button.on_click(functools.partial(run_enrichr_button_clicked, bases=bases_widget.value, size=size_widget.value, plot_type=type_widget.value, col_1=col_1_widget.value, col_2=col_2_widget.value))
 
 
         # Output
@@ -1636,6 +1678,7 @@ def intersection(tools_available, token):
         venn_button = widgets.Button(description="Venn diagram")
         rra_button = widgets.Button(description="RRA ranking")
         genemania_button = widgets.Button(description="Genemania")
+        enrichr_button = widgets.Button(description="EnrichR")
         if 'MAGeCK_MLE' in tools_selected:
             params['MAGeCK_MLE']['on'] = True
             mle_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
@@ -1708,11 +1751,12 @@ def intersection(tools_available, token):
             GSEA_like_order.observe(GSEA_like_order_update, 'value')
             GSEA_like_score.observe(GSEA_like_score_update, 'value')
             GSEA_like_fdr.observe(GSEA_like_fdr_update, 'value')
-        buttons_box = HBox([venn_button, rra_button, genemania_button])
+        buttons_box = HBox([venn_button, rra_button, genemania_button, enrichr_button])
         display(buttons_box, output)
         venn_button.on_click(venn_button_clicked)
         rra_button.on_click(rra_button_clicked)
         genemania_button.on_click(genemania_button_clicked)
+        enrichr_button.on_click(enrichr_button_clicked)
 
     _ = interact(run, condition_selected=conditions_widget, tools_selected=tools_widget)
     
