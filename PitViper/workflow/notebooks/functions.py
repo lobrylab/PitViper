@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import re
 import altair as alt
-from ipywidgets import interact, interactive, fixed, interact_manual
+from ipywidgets import interact, interactive, fixed, interact_manual, Button, HBox, VBox
 import ipywidgets as widgets
 import requests
 import json
@@ -16,8 +16,35 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn import decomposition
 from sklearn import datasets
 from functools import reduce
+from IPython.display import display, clear_output
+from clustergrammer2 import net, Network, CGM2
+import rpy2
+import IPython
+import math
+from rpy2.robjects.packages import importr
+import rpy2.robjects as ro
+from rpy2.robjects import pandas2ri
+from rpy2.robjects.conversion import localconverter
+import rpy2.robjects as robjects
+
+alt.renderers.enable('html')
 
 
+def working_directory_update(output):
+    switch = True
+    while os.path.basename(os.getcwd()) != "PitViper":
+        if switch:
+            switch = False
+            os.system("cd ../../")
+        else:
+            os.system("cd ../")
+
+    print('Working directory: ', os.getcwd())
+
+    with open(output, "w") as out:
+        print("Notebook was runned.", file=out)
+
+        
 def open_yaml(yml):
     """Open a YAML file and return it's content."""
     with open(yml, "r") as stream:
@@ -70,10 +97,45 @@ def setup_step_1(token):
                     else:
                         sep = "\t"
                     tools_available[tool][comparison][file] = pd.read_csv(os.path.join(results_directory, tool, comparison, file), sep = sep)
-
+    add_columns(tools_available)
     return (results_directory, tools_available)
 
 
+def add_columns(tools_available):
+    if 'MAGeCK_MLE' in tools_available:
+        for condition in tools_available['MAGeCK_MLE']:
+            treatment = condition.split('_vs_')[0]
+            for file_suffixe in ['%s.gene_summary.txt', '%s.sgrna_summary.txt']:
+                table = tools_available['MAGeCK_MLE'][condition][file_suffixe % condition]
+                if (not 'log10(invFDR)' in list(table.columns))  and ('%s|fdr' % treatment in list(table.columns)):
+                    array = table['%s|fdr' % treatment].values
+                    min_fdr = np.min(array[np.nonzero(array)])
+                    table['%s|fdr_nozero' % treatment] = table['%s|fdr' % treatment].replace(0, min_fdr)
+                    min_fdr = table['%s|fdr' % treatment].values
+                    table['log10(invFDR)'] = - np.log2(table['%s|fdr_nozero' % treatment])
+    if 'MAGeCK_RRA' in tools_available:
+        for condition in tools_available['MAGeCK_RRA']:
+            treatment = condition.split('_vs_')[0]
+            for file_suffixe in ['%s.gene_summary.txt', '%s.sgrna_summary.txt']:
+                table = tools_available['MAGeCK_RRA'][condition][file_suffixe % condition]
+                for direction in ['neg', 'pos']:
+                    if not '%s|log10(invFDR)' % direction in list(table.columns) and ('%s|fdr' % direction in list(table.columns)):
+                        array = table['%s|fdr' % direction].values
+                        min_fdr = np.min(array[np.nonzero(array)])
+                        table['%s|fdr_nozero' % direction] = table['%s|fdr' % direction].replace(0, min_fdr)
+                        min_fdr = table['%s|fdr' % direction].values
+                        table['%s|log10(invFDR)' % direction] = - np.log2(table['%s|fdr_nozero' % direction])
+    if 'GSEA-like' in tools_available:
+        for condition in tools_available['GSEA-like']:
+            treatment = condition.split('_vs_')[0]
+            for file_suffixe in ['%s_all-elements_GSEA-like.txt']:
+                table = tools_available['GSEA-like'][condition][file_suffixe % condition]
+                if (not 'log10(invPadj)' in list(table.columns))  and ('padj' in list(table.columns)):
+                    array = table['padj'].values
+                    min_fdr = np.min(array[np.nonzero(array)])
+                    table['padj_nozero'] = table['padj'].replace(0, min_fdr)
+                    min_fdr = table['padj'].values
+                    table['log10(invPadj)'] = - np.log2(table['padj'])
 
 
 def show_mapping_qc(token):
@@ -122,7 +184,6 @@ def show_read_count_distribution(token, width=800, height=400):
         print("No count file to show.")
         return 0
     table = pd.read_csv(path_qc, sep='\t')
-    # table = pd.read_csv(path_qc, sep='\t')
 
     table.iloc[:, 2:] = table.iloc[:, 2:] +1
     table.iloc[:, 2:] = table.iloc[:, 2:].apply(np.log2)
@@ -174,6 +235,8 @@ def CRISPhieRmix_data(comparison = "", control = "", tool = "", results_director
 
 def CRISPhieRmix_results(results_directory, tools_available):
     tool = "CRISPhieRmix"
+    if not tool in tools_available.keys():
+        return "CRISPhieRmix wasn't activated."
     comparisons_list = os.listdir(os.path.join(results_directory, tool))
     ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
     @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),
@@ -237,6 +300,8 @@ def GSEA_like_data(comparison = "", control = "", tool = "", results_directory =
 
 def GSEA_like_results(results_directory, tools_available):
     tool = "GSEA-like"
+    if not tool in tools_available.keys():
+        return "GSEA-like method wasn't activated."
     comparisons_list = os.listdir(os.path.join(results_directory, tool))
     ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
     @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),
@@ -299,6 +364,8 @@ def in_house_method_data(comparison = "", control = "", tool = "", results_direc
 
 def in_house_method_results(results_directory, tools_available):
     tool = "in_house_method"
+    if not tool in tools_available.keys():
+        return "In-house method wasn't activated."
     comparisons_list = os.listdir(os.path.join(results_directory, tool))
     ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
     @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),
@@ -377,6 +444,8 @@ def MAGeCK_RRA_data(comparison = "", control = "", tool = "MAGeCK_RRA", results_
 
 def MAGeCK_RRA_results(results_directory, tools_available):
     tool = "MAGeCK_RRA"
+    if not tool in tools_available.keys():
+        return "MAGeCK method wasn't activated."
     comparisons_list = os.listdir(os.path.join(results_directory, tool))
     ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
     @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),
@@ -458,6 +527,8 @@ def MAGeCK_MLE_data(comparison = "", control = "", tool = "", results_directory 
 
 def MAGeCK_MLE_results(results_directory, tools_available):
     tool = "MAGeCK_MLE"
+    if not tool in tools_available.keys():
+        return "MAGeCK MLE method wasn't activated."
     comparisons_list = os.listdir(os.path.join(results_directory, tool))
     ctrs = list(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys())))
     @interact(control=widgets.Dropdown(options=set(ctrs), description='Control:', disabled=False),
@@ -849,12 +920,8 @@ def show_sgRNA_counts(token):
     content = open_yaml(config)
     cts_file = content['normalized_count_table']
     cts = pd.read_csv(cts_file, sep="\t")
-    @interact(element=widgets.Text(value='', placeholder='Element:', description='Element:'),
-              conditions=widgets.Text(value=",".join(cts.columns[2:]), placeholder='Conditions to show, in order and comma-separated:', description='Conditions:'))
-    def show_sgRNA_counts(element, conditions):
-
-        sort_cols = conditions.split(",")
-
+    @interact(element=widgets.Text(value='', placeholder='Element:', description='Element:'))
+    def show_sgRNA_counts(element):
         button = widgets.Button(description="Show sgRNA counts...")
         output = widgets.Output()
         display(button, output)
@@ -864,24 +931,17 @@ def show_sgRNA_counts(token):
             cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
 
             if not element in list(cts.Gene):
-                print("Element '%s' not in counts matrix." % element)
-
-            if not len(conditions.split(",")) > 1:
-                print("Choose more conditions to show.")
-
-            boolean_series = cts.variable.isin(sort_cols)
-            cts = cts[boolean_series]
-            gene_cts = cts.loc[cts.Gene == element]
-            source = gene_cts
-            out = alt.Chart(source).mark_line().encode(
-                x=alt.X('variable', axis=alt.Axis(title='Condition'), sort=sort_cols),
-                y='value',
-                color='sgRNA'
-            ).interactive()
+                gene_cts = cts
+            else:
+                gene_cts = cts.loc[cts.Gene == element]
+                
+            gene_cts = gene_cts.pivot(index="sgRNA", columns="variable", values="value")
+            net.load_df(gene_cts)
+            net.normalize(axis='row', norm_type='zscore')
+            net.cluster()
             with output:
-                display(out)
-
-
+                display(net.widget())
+        
         button.on_click(on_button_clicked)
 
 
@@ -930,7 +990,7 @@ def createEnrichrTable(enrichrResults):
     return table
 
 
-def enrichmentBarPlot(source, n, description, col_1, col_2):
+def enrichmentBarPlot(source, n, description, col_1, col_2, base):
     if n == 'max':
         n = len(source.index)
     source = source.sort_values(by=['Combined score'], ascending=False).head(n)
@@ -954,7 +1014,7 @@ def enrichmentBarPlot(source, n, description, col_1, col_2):
         color=alt.Color('Adjusted p-value', scale=alt.Scale(domain=domain, range=range_),
                         legend=alt.Legend(title="Adjusted p-value:")),
     ).properties(
-        title=description,
+        title=description + " (%s)" % base[:-1],
     )
 
 
@@ -962,13 +1022,13 @@ def enrichmentBarPlot(source, n, description, col_1, col_2):
     return chart
 
 
-def enrichmentCirclePlot(source, n, description, col_1, col_2):
+def enrichmentCirclePlot(source, n, description, col_1, col_2, base):
     if n == 'max':
         n = int(len(source.index))
 
     source = source.sort_values(by=['Combined score'], ascending=False).head(n)
 
-    source['n_overlap'] = source['Overlapping genes'].str.len()
+    source['Overlap size'] = source['Overlapping genes'].str.len()
 
     domain = [source['Adjusted p-value'].min(), source['Adjusted p-value'].max()]
     range_ = [col_1, col_2]
@@ -988,15 +1048,15 @@ def enrichmentCirclePlot(source, n, description, col_1, col_2):
                  'Adjusted p-value',
                  'Old p-value',
                  'Old adjusted p-value',
-                 'n_overlap'],
-        size='n_overlap',
+                 'Overlap size'],
+        size='Overlap size',
     ).properties(
-        title=description
+        title=description + " (%s)" % base[:-1]
     ).configure_axisY(
         titleAngle=0,
         titleY=-10,
         titleX=-60,
-        labelLimit=1000
+        labelLimit=250
     ).interactive()
 
     chart = (chart).properties(height=20*n, width=500)
@@ -1016,8 +1076,8 @@ def enrichr_plots(pitviper_res):
     def enrichr_plots(tool):
         tool_res = pitviper_res[tool]
         conditions = tool_res.keys()
-        @interact(description=widgets.Text(value='My gene list', placeholder='Description', description='Description:'), base=BASES, conditions=conditions)
-        def enrichr_plots(description, base, conditions):
+        @interact(description=widgets.Text(value='My gene list', placeholder='Description', description='Description:'), bases=widgets.SelectMultiple(options=BASES), conditions=conditions)
+        def enrichr_plots(description, bases, conditions):
             treatment, baseline = conditions.split("_vs_")
             @interact(col_2=widgets.ColorPicker(concise=False, description='Top color', value='blue', disabled=False), col_1=widgets.ColorPicker(concise=False, description='Bottom color', value='red', disabled=False), plot_type=['Circle', 'Bar'], size=[5, 10, 20, 50, 100, 200, 'max'], fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05), score_cutoff=widgets.Text(value='0', placeholder='0', description='Score cut-off:'))
             def enrichr_plots(score_cutoff, fdr_cutoff, size, plot_type, col_2, col_1):
@@ -1027,54 +1087,58 @@ def enrichr_plots(pitviper_res):
                 print('FDR cut-off:', fdr_cutoff)
                 print('Score cut-off', score_cutoff)
                 print('Tool:', tool)
-                print('Gene set library:', base)
+                print('Gene set library:', bases)
 
                 score_cutoff = float(score_cutoff)
 
                 def on_button_clicked(b):
-                    if tool == 'MAGeCK_MLE':
-                        info = tool_res[conditions][conditions + ".gene_summary.txt"]
-                        info = info.loc[info[treatment+'|fdr'] < fdr_cutoff]
-                        if score_cutoff < 0:
-                            info = info.loc[info[treatment+'|beta'] < score_cutoff]
-                        elif score_cutoff > 0:
-                            info = info.loc[info[treatment+'|beta'] > score_cutoff]
-                        genes = info['Gene']
+                    charts = []
+                    for base in bases:
+                        if tool == 'MAGeCK_MLE':
+                            info = tool_res[conditions][conditions + ".gene_summary.txt"]
+                            info = info.loc[info[treatment+'|fdr'] < fdr_cutoff]
+                            if score_cutoff < 0:
+                                info = info.loc[info[treatment+'|beta'] < score_cutoff]
+                            elif score_cutoff > 0:
+                                info = info.loc[info[treatment+'|beta'] > score_cutoff]
+                            genes = info['Gene']
 
-                    if tool == 'MAGeCK_RRA':
-                        info = tool_res[conditions][conditions + ".gene_summary.txt"]
-                        info = info.loc[info['neg|fdr'] < fdr_cutoff]
-                        genes = info['id']
+                        if tool == 'MAGeCK_RRA':
+                            info = tool_res[conditions][conditions + ".gene_summary.txt"]
+                            info = info.loc[info['neg|fdr'] < fdr_cutoff]
+                            genes = info['id']
 
-                    if tool == 'BAGEL':
-                        info = tool_res[conditions][conditions + "_BAGEL_output.bf"]
-                        info = info.loc[info['BF'] > score_cutoff]
-                        genes = info['GENE']
+                        if tool == 'BAGEL':
+                            info = tool_res[conditions][conditions + "_BAGEL_output.bf"]
+                            info = info.loc[info['BF'] > score_cutoff]
+                            genes = info['GENE']
 
-                    if tool == 'in_house_method':
-                        info = tool_res[conditions][conditions + "_all-elements_in-house.txt"]
-                        info = info.loc[info['score'] < score_cutoff]
-                        genes = info['Gene']
+                        if tool == 'in_house_method':
+                            info = tool_res[conditions][conditions + "_all-elements_in-house.txt"]
+                            info = info.loc[info['score'] < score_cutoff]
+                            genes = info['Gene']
 
-                    if tool == "GSEA-like":
-                        info = tool_res[conditions][conditions + "_all-elements_GSEA-like.txt"]
-                        if score_cutoff > 0:
-                            info = info.loc[info['NES'] > score_cutoff]
-                        elif score_cutoff < 0:
-                            info = info.loc[info['NES'] < score_cutoff]
-                        info = info.loc[info['padj'] < fdr_cutoff]
-                        genes = info['pathway']
+                        if tool == "GSEA-like":
+                            info = tool_res[conditions][conditions + "_all-elements_GSEA-like.txt"]
+                            if score_cutoff > 0:
+                                info = info.loc[info['NES'] > score_cutoff]
+                            elif score_cutoff < 0:
+                                info = info.loc[info['NES'] < score_cutoff]
+                            info = info.loc[info['padj'] < fdr_cutoff]
+                            genes = info['pathway']
 
-                    print("Size (gene set):", len(genes))
+                        # print("Size (gene set):", len(genes))
 
-                    enrichr_res = getEnrichrResults(genes, description, base)
-                    table = createEnrichrTable(enrichr_res)
-                    if plot_type == 'Bar':
-                        chart = enrichmentBarPlot(table, size, description, col_1, col_2)
-                    else:
-                        chart = enrichmentCirclePlot(table, size, description, col_1, col_2)
+                        enrichr_res = getEnrichrResults(genes, description, base)
+                        table = createEnrichrTable(enrichr_res)
+                        if plot_type == 'Bar':
+                            chart = enrichmentBarPlot(table, size, description, col_1, col_2, base)
+                        else:
+                            chart = enrichmentCirclePlot(table, size, description, col_1, col_2, base)
+                        charts.append(chart)
                     with output:
-                        display(chart)
+                        for chart in charts:
+                            display(chart)
 
 
                 button = widgets.Button(description="Show EnrichR results")
@@ -1120,7 +1184,7 @@ def pca_counts(token):
     return pca_2d
 
 
-def ranking(treatment, control, token, tools_available):
+def ranking(treatment, control, token, tools_available, params):
 
     def get_occurence_df(data):
         essential_genes = []
@@ -1145,88 +1209,153 @@ def ranking(treatment, control, token, tools_available):
 
     comparison = treatment + "_vs_" + control
 
-    if content["mageck_mle_activate"] == 'True':
+    if params['MAGeCK_MLE']['on']:
+        score = params['MAGeCK_MLE']['score']
+        fdr = params['MAGeCK_MLE']['fdr']
+        greater = params['MAGeCK_MLE']['greater']
         mle = tools_available["MAGeCK_MLE"][comparison][comparison + ".gene_summary.txt"]
-        mle['default_rank'] = mle[treatment + '|beta'].rank(method="dense")
-        mle = mle[(mle["%s|beta" % treatment] < 0) & (mle["%s|fdr" % treatment] < 0.05)]
+        if not greater:
+            mle = mle[(mle["%s|beta" % treatment] < score) & (mle["%s|fdr" % treatment] < fdr)]
+        else:
+            mle = mle[(mle["%s|beta" % treatment] > score) & (mle["%s|fdr" % treatment] < fdr)]
+        mle['default_rank'] = mle[treatment + '|beta'].rank(method="dense").copy()
         mle = mle[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "mle_rank"})
         mle_genes = list(mle.id)
         tool_results["MAGeCK MLE"] = mle_genes
         tool_genes.append(mle_genes)
 
-    if content["mageck_rra_activate"] == 'True':
+    if params['MAGeCK_RRA']['on']:
+        score = params['MAGeCK_RRA']['score']
+        fdr = params['MAGeCK_RRA']['fdr']
+        greater = params['MAGeCK_RRA']['greater']
+        direction = params['MAGeCK_RRA']['direction']
         rra = tools_available["MAGeCK_RRA"][comparison][comparison + ".gene_summary.txt"]
-        rra = rra[(rra["neg|lfc"] < 0) & (rra["neg|fdr"] < 0.05)]
-        rra = rra[["id", "neg|rank"]].rename(columns={"neg|rank": "rra_rank"})
+        if direction == 'Negative':
+            if not greater:
+                rra = rra[(rra["neg|lfc"] < score) & (rra["neg|fdr"] < fdr)]
+            else:
+                rra = rra[(rra["neg|lfc"] > score) & (rra["neg|fdr"] < fdr)]
+            rra = rra[["id", "neg|rank"]].rename(columns={"neg|rank": "rra_rank"})
+        else:
+            if not greater:
+                rra = rra[(rra["pos|lfc"] < score) & (rra["pos|fdr"] < fdr)]
+            else:
+                rra = rra[(rra["pos|lfc"] > score) & (rra["pos|fdr"] < fdr)]
+            rra = rra[["id", "pos|rank"]].rename(columns={"pos|rank": "rra_rank"})
         rra_genes = list(rra.id)
         tool_results["MAGeCK RRA"] = rra_genes
         tool_genes.append(rra_genes)
 
 
-    if content["bagel_activate"] == 'True':
+    if params['BAGEL']['on']:
+        score = params['BAGEL']['score']
+        greater = params['BAGEL']['greater']
         bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.bf"]
-        bagel['default_rank'] = bagel['BF'].rank(method="dense", ascending=False)
-        bagel = bagel[(bagel["BF"] > 0)]
+        if greater:
+            bagel = bagel[(bagel["BF"] > score)]
+        else:
+            bagel = bagel[(bagel["BF"] < score)]
+        bagel['default_rank'] = bagel['BF'].rank(method="dense", ascending=False).copy()
         bagel = bagel[["GENE", "default_rank"]].rename(columns={"GENE": "id", "default_rank": "bagel_rank"})
         bagel_genes = list(bagel.id)
         tool_results["BAGEL"] = bagel_genes
         tool_genes.append(bagel_genes)
 
-
-    if content["filtering_activate"] == 'True':
+    if params['in_house_method']['on']:
+        score = params['in_house_method']['score']
+        greater = params['in_house_method']['greater']
         in_house = tools_available["in_house_method"][comparison][comparison + "_all-elements_in-house.txt"]
-        in_house['default_rank'] = in_house['score'].rank(method="dense")
-        in_house = in_house[(in_house["down"] > 1) & (in_house["up"] < 2) & (in_house["score"] < 0)]
+        if params['in_house_method']['direction'] == "Negative":
+            if not greater:
+                in_house = in_house[(in_house["down"] > 1) & (in_house["up"] < 2) & (in_house["score"] < score)]
+            else:
+                in_house = in_house[(in_house["down"] > 1) & (in_house["up"] < 2) & (in_house["score"] > score)]
+        elif params['in_house_method']['direction'] == "Positive":
+            if not greater:
+                in_house = in_house[(in_house["down"] < 2) & (in_house["up"] > 1) & (in_house["score"] < score)]
+            else:
+                in_house = in_house[(in_house["down"] < 2) & (in_house["up"] > 1) & (in_house["score"] > score)]
+        in_house['default_rank'] = in_house['score'].rank(method="dense").copy()
         in_house = in_house[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "in_house_rank"})
         in_house_genes = list(in_house.id)
         tool_results["In-house"] = in_house_genes
         tool_genes.append(in_house_genes)
 
-    if content["gsea_activate"] == 'True':
+
+    if params['GSEA_like']['on']:
+        score = params['GSEA_like']['score']
+        fdr = params['GSEA_like']['fdr']
+        greater = params['GSEA_like']['greater']
         gsea = tools_available["GSEA-like"][comparison][comparison + "_all-elements_GSEA-like.txt"]
-        gsea['default_rank'] = gsea['NES'].rank(method="dense")
-        gsea = gsea[(gsea["NES"] < 0) & (gsea["pval"] < 0.05)]
+        if not greater:
+            gsea = gsea[(gsea["NES"] < score) & (gsea["pval"] < fdr)]
+        else:
+            gsea = gsea[(gsea["NES"] > score) & (gsea["pval"] < fdr)]
+        gsea['default_rank'] = gsea['NES'].rank(method="dense").copy()
         gsea = gsea[["pathway", "default_rank"]].rename(columns={"pathway": "id", "default_rank": "gsea_rank"})
         gsea_genes = list(gsea.id)
         tool_results["GSEA-like"] = gsea_genes
         tool_genes.append(gsea_genes)
-
+        
+        
+    if params['CRISPhieRmix']['on']:
+        score = params['CRISPhieRmix']['score']
+        fdr = params['CRISPhieRmix']['fdr']
+        greater = params['CRISPhieRmix']['greater']
+        crisphie = tools_available["CRISPhieRmix"][comparison][comparison + ".txt"]
+        if not greater:
+            crisphie = crisphie[(crisphie["score"] < score) & (crisphie["FDR"] < fdr)]
+        else:
+            crisphie = crisphie[(crisphie["score"] < score) & (crisphie["FDR"] < fdr)]
+        crisphie['default_rank'] = crisphie['FDR'].rank(method="dense").copy()
+        crisphie = crisphie[["gene", "default_rank"]].rename(columns={"gene": "id", "default_rank": "crisphiermix_rank"})
+        crisphie_genes = list(crisphie.id)
+        tool_results["CRISPhieRmix"] = crisphie_genes
+        tool_genes.append(crisphie_genes)
 
     l = []
     for genes in tool_genes:
         for gene in genes:
             l.append(gene)
 
-    if content["mageck_mle_activate"] == 'True':
+    if params['MAGeCK_MLE']['on']:
         mle = tools_available["MAGeCK_MLE"][comparison][comparison + ".gene_summary.txt"]
-        mle['default_rank'] = mle[treatment + '|beta'].rank(method="dense")
+        mle['default_rank'] = mle[treatment + '|beta'].rank(method="dense").copy()
         mle = mle[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "mle_rank"})
         pdList.append(mle)
 
-
-    if content["mageck_rra_activate"] == 'True':
+    if params['MAGeCK_RRA']['on']:
         rra = tools_available["MAGeCK_RRA"][comparison][comparison + ".gene_summary.txt"]
-        rra = rra[["id", "neg|rank"]].rename(columns={"neg|rank": "rra_rank"})
+        if params['MAGeCK_RRA']['direction'] == 'Negative':
+            rra = rra[["id", "neg|rank"]].rename(columns={"neg|rank": "rra_rank"})
+        elif params['MAGeCK_RRA']['direction'] == 'Positive':
+            rra = rra[["id", "pos|rank"]].rename(columns={"pos|rank": "rra_rank"})
         pdList.append(rra)
 
-
-    if content["bagel_activate"] == 'True':
+    if params['BAGEL']['on']:
         bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.bf"]
-        bagel['default_rank'] = bagel['BF'].rank(method="dense", ascending=False)
+        bagel['default_rank'] = bagel['BF'].rank(method="dense", ascending=False).copy()
         bagel = bagel[["GENE", "default_rank"]].rename(columns={"GENE": "id", "default_rank": "bagel_rank"})
         pdList.append(bagel)
 
-    if content["filtering_activate"] == 'True':
+    if params['in_house_method']['on']:
         in_house = tools_available["in_house_method"][comparison][comparison + "_all-elements_in-house.txt"]
-        in_house['default_rank'] = in_house['score'].rank(method="dense")
+        in_house['default_rank'] = in_house['score'].rank(method="dense").copy()
         in_house = in_house[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "in_house_rank"})
         pdList.append(in_house)
 
-    if content["gsea_activate"] == 'True':
+    if params['GSEA_like']['on']:
         gsea = tools_available["GSEA-like"][comparison][comparison + "_all-elements_GSEA-like.txt"]
-        gsea['default_rank'] = gsea['NES'].rank(method="dense")
+        gsea['default_rank'] = gsea['NES'].rank(method="dense").copy()
         gsea = gsea[["pathway", "default_rank"]].rename(columns={"pathway": "id", "default_rank": "gsea_rank"})
         pdList.append(gsea)
+        
+    if params['CRISPhieRmix']['on']:
+        crisphie = tools_available["CRISPhieRmix"][comparison][comparison + ".txt"]
+        crisphie['default_rank'] = crisphie['FDR'].rank(method="dense").copy()
+        crisphie = crisphie[["gene", "default_rank"]].rename(columns={"gene": "id", "default_rank": "crisphiermix_rank"})
+        print(crisphie.head())
+        pdList.append(crisphie)
 
     df_merged_reduced = reduce(lambda  left,right: pd.merge(left,right,on=['id'],
                                                 how='outer'), pdList)
@@ -1290,15 +1419,392 @@ def genemania_link_results(tools_available):
                             info = info.loc[info['NES'] < float(score_cutoff)]
                         info = info.loc[info['padj'] < fdr_cutoff]
                         genes = info['pathway']
+                        
+                    with output:
+                        print("Size (gene set):", len(genes))
+                        link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes)
+                        print(link)
 
-                    print("Size (gene set):", len(genes))
-
-                    link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes)
-                    print(link)
-
-                button = widgets.Button(description="Show EnrichR results")
+                button = widgets.Button(description="Genemania")
                 output = widgets.Output()
 
                 display(button, output)
 
                 button.on_click(on_button_clicked)
+
+
+                
+                
+                
+def plot_venn(occurences):
+    venn_lib = importr('venn')
+    grdevices = importr('grDevices')
+    with localconverter(ro.default_converter + pandas2ri.converter):
+        r_occurences = ro.conversion.py2rpy(occurences)
+
+    with rpy2.robjects.lib.grdevices.render_to_bytesio(grdevices.png, width=1024, height=896, res=150) as img:
+        venn_lib.venn(r_occurences, ilabels = False, zcolor = "style", ilcs= 1, sncs = 1, borders = False, box = False)
+    IPython.display.display(IPython.display.Image(data=img.getvalue(), format='png', embed=True))
+    
+    
+def run_rra(ranks):
+    rra_lib = importr('RobustRankAggreg')
+    r_source = robjects.r['source']
+    r_source("workflow/notebooks/functions_R.R")
+    with localconverter(ro.default_converter + pandas2ri.converter):
+        r_ranks = ro.conversion.py2rpy(ranks)
+    RobustRankAggregate = robjects.r['RobustRankAggregate']
+    res = RobustRankAggregate(r_ranks)
+    print(res)
+    
+    
+def reset_params():
+    params = {'MAGeCK_MLE': {'on': False,
+                             'fdr': 0.05,
+                             'score': 0,
+                             'greater': True},
+              'MAGeCK_RRA': {'on': False,
+                             'fdr': 0.05,
+                             'score': 0,
+                             'greater': True,
+                             'direction': 'Positive'},
+              'BAGEL': {'on': False,
+                             'score': 0,
+                             'greater': True},
+              'CRISPhieRmix': {'on': False,
+                             'fdr': 0.05,
+                             'score': 0,
+                             'greater': True},
+              'in_house_method': {'on': False,
+                             'direction': 'Positive',
+                             'score': 0,
+                             'greater': True},
+              'GSEA_like': {'on': False,
+                             'fdr': 0.05,
+                             'score': 0,
+                             'greater': True}}
+    return params
+
+
+
+def intersection(tools_available, token):
+    TOOLS = [tool for tool in tools_available.keys() if not tool in ["DESeq2", "CRISPhieRmix"]]
+
+    # Define widgets's options
+    conditions_options = tools_available[TOOLS[0]].keys()
+    tools_options = TOOLS
+
+    # Define widgets
+    conditions_widget = widgets.Dropdown(options=conditions_options)
+    tools_widget = widgets.SelectMultiple(options=tools_options)
+
+    # Show form selection
+    def run(condition_selected, tools_selected):
+        
+        params = reset_params()
+        
+        def mle_order_update(change):
+            with output:
+                if change['new'] == 'Greater than score':
+                    params['MAGeCK_MLE']['greater'] = True
+                else:
+                    params['MAGeCK_MLE']['greater'] = False
+        def mle_fdr_update(change):
+            with output:
+                params['MAGeCK_MLE']['fdr'] = change['new']
+        def mle_score_update(change):
+            with output:
+                params['MAGeCK_MLE']['score'] = change['new']
+
+        def rra_order_update(change):
+            with output:
+                if change['new'] == 'Greater than score':
+                    params['MAGeCK_RRA']['greater'] = True
+                else:
+                    params['MAGeCK_RRA']['greater'] = False
+        def rra_fdr_update(change):
+            with output:
+                params['MAGeCK_RRA']['fdr'] = change['new']
+        def rra_score_update(change):
+            with output:
+                params['MAGeCK_RRA']['score'] = change['new']
+        def rra_direction_update(change):
+            with output:
+                params['MAGeCK_RRA']['direction'] = change['new']
+
+        def bagel_order_update(change):
+            with output:
+                if change['new'] == 'Greater than score':
+                    params['BAGEL']['greater'] = True
+                else:
+                    params['BAGEL']['greater'] = False
+        def bagel_fdr_update(change):
+            with output:
+                params['BAGEL']['fdr'] = change['new']
+        def bagel_score_update(change):
+            with output:
+                params['BAGEL']['score'] = change['new']
+
+        def CRISPhieRmix_order_update(change):
+            with output:
+                if change['new'] == 'Greater than score':
+                    params['CRISPhieRmix']['greater'] = True
+                else:
+                    params['CRISPhieRmix']['greater'] = False
+        def CRISPhieRmix_fdr_update(change):
+            with output:
+                params['CRISPhieRmix']['fdr'] = change['new']
+        def CRISPhieRmix_score_update(change):
+            with output:
+                params['CRISPhieRmix']['score'] = change['new']
+
+        def in_house_method_order_update(change):
+            with output:
+                if change['new'] == 'Greater than score':
+                    params['in_house_method']['greater'] = True
+                else:
+                    params['in_house_method']['greater'] = False
+        def in_house_method_direction_update(change):
+            with output:
+                params['in_house_method']['direction'] = change['new']
+        def in_house_method_score_update(change):
+            with output:
+                params['in_house_method']['score'] = change['new']
+
+
+        def GSEA_like_order_update(change):
+            with output:
+                if change['new'] == 'Greater than score':
+                    params['GSEA_like']['greater'] = True
+                else:
+                    params['GSEA_like']['greater'] = False
+        def GSEA_like_fdr_update(change):
+            with output:
+                params['GSEA_like']['fdr'] = change['new']
+        def GSEA_like_score_update(change):
+            with output:
+                params['GSEA_like']['score'] = change['new']
+
+        def venn_button_clicked(b):
+            with output:
+                clear_output(wait=True)
+                global treatment
+                global control
+                treatment, control = condition_selected.split("_vs_")
+                global ranks
+                global occurences
+                ranks, occurences = ranking(treatment, control, token, tools_available, params)
+                df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).all(1), columns = ['intersection'])
+                intersection_genes = df.loc[df.intersection == True].index
+                plot_venn(occurences)
+                print("Genes at intersection of all methods:")
+                for gene in intersection_genes:
+                    print(gene)
+                    
+                    
+        def rra_button_clicked(b):
+            with output:
+                clear_output(wait=True)
+                global treatment
+                global control
+                treatment, control = condition_selected.split("_vs_")
+                global ranks
+                global occurences
+                ranks, occurences = ranking(treatment, control, token, tools_available, params)
+                run_rra(ranks)
+                
+                
+        def genemania_button_clicked(b):
+            with output:
+                clear_output(wait=True)
+                global treatment
+                global control
+                treatment, control = condition_selected.split("_vs_")
+                global ranks
+                global occurences
+                ranks, occurences = ranking(treatment, control, token, tools_available, params)
+                genes_list = list(occurences[occurences.all(axis='columns')].index)
+                link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
+                print('Link to Genemania website: (%s elements)\n' % len(genes_list))
+                print(link)
+
+
+        # Output
+        global intersection_run
+        intersection_run = True
+        output = widgets.Output()
+        venn_button = widgets.Button(description="Venn diagram")
+        rra_button = widgets.Button(description="RRA ranking")
+        genemania_button = widgets.Button(description="Genemania")
+        if 'MAGeCK_MLE' in tools_selected:
+            params['MAGeCK_MLE']['on'] = True
+            mle_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
+            mle_score=widgets.FloatText(value=0, description='Score cut-off:')
+            mle_text=widgets.HTML(value="MAGeCK MLE:")
+            mle_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:', name="test")
+            display(mle_text)
+            mle_box = HBox([mle_fdr, mle_score, mle_order])
+            display(mle_box)
+            mle_order.observe(mle_order_update, 'value')
+            mle_score.observe(mle_score_update, 'value')
+            mle_fdr.observe(mle_fdr_update, 'value')
+        if 'MAGeCK_RRA' in tools_selected:
+            params['MAGeCK_RRA']['on'] = True
+            rra_direction = widgets.ToggleButtons(options=['Positive', 'Negative'], description='Direction:')
+            rra_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
+            rra_score=widgets.FloatText(value=0, description='Score cut-off:')
+            rra_text=widgets.HTML(value="MAGeCK RRA:")
+            rra_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
+            display(rra_text)
+            rra_box = HBox([rra_fdr, rra_direction, rra_score, rra_order])
+            display(rra_box)
+            rra_direction.observe(rra_direction_update, 'value')
+            rra_order.observe(rra_order_update, 'value')
+            rra_score.observe(rra_score_update, 'value')
+            rra_fdr.observe(rra_fdr_update, 'value')
+        if 'BAGEL' in tools_selected:
+            params['BAGEL']['on'] = True
+            bagel_score=widgets.FloatText(value=0, description='Score cut-off:')
+            bagel_text=widgets.HTML(value="BAGEL:")
+            bagel_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
+            display(bagel_text)
+            bagel_box = HBox([bagel_score, bagel_order])
+            display(bagel_box)
+            bagel_order.observe(bagel_order_update, 'value')
+            bagel_score.observe(bagel_score_update, 'value')
+        if 'CRISPhieRmix' in tools_selected:
+            params['CRISPhieRmix']['on'] = True
+            CRISPhieRmix_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
+            CRISPhieRmix_score=widgets.FloatText(value=0, description='Score cut-off:')
+            CRISPhieRmix_text=widgets.HTML(value="CRISPhieRmix:")
+            CRISPhieRmix_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
+            display(CRISPhieRmix_text)
+            CRISPhieRmix_box = HBox([CRISPhieRmix_fdr, CRISPhieRmix_score, CRISPhieRmix_order])
+            display(CRISPhieRmix_box)
+            CRISPhieRmix_order.observe(CRISPhieRmix_order_update, 'value')
+            CRISPhieRmix_score.observe(CRISPhieRmix_score_update, 'value')
+            CRISPhieRmix_fdr.observe(CRISPhieRmix_fdr_update, 'value')
+        if 'in_house_method' in tools_selected:
+            params['in_house_method']['on'] = True
+            in_house_method_direction=widgets.ToggleButtons(options=['Positive', 'Negative'], description='Direction:')
+            in_house_method_score=widgets.FloatText(value=0, description='Score cut-off:')
+            in_house_method_text=widgets.HTML(value="in_house_method:")
+            in_house_method_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
+            display(in_house_method_text)
+            in_house_method_box = HBox([in_house_method_direction, in_house_method_score, in_house_method_order])
+            display(in_house_method_box)
+            in_house_method_order.observe(in_house_method_order_update, 'value')
+            in_house_method_score.observe(in_house_method_score_update, 'value')
+            in_house_method_direction.observe(in_house_method_direction_update, 'value')
+        if 'GSEA-like' in tools_selected:
+            params['GSEA_like']['on'] = True
+            GSEA_like_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
+            GSEA_like_score=widgets.FloatText(value=0, description='Score cut-off:')
+            GSEA_like_text=widgets.HTML(value="GSEA-like:")
+            GSEA_like_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
+            display(GSEA_like_text)
+            GSEA_like_box = HBox([GSEA_like_fdr, GSEA_like_score, GSEA_like_order])
+            display(GSEA_like_box)
+            GSEA_like_order.observe(GSEA_like_order_update, 'value')
+            GSEA_like_score.observe(GSEA_like_score_update, 'value')
+            GSEA_like_fdr.observe(GSEA_like_fdr_update, 'value')
+        buttons_box = HBox([venn_button, rra_button, genemania_button])
+        display(buttons_box, output)
+        venn_button.on_click(venn_button_clicked)
+        rra_button.on_click(rra_button_clicked)
+        genemania_button.on_click(genemania_button_clicked)
+
+    _ = interact(run, condition_selected=conditions_widget, tools_selected=tools_widget)
+    
+    
+    
+def plot_chart(data, tool, condition, file, x, y, method, column_filter='', cutoff=0, greater=False, element='', column_element='', elem_color='', pass_color='', fail_color='', category_column = '', color_scheme='', reverse=''):
+    source = data[tool][condition][file].copy()
+    show_plot = True
+    if method == 'Cut-off':
+        if (source[column_filter].dtype in [np.float64, np.int64]):
+            elements = element.split(',')
+            if not greater:
+                pass_value = "%s < %s" % (column_filter,cutoff)
+                fail_value = "%s >= %s" % (column_filter,cutoff)
+                source.loc[source[column_filter] < cutoff, 'filter'] = pass_value
+                source.loc[source[column_filter] >= cutoff, 'filter'] = fail_value
+            else:
+                pass_value = "%s >= %s" % (column_filter,cutoff)
+                fail_value = "%s < %s" % (column_filter,cutoff)
+                source.loc[source[column_filter] >= cutoff, 'filter'] = pass_value
+                source.loc[source[column_filter] < cutoff, 'filter'] = fail_value
+            source['filter'] = np.where(source[column_element].isin(elements), element, source['filter'])
+            domain = [pass_value, fail_value, element]
+            range_ = [pass_color, fail_color, elem_color]
+        else:
+            source['filter'] = 'pass'
+            show_plot = False
+            print('Choose a column of integer or float type.')
+    if show_plot:
+        if method == 'Cut-off':
+            chart = alt.Chart(source).transform_calculate(
+                order="{'%s': 2, '%s': 1, '%s': 0}[datum.filter]" % (element, pass_value, fail_value)
+            ).mark_circle().encode(
+                x=x,
+                y=y,
+                tooltip = list(source.columns),
+                color=alt.Color('filter', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Pass filter:")),
+                order='order:Q'
+            ).interactive()
+            display(chart)
+        else:
+            chart = alt.Chart(source).mark_circle().encode(
+                x=x,
+                y=y,
+                tooltip = list(source.columns),
+                color=alt.Color(category_column, legend=alt.Legend(title="%s:" % category_column), scale=alt.Scale(scheme=color_scheme, reverse=reverse))
+            ).interactive()
+            display(chart)
+
+
+def call_form(tools_available):
+    SCHEMES = ["reds", "accent", "redblue", "rainbow"]
+    tools = list(tools_available.keys())
+    display(widgets.HTML(value="First, choose a <b>tool</b> to browse results:"))
+    @interact(
+        tool = widgets.Dropdown(options=tools,value=tools[0],description='Tool:',disabled=False))
+    def form(tool):
+        display(widgets.HTML(value="Choose a <b>condition</b> available for this tool:"))
+        conditions = list(tools_available[tool].keys())
+        @interact(
+            condition = widgets.Dropdown(options=conditions,value=conditions[0],description='Condition:',disabled=False))
+        def form(condition):
+            display(widgets.HTML(value="Choose a <b>file</b>:"))
+            files = list(tools_available[tool][condition].keys())
+            @interact(file = widgets.Dropdown(options=files,value=files[0],description='File:',disabled=False))
+            def form(file):
+                display(widgets.HTML(value="Choose which columns to use as <b>x</b> and <b>y</b> axis:"))
+                columns = tools_available[tool][condition][file].columns
+                @interact(x = widgets.Dropdown(options=columns,value=columns[0],description='x:',disabled=False),
+                          y = widgets.Dropdown(options=columns,value=columns[1],description='y:',disabled=False))
+                def form(x , y):
+                    display(widgets.HTML(value="Results can be colored using two <b>methods</b>.</br> <ul><li>Cut-off: Choose a <b>column</b> with numerical values on which you want to apply a <b>cut-off</b></li><li>Category: choose a column and a color scheme.</li></ul>"))
+                    @interact(method = widgets.ToggleButtons(options=['Cut-off', 'Category'],value='Cut-off', description='Method:'))
+                    def form(method):
+                        if method == 'Cut-off':
+                            display(widgets.HTML(value="Now choose a column with numerical data and a set a <b>cut-off</b> value."))
+                            @interact(column_filter = widgets.Dropdown(options=columns,value=columns[0],description='Column:',disabled=False),
+                                      cutoff = widgets.FloatText(value=0.0,description='Cut-off:'),
+                                      greater = widgets.Checkbox(value=False,description='Greater?',disabled=False,indent=True),
+                                      pass_color = widgets.ColorPicker(concise=False,description='Pass color:',value='red',disabled=False),
+                                      fail_color = widgets.ColorPicker(concise=False,description='Fail color:',value='gray',disabled=False),
+                                      column_element = widgets.Dropdown(options=columns,value=columns[0],description='Column:',disabled=False))
+                            def form(column_filter, cutoff, greater, pass_color, fail_color, column_element):
+                                display(widgets.HTML(value="It is possible to highlight an <b>element</b> based on a column and value from that column."))
+                                first_element = str(tools_available[tool][condition][file][column_element][0])
+                                @interact(element = widgets.Text(value=first_element,placeholder='Element:',description='Element:',disabled=False),
+                                          elem_color = widgets.ColorPicker(concise=False,description='Element color:',value='blue',disabled=False))
+                                def form(element, elem_color):
+                                    plot_chart(tools_available, tool, condition, file, x, y, method, column_filter, cutoff, greater, element, column_element, elem_color, pass_color, fail_color)
+                        elif method == 'Category':
+                            @interact(category_column = widgets.Dropdown(options=columns,value=columns[0],description='Category:',disabled=False),
+                                      reverse = widgets.Checkbox(value=False,description='Reverse?',disabled=False,indent=True),
+                                      color_scheme = widgets.Dropdown(options=SCHEMES,value=SCHEMES[0],description='Scheme:',disabled=False))
+                            def form(category_column, reverse, color_scheme):
+                                plot_chart(tools_available, tool, condition, file, x, y, method, category_column=category_column, color_scheme=color_scheme, reverse=reverse)
