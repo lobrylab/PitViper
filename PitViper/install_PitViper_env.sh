@@ -1,7 +1,7 @@
 #!/bin/bash -i
 
 ### Create a conda env from pitviper_env.yaml file named 'pitviper_env'.
-mamba env create -n pitviper_env -f ./environment.yaml 
+mamba env create -n pitviper_env -f environment.yaml 
 
 conda activate pitviper_env
 

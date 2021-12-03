@@ -1503,6 +1503,8 @@ def intersection(tools_available, token):
     def run(condition_selected, tools_selected):
         
         params = reset_params()
+        global enrichr_tools
+        enrichr_tools = ()
         
         def mle_order_update(change):
             with output:
@@ -1627,48 +1629,40 @@ def intersection(tools_available, token):
                 genes_list = list(occurences[occurences.all(axis='columns')].index)
                 link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
                 print('Link to Genemania website: (%s elements)\n' % len(genes_list))
-                print(link)
+                print(link)                
                 
-                
-        def run_enrichr_button_clicked(b, bases, size, plot_type, col_1, col_2):
-            charts = []
-            for base in bases:
-                enrichr_res = getEnrichrResults(genes, description, base)
-                table = createEnrichrTable(enrichr_res)
-                if plot_type == 'Bar':
-                    chart = enrichmentBarPlot(table, size, description, col_1, col_2, base)
-                else:
-                    chart = enrichmentCirclePlot(table, size, description, col_1, col_2, base)
-                charts.append(chart)
-            with output:
-                print(bases, size, plot_type, col_1, col_2)
-                print(charts)
-                for chart in charts:
-                    display(chart)
                 
                 
         def enrichr_button_clicked(b):
-            clear_output(wait=True)
-            global treatment
-            global control
-            treatment, control = condition_selected.split("_vs_")
-            global ranks
-            global occurences
-            ranks, occurences = ranking(treatment, control, token, tools_available, params)
-            genes_list = list(occurences[occurences.all(axis='columns')].index)
-            BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
-            bases_widget = widgets.SelectMultiple(options=BASES, description='Bases:')
-            size_widget = widgets.Dropdown(options = [5, 10, 20, 50, 100, 200, 'max'], description='Size:')
-            type_widget = widgets.Dropdown(options = ['Circle', 'Bar'], description='Type:')
-            col_2_widget = widgets.ColorPicker(concise=False, description='Top color', value='blue', disabled=False)
-            col_1_widget = widgets.ColorPicker(concise=False, description='Bottom color', value='red', disabled=False)
-            run_enrichr_button = widgets.Button(description="Run EnrichR!")
+            def test(b, genes, bases, size, plot_type, col_2, col_1, description):
+                with output:
+                    charts = []
+                    for base in bases:
+                        enrichr_res = getEnrichrResults(genes, description, base)
+                        table = createEnrichrTable(enrichr_res)
+                        if plot_type == 'Bar':
+                            chart = enrichmentBarPlot(table, size, description, col_1, col_2, base)
+                        else:
+                            chart = enrichmentCirclePlot(table, size, description, col_1, col_2, base)
+                        charts.append(chart)
+                    for chart in charts:
+                        display(chart)
             with output:
-                display(VBox([bases_widget, size_widget, type_widget]))
-                display(HBox([col_1_widget, col_2_widget]))
-                display(run_enrichr_button)
-                print(bases_widget.value)
-                run_enrichr_button.on_click(functools.partial(run_enrichr_button_clicked, bases=bases_widget.value, size=size_widget.value, plot_type=type_widget.value, col_1=col_1_widget.value, col_2=col_2_widget.value))
+                clear_output(wait=True)
+                treatment, control = condition_selected.split("_vs_")
+                ranks, occurences = ranking(treatment, control, token, tools_available, params)
+                genes_list = list(occurences[occurences.all(axis='columns')].index)
+                BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
+                @interact(bases = widgets.SelectMultiple(options=BASES, description='Bases:'),
+                          size = widgets.Dropdown(options = [5, 10, 20, 50, 100, 200, 'max'], description='Size:'),
+                          plot_type = widgets.Dropdown(options = ['Circle', 'Bar'], description='Type:'),
+                          col_2 = widgets.ColorPicker(concise=False, description='Top color', value='blue', disabled=False),
+                          col_1 = widgets.ColorPicker(concise=False, description='Bottom color', value='red', disabled=False),
+                          description = widgets.Text(value='My gene list', placeholder='Description', description='Description:'))
+                def enrichr_interact(bases, size, plot_type, col_2, col_1, description):
+                    button_enrichr = widgets.Button(description="Run EnrichR!")
+                    display(button_enrichr)
+                    button_enrichr.on_click(functools.partial(test, genes=genes_list, bases=bases, size=size, plot_type=plot_type, col_2=col_2, col_1=col_1, description=description))
 
 
         # Output
