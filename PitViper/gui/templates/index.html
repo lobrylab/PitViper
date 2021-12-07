@@ -5,6 +5,9 @@
   <title>PitViper GUI</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+ <style type=text/css scoped>
+  div#loading {margin: auto;width: 100px;height: 100px;display: none;background: url(/static/Hourglass.gif) no-repeat;cursor: wait;}
+ </style>
 </head>
 
 <body>
@@ -33,7 +36,7 @@
   <p class="py-3  px-5">Welcome to the PitViper graphical user-interface.</p>
 
   <p class="py-3  px-5"> PitViper is a bioinformatics pipeline built with Snakemake. It is intended to facilitate the analysis of functional screening data from various experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).</p>
-
+<div id="content">
 <form action="/result" method="post" enctype="multipart/form-data">
   <div class="accordion  px-5" id="accordionExample" >
     <div class="accordion-item">
@@ -118,8 +121,8 @@
                        </div> -->
                        <div id="library_div" style="display: block;">
                          <div class="mb-3">
-                           <label for="formFileSm" class="form-label">Library</label>
-                           <input class="form-control form-control-sm" id="library_file" name="library_file" type="file" required>
+                           <label for="formFileSm" class="form-label">Library (optinal if starting from count file)</label>
+                           <input class="form-control form-control-sm" id="library_file" name="library_file" type="file">
                          </div>
                      </div>
                        <!-- <div class="mb-3">
@@ -427,16 +430,15 @@
                          </div>
                        </div>
                      </fieldset>
-
-
-                </div>
+                <dum/div>
               </div>
             </div>
 
-    <input class="btn btn-success  mx-5" type="submit" value="Run PitViper", style="margin: 1em;"></input>
+    <input class="btn btn-success  mx-5" type="submit" value="Run PitViper", style="margin: 1em;" onclick="loading();"></input>
 </form>
 </div>
-
+</div>
+<div id="loading"></div>
 <script>
   function hideBagel (box) {
     // Hide or show Bagel options if elements are genes.
@@ -494,10 +496,12 @@
     document.getElementById(box).style.display = count_table_vis;
     document.getElementById('count_table').required = ct;
     document.getElementById('MAGeCK_count').style.display = count_table_vis;
-
   }
 
-
+  function loading(){
+     document.getElementById('loading').style.display = "block";
+     document.getElementById('content').style.display = "none";
+   }
 </script>
 </body>
 

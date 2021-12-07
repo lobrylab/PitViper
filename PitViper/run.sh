@@ -20,3 +20,5 @@ echo $FLASK_APP
 
 ### Run PitViper application with Flask.
 flask run
+
+jupyter lab results/

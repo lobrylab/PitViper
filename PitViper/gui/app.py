@@ -12,6 +12,12 @@ ALLOWED_EXTENSIONS = {'txt', 'tsv', 'csv'}
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+def shutdown_server():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -34,20 +40,28 @@ def result():
     result = request.form
     result_dict = dict(result)
     if request.method == 'POST':
-        library_file = request.files['library_file']
-        tsv_file = request.files['tsv_file']
-        count_table_file = request.files['count_table_file']
+        try:
+            library_file = request.files.get('library_file')
+        except KeyError:
+            library_file = False    
+
+        #library_file = request.files.get('library_file')
+        tsv_file = request.files.get('tsv_file')
+        count_table_file = request.files.get('count_table_file')
 
     if not os.path.exists('resources/' + result_dict['token'] + '/'):
         os.makedirs('resources/' + result_dict['token'] + '/')
 
-        library_filename = 'resources/' + result_dict['token'] + '/' + library_file.filename
-        tsv_filename = 'resources/' + result_dict['token'] + '/' +  tsv_file.filename
+        if library_file:
+            library_filename = 'resources/' + result_dict['token'] + '/' + library_file.filename
+            library_file.save(library_filename)
+        else:
+            library_filename = ''
+        result_dict['library_file'] = library_filename
 
-        library_file.save(library_filename)
+        tsv_filename = 'resources/' + result_dict['token'] + '/' +  tsv_file.filename
         tsv_file.save(tsv_filename)
 
-        result_dict['library_file'] = library_filename
         result_dict['tsv_file'] = tsv_filename
 
         if count_table_file.filename != '':
@@ -78,7 +92,8 @@ def result():
         with open(yaml_file_name, 'w') as file:
           documents = yaml.dump(result_dict, file)
         run_pitviper(token=result_dict['token'])
-        return render_template("result.html",result = result)
+        shutdown_server()
+        return 'Server shutting down...'#render_template("result.html",result = result)
 
 def open_browser():
       webbrowser.open_new('http://127.0.0.1:5000/')

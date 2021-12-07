@@ -21,7 +21,7 @@ rule mageck_mle:
         params: user must choose a normalization method"""
     input:
         designmat = rules.generate_design_matrix.output.matrix,
-        count_table = config['count_table_file']
+        count_table = config['normalized_count_table']
     output:
         gene_summary = "results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt",
         sgrna_summary = "results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.sgrna_summary.txt"
