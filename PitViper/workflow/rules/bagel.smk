@@ -6,7 +6,7 @@ rule bagel_generate_count_matrix:
     """ Generate count matrix between two conditions for BAGEL. """
     input:
         samples=config['tsv_file'],
-        counts=config['normalized_count_table']
+        counts=config['count_table_file']
     output:
         matrix="results/{token}/count_matrices/BAGEL/{treatment}_vs_{control}_count_matrix.txt"
 
@@ -46,6 +46,7 @@ def bagel_bf_columns(wildcards):
     content = pd.read_csv(file, sep="\t")
     out = ",".join([ str(i + 1) for i in range(len(content.columns)-2)])
     return out
+
 
 rule bagel_bf:
     "Use BAGEL's foldchanges for gene essentiality analysis."

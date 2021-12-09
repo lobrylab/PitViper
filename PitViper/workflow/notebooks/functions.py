@@ -6,6 +6,7 @@ from ipywidgets import interact, interactive, fixed, interact_manual, Button, HB
 import ipywidgets as widgets
 import requests
 import json
+from pathlib import Path
 import natsort as ns
 import numpy as np
 import yaml
@@ -27,6 +28,7 @@ import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
 import rpy2.robjects as robjects
+import gc
 
 alt.renderers.enable('html')
 
@@ -45,7 +47,7 @@ def working_directory_update(output):
     with open(output, "w") as out:
         print("Notebook was runned.", file=out)
 
-        
+
 def open_yaml(yml):
     """Open a YAML file and return it's content."""
     with open(yml, "r") as stream:
@@ -935,14 +937,14 @@ def show_sgRNA_counts(token):
                 gene_cts = cts
             else:
                 gene_cts = cts.loc[cts.Gene == element]
-                
+
             gene_cts = gene_cts.pivot(index="sgRNA", columns="variable", values="value")
             net.load_df(gene_cts)
             net.normalize(axis='row', norm_type='zscore')
             net.cluster()
             with output:
                 display(net.widget())
-        
+
         button.on_click(on_button_clicked)
 
 
@@ -1297,8 +1299,8 @@ def ranking(treatment, control, token, tools_available, params):
         gsea_genes = list(gsea.id)
         tool_results["GSEA-like"] = gsea_genes
         tool_genes.append(gsea_genes)
-        
-        
+
+
     if params['CRISPhieRmix']['on']:
         score = params['CRISPhieRmix']['score']
         fdr = params['CRISPhieRmix']['fdr']
@@ -1350,7 +1352,7 @@ def ranking(treatment, control, token, tools_available, params):
         gsea['default_rank'] = gsea['NES'].rank(method="dense").copy()
         gsea = gsea[["pathway", "default_rank"]].rename(columns={"pathway": "id", "default_rank": "gsea_rank"})
         pdList.append(gsea)
-        
+
     if params['CRISPhieRmix']['on']:
         crisphie = tools_available["CRISPhieRmix"][comparison][comparison + ".txt"]
         crisphie['default_rank'] = crisphie['FDR'].rank(method="dense").copy()
@@ -1420,7 +1422,7 @@ def genemania_link_results(tools_available):
                             info = info.loc[info['NES'] < float(score_cutoff)]
                         info = info.loc[info['padj'] < fdr_cutoff]
                         genes = info['pathway']
-                        
+
                     with output:
                         print("Size (gene set):", len(genes))
                         link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes)
@@ -1434,9 +1436,6 @@ def genemania_link_results(tools_available):
                 button.on_click(on_button_clicked)
 
 
-                
-                
-                
 def plot_venn(occurences):
     venn_lib = importr('venn')
     grdevices = importr('grDevices')
@@ -1446,8 +1445,8 @@ def plot_venn(occurences):
     with rpy2.robjects.lib.grdevices.render_to_bytesio(grdevices.png, width=1024, height=896, res=150) as img:
         venn_lib.venn(r_occurences, ilabels = False, zcolor = "style", ilcs= 1, sncs = 1, borders = False, box = False)
     IPython.display.display(IPython.display.Image(data=img.getvalue(), format='png', embed=True))
-    
-    
+
+
 def run_rra(ranks):
     rra_lib = importr('RobustRankAggreg')
     r_source = robjects.r['source']
@@ -1457,8 +1456,8 @@ def run_rra(ranks):
     RobustRankAggregate = robjects.r['RobustRankAggregate']
     res = RobustRankAggregate(r_ranks)
     print(res)
-    
-    
+
+
 def reset_params():
     params = {'MAGeCK_MLE': {'on': False,
                              'fdr': 0.05,
@@ -1501,11 +1500,11 @@ def intersection(tools_available, token):
 
     # Show form selection
     def run(condition_selected, tools_selected):
-        
+
         params = reset_params()
         global enrichr_tools
         enrichr_tools = ()
-        
+
         def mle_order_update(change):
             with output:
                 if change['new'] == 'Greater than score':
@@ -1603,8 +1602,8 @@ def intersection(tools_available, token):
                 print("Genes at intersection of all methods:")
                 for gene in intersection_genes:
                     print(gene)
-                    
-                    
+
+
         def rra_button_clicked(b):
             with output:
                 clear_output(wait=True)
@@ -1615,8 +1614,8 @@ def intersection(tools_available, token):
                 global occurences
                 ranks, occurences = ranking(treatment, control, token, tools_available, params)
                 run_rra(ranks)
-                
-                
+
+
         def genemania_button_clicked(b):
             with output:
                 clear_output(wait=True)
@@ -1629,10 +1628,10 @@ def intersection(tools_available, token):
                 genes_list = list(occurences[occurences.all(axis='columns')].index)
                 link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
                 print('Link to Genemania website: (%s elements)\n' % len(genes_list))
-                print(link)                
-                
-                
-                
+                print(link)
+
+
+
         def enrichr_button_clicked(b):
             def test(b, genes, bases, size, plot_type, col_2, col_1, description):
                 with output:
@@ -1665,19 +1664,99 @@ def intersection(tools_available, token):
                     button_enrichr.on_click(functools.partial(test, genes=genes_list, bases=bases, size=size, plot_type=plot_type, col_2=col_2, col_1=col_1, description=description))
 
 
+
+
+        def depmap_button_clicked(b):
+            data_types_widget = widgets.RadioButtons(options=['crispr', 'proteomic', 'rnai', 'tpm'],value='crispr',description='Data type:',disabled=False)
+
+            def depmap_query_button_clicked(b):
+                from rpy2.robjects.packages import importr
+                dplyr = importr("dplyr")
+                tibble = importr("tibble")
+                stringr = importr("stringr")
+                depmap = importr("depmap")
+                experimentHub = importr("ExperimentHub")
+                from rpy2.robjects.lib.dplyr import DataFrame
+                from rpy2.robjects import rl
+                import rpy2.ipython.html
+                rpy2.ipython.html.init_printing()
+                save_path = "resources/depmap/%s.txt" % data_types_widget.value
+                Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
+                with output:
+                    clear_output(wait=True)
+                    if not os.path.isfile(save_path):
+                        print("This step can take some time.")
+                        print("Querying: %s..." % data_types_widget.value)
+                        eh = experimentHub.ExperimentHub()
+                        if data_types_widget.value == "rnai":
+                            depmap_data = depmap.depmap_rnai()
+                        elif data_types_widget.value == "crispr":
+                            depmap_data = depmap.depmap_crispr()
+                        elif data_types_widget.value == "proteomic":
+                            depmap_data = depmap.depmap_proteomic()
+                        elif data_types_widget.value == "tpm":
+                            depmap_data = depmap.depmap_TPM()
+                        print("Import...")
+                        utils_package = importr("utils")
+                        print("Saving %s" % save_path)
+                        utils_package.write_table(depmap_data, save_path, row_names=False, quote=False, sep="\t")
+                    #print("Converting to python object...")
+                    #with localconverter(ro.default_converter + pandas2ri.converter):
+                    #    py_tissues = ro.conversion.rpy2py(depmap_data)
+                    #del depmap_data
+                    #gc.collect()
+                    #print("Conversion complete.")
+                    print("Opening %s" % save_path)
+                    py_tissues = pd.read_table(save_path, sep="\t")
+                    cell_line = list(set(py_tissues.cell_line))
+                    tissues = ["_".join(str(tissu).split("_")[1:]) for tissu in cell_line]
+                    tissues = list(set(tissues))
+                    tissues_widget = widgets.Select(options = tissues, description="Tissu:")
+
+                    def tissu_selection_button_clicked(b):
+                        with output:
+                            dic = {"rnai": "dependency", "crispr":"dependency", "tpm":"rna_expression", "proteomic":"protein_expression"}
+                            variable = dic[data_types_widget.value]
+                            save_path = "resources/depmap/%s.txt" % data_types_widget.value
+                            py_tissues = pd.read_table(save_path, sep="\t")
+                            table = py_tissues[py_tissues['cell_line'].str.contains(tissues_widget.value, na=False)]
+                            treatment, control = condition_selected.split("_vs_")
+                            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+                            genes_list = list(occurences[occurences.all(axis='columns')].index)
+                            essential_genes = table[table.gene_name.isin(genes_list)][["gene_name", "cell_line", variable]].pivot(index='gene_name', columns='cell_line', values=variable).dropna()
+                            del py_tissues
+                            gc.collect()
+                            net.load_df(essential_genes)
+                            if data_types_widget.value == "tpm":
+                                net.normalize(axis='row', norm_type='zscore')
+                            net.cluster()
+                            display(net.widget())
+
+                    tissu_selection_button = widgets.Button(description="Run!")
+                    display(tissues_widget, tissu_selection_button)
+                    tissu_selection_button.on_click(tissu_selection_button_clicked)
+
+            depmap_query_button = widgets.Button(description="Query!")
+            depmap_query_button.on_click(depmap_query_button_clicked)
+            with output:
+                clear_output(wait=True) 
+                display(data_types_widget, depmap_query_button)
+
+
         # Output
         global intersection_run
         intersection_run = True
         output = widgets.Output()
-        venn_button = widgets.Button(description="Venn diagram")
-        rra_button = widgets.Button(description="RRA ranking")
-        genemania_button = widgets.Button(description="Genemania")
-        enrichr_button = widgets.Button(description="EnrichR")
+        venn_button = widgets.Button(description="Venn diagram", style=dict(button_color='#707070'))
+        rra_button = widgets.Button(description="RRA ranking", style=dict(button_color='#707070'))
+        genemania_button = widgets.Button(description="Genemania", style=dict(button_color='#707070'))
+        enrichr_button = widgets.Button(description="EnrichR", style=dict(button_color='#707070'))
+        depmap_button = widgets.Button(description="depmap", style=dict(button_color='#707070'))
         if 'MAGeCK_MLE' in tools_selected:
             params['MAGeCK_MLE']['on'] = True
             mle_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
             mle_score=widgets.FloatText(value=0, description='Score cut-off:')
-            mle_text=widgets.HTML(value="MAGeCK MLE:")
+            mle_text=widgets.HTML(value="<b>MAGeCK MLE</b>:")
             mle_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:', name="test")
             display(mle_text)
             mle_box = HBox([mle_fdr, mle_score, mle_order])
@@ -1690,7 +1769,7 @@ def intersection(tools_available, token):
             rra_direction = widgets.ToggleButtons(options=['Positive', 'Negative'], description='Direction:')
             rra_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
             rra_score=widgets.FloatText(value=0, description='Score cut-off:')
-            rra_text=widgets.HTML(value="MAGeCK RRA:")
+            rra_text=widgets.HTML(value="<b>MAGeCK RRA</b>:")
             rra_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
             display(rra_text)
             rra_box = HBox([rra_fdr, rra_direction, rra_score, rra_order])
@@ -1702,7 +1781,7 @@ def intersection(tools_available, token):
         if 'BAGEL' in tools_selected:
             params['BAGEL']['on'] = True
             bagel_score=widgets.FloatText(value=0, description='Score cut-off:')
-            bagel_text=widgets.HTML(value="BAGEL:")
+            bagel_text=widgets.HTML(value="<b>BAGEL</b>:")
             bagel_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
             display(bagel_text)
             bagel_box = HBox([bagel_score, bagel_order])
@@ -1713,7 +1792,7 @@ def intersection(tools_available, token):
             params['CRISPhieRmix']['on'] = True
             CRISPhieRmix_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
             CRISPhieRmix_score=widgets.FloatText(value=0, description='Score cut-off:')
-            CRISPhieRmix_text=widgets.HTML(value="CRISPhieRmix:")
+            CRISPhieRmix_text=widgets.HTML(value="<b>CRISPhieRmix</b>:")
             CRISPhieRmix_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
             display(CRISPhieRmix_text)
             CRISPhieRmix_box = HBox([CRISPhieRmix_fdr, CRISPhieRmix_score, CRISPhieRmix_order])
@@ -1725,7 +1804,7 @@ def intersection(tools_available, token):
             params['in_house_method']['on'] = True
             in_house_method_direction=widgets.ToggleButtons(options=['Positive', 'Negative'], description='Direction:')
             in_house_method_score=widgets.FloatText(value=0, description='Score cut-off:')
-            in_house_method_text=widgets.HTML(value="in_house_method:")
+            in_house_method_text=widgets.HTML(value="<b>In-house method</b>:")
             in_house_method_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
             display(in_house_method_text)
             in_house_method_box = HBox([in_house_method_direction, in_house_method_score, in_house_method_order])
@@ -1737,7 +1816,7 @@ def intersection(tools_available, token):
             params['GSEA_like']['on'] = True
             GSEA_like_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
             GSEA_like_score=widgets.FloatText(value=0, description='Score cut-off:')
-            GSEA_like_text=widgets.HTML(value="GSEA-like:")
+            GSEA_like_text=widgets.HTML(value="<b>GSEA-like</b>:")
             GSEA_like_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
             display(GSEA_like_text)
             GSEA_like_box = HBox([GSEA_like_fdr, GSEA_like_score, GSEA_like_order])
@@ -1745,17 +1824,18 @@ def intersection(tools_available, token):
             GSEA_like_order.observe(GSEA_like_order_update, 'value')
             GSEA_like_score.observe(GSEA_like_score_update, 'value')
             GSEA_like_fdr.observe(GSEA_like_fdr_update, 'value')
-        buttons_box = HBox([venn_button, rra_button, genemania_button, enrichr_button])
+        buttons_box = HBox([venn_button, rra_button, genemania_button, enrichr_button, depmap_button])
         display(buttons_box, output)
         venn_button.on_click(venn_button_clicked)
         rra_button.on_click(rra_button_clicked)
         genemania_button.on_click(genemania_button_clicked)
         enrichr_button.on_click(enrichr_button_clicked)
+        depmap_button.on_click(depmap_button_clicked)
 
     _ = interact(run, condition_selected=conditions_widget, tools_selected=tools_widget)
-    
-    
-    
+
+
+
 def plot_chart(data, tool, condition, file, x, y, method, column_filter='', cutoff=0, greater=False, element='', column_element='', elem_color='', pass_color='', fail_color='', category_column = '', color_scheme='', reverse=''):
     source = data[tool][condition][file].copy()
     show_plot = True

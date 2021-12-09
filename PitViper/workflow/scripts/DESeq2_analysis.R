@@ -19,15 +19,17 @@ print(cts_file)
 # Process counts file (must be tab delimited and have a 'sgRNA' column).
 cts <- read.csv(cts_file, sep="\t", row.names="sgRNA", check.names=FALSE)
 print(colnames(cts))
-cts <- cbind(cts[ , grepl( c(baseline) , names( cts ) ) ], cts[ , grepl( c(treatment) , names( cts ) ) ])
-
+#cts <- cbind(cts[ , grepl( c(baseline) , names( cts ) ) ], cts[ , grepl( c(treatment) , names( cts ) ) ])
+#print(names(cts))
 
 # Read design file for replicate/condition associations.
 design <- read.csv(design_file, sep="\t",  check.names=FALSE)
 treatment.name <- design %>% filter(condition == treatment) %>% pull(replicate) %>% unique()
 baseline.name <- design %>% filter(condition == baseline) %>% pull(replicate) %>% unique()
+cts <- cbind(select(cts, treatment.name), select(cts, baseline.name))
 n.treatment <- ncol(select(cts, all_of(treatment.name)))
 n.baseline <- ncol(select(cts, all_of(baseline.name)))
+#print(cts)
 
 # Create metadata dataframe.
 baseline_rep <- unlist(replicate(n = n.baseline, expr = baseline))

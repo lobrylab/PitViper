@@ -80,15 +80,10 @@ def get_all_pairwise_comparisons():
 
 def get_pipeline_outputs(wildcards):
     wanted_outputs = []
-
     samples_file = pd.read_csv(config['tsv_file'], sep="\t")
-
     comparaisons = get_all_pairwise_comparisons()
-
     token = config['token']
-
     wanted_outputs.append("results/" + config['token'] + "/ExecutionComplete.txt")
-
     for comparaison in comparaisons:
         if (config['filtering_activate'] == 'True'):
             wanted_outputs.append("results/{token}/in_house_method/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_in-house.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
@@ -104,9 +99,7 @@ def get_pipeline_outputs(wildcards):
             wanted_outputs.append("results/{token}/MAGeCK_RRA/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if config['crisphiermix_activate'] == 'True':
             wanted_outputs.append("results/{token}/CRISPhieRmix/{treatment}_vs_{control}/{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
-
     return wanted_outputs
-
 
 
 rule MAGeCK_counts_normalize:
