@@ -955,6 +955,40 @@ def show_sgRNA_counts(token):
         button.on_click(on_button_clicked)
 
 
+def show_sgRNA_counts_lines(token):
+    config = "./config/%s.yaml" % token
+    content = open_yaml(config)
+    cts_file = content['normalized_count_table']
+    cts = pd.read_csv(cts_file, sep="\t")
+    @interact(element=widgets.Text(value='', placeholder='Element:', description='Element:'),
+              conditions=widgets.Text(value=",".join(cts.columns[2:]), placeholder='Conditions to show, in order and comma-separated:', description='Conditions:'))
+    def show_sgRNA_counts_lines(element, conditions):
+        sort_cols = conditions.split(",")
+        button = widgets.Button(description="Show sgRNA counts...")
+        output = widgets.Output()
+        display(button, output)
+        def on_button_clicked(b):
+            cts = pd.read_csv(cts_file, sep="\t")
+            cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
+            if not element in list(cts.Gene):
+                print("Element '%s' not in counts matrix." % element)
+            if not len(conditions.split(",")) > 1:
+                print("Choose more conditions to show.")
+            boolean_series = cts.variable.isin(sort_cols)
+            cts = cts[boolean_series]
+            gene_cts = cts.loc[cts.Gene == element]
+            source = gene_cts
+            out = alt.Chart(source).mark_line().encode(
+                x=alt.X('variable', axis=alt.Axis(title='Condition'), sort=sort_cols),
+                y='value',
+                color='sgRNA'
+            ).interactive()
+            with output:
+                print('Clicked')
+                display(out)
+        button.on_click(on_button_clicked)
+
+
 ### Enrichr
 def getEnrichrResults(genes, description, gene_set_library):
     ENRICHR_URL = 'http://maayanlab.cloud/Enrichr/addList'
