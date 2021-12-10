@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+pd.options.mode.chained_assignment = None
 import re
 import altair as alt
 from ipywidgets import interact, interactive, fixed, interact_manual, Button, HBox, VBox
@@ -29,6 +30,16 @@ from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
 import rpy2.robjects as robjects
 import gc
+######################################################
+dplyr = importr("dplyr")
+tibble = importr("tibble")
+stringr = importr("stringr")
+depmap = importr("depmap")
+experimentHub = importr("ExperimentHub")
+from rpy2.robjects.lib.dplyr import DataFrame
+import rpy2.ipython.html
+rpy2.ipython.html.init_printing()
+######################################################
 
 alt.renderers.enable('html')
 
@@ -147,9 +158,7 @@ def show_mapping_qc(token):
         print("No mapping QC file to show.")
         return 0
     table = pd.read_csv(path_qc, sep='\t')
-
     table = table[['Label', 'Reads', 'Mapped', 'Percentage', 'Zerocounts', 'GiniIndex']]
-
     table['Label'] = pd.Categorical(table['Label'], ordered=True, categories= ns.natsorted(table['Label'].unique()))
     table = table.sort_values('Label')
 
@@ -171,11 +180,9 @@ def show_mapping_qc(token):
         color = 'red' if val > 0.35 else 'green'
         return 'color: %s' % color
 
-
     s = table.style.\
         applymap(color_low_mapping_red, subset=['Percentage']).\
         applymap(color_high_gini_red, subset=['GiniIndex'])
-
     return s
 
 
@@ -917,28 +924,28 @@ def snake_plot(results_directory, tools_available):
                 print("Choose a tool.")
 
 
-
 def show_sgRNA_counts(token):
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
     cts_file = content['normalized_count_table']
     cts = pd.read_csv(cts_file, sep="\t")
-    @interact(element=widgets.Text(value='', placeholder='Element:', description='Element:'))
-    def show_sgRNA_counts(element):
+    cts_columns = [col for col in cts.columns.tolist() if not col in ["sgRNA", "Gene"]]
+    @interact(element=widgets.Text(value='', placeholder='Element:', description='Element:'),
+              conditions=widgets.TagsInput(value=cts_columns, allowed_tags=cts_columns, allow_duplicates=False))
+    def show_sgRNA_counts(element, conditions):
         button = widgets.Button(description="Show sgRNA counts...")
         output = widgets.Output()
         display(button, output)
-
         def on_button_clicked(b):
             cts = pd.read_csv(cts_file, sep="\t")
             cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
-
             if not element in list(cts.Gene):
                 gene_cts = cts
             else:
                 gene_cts = cts.loc[cts.Gene == element]
-
-            gene_cts = gene_cts.pivot(index="sgRNA", columns="variable", values="value")
+            gene_cts = gene_cts.loc[gene_cts.variable.isin(conditions)]
+            gene_cts = gene_cts.pivot_table(index="sgRNA", columns="variable", values="value")
+            gene_cts = gene_cts[conditions]
             net.load_df(gene_cts)
             net.normalize(axis='row', norm_type='zscore')
             net.cluster()
@@ -1670,16 +1677,6 @@ def intersection(tools_available, token):
             data_types_widget = widgets.RadioButtons(options=['crispr', 'proteomic', 'rnai', 'tpm'],value='crispr',description='Data type:',disabled=False)
 
             def depmap_query_button_clicked(b):
-                from rpy2.robjects.packages import importr
-                dplyr = importr("dplyr")
-                tibble = importr("tibble")
-                stringr = importr("stringr")
-                depmap = importr("depmap")
-                experimentHub = importr("ExperimentHub")
-                from rpy2.robjects.lib.dplyr import DataFrame
-                from rpy2.robjects import rl
-                import rpy2.ipython.html
-                rpy2.ipython.html.init_printing()
                 save_path = "resources/depmap/%s.txt" % data_types_widget.value
                 Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
                 with output:
@@ -1723,9 +1720,10 @@ def intersection(tools_available, token):
                             treatment, control = condition_selected.split("_vs_")
                             ranks, occurences = ranking(treatment, control, token, tools_available, params)
                             genes_list = list(occurences[occurences.all(axis='columns')].index)
-                            essential_genes = table[table.gene_name.isin(genes_list)][["gene_name", "cell_line", variable]].pivot(index='gene_name', columns='cell_line', values=variable).dropna()
+                            essential_genes = table[table.gene_name.isin(genes_list)][["gene_name", "cell_line", variable]].pivot_table(index='gene_name', columns='cell_line', values=variable).dropna()
                             del py_tissues
                             gc.collect()
+                            essential_genes = essential_genes.rename(columns=lambda s: s.split("_")[0])
                             net.load_df(essential_genes)
                             if data_types_widget.value == "tpm":
                                 net.normalize(axis='row', norm_type='zscore')
@@ -1739,7 +1737,7 @@ def intersection(tools_available, token):
             depmap_query_button = widgets.Button(description="Query!")
             depmap_query_button.on_click(depmap_query_button_clicked)
             with output:
-                clear_output(wait=True) 
+                clear_output(wait=True)
                 display(data_types_widget, depmap_query_button)
 
 
