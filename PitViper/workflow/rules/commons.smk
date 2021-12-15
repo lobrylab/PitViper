@@ -31,10 +31,10 @@ def getFiles(wildcards):
             fastqs.append(samples_sheet.loc[i].fastq)
         return " ".join(fastqs)
     elif 'bam' in samples_sheet.columns:
-        bams = []
+        bam_files = []
         for i in range(0, len(samples_sheet.index)):
-            bams.append(samples_sheet.loc[i].bams)
-        return " ".join(bams)
+            bam_files.append(samples_sheet.loc[i].bam)
+        return " ".join(bam_files)
 
 
 def getTreatmentIdsLen(wildcards):
@@ -116,3 +116,4 @@ rule MAGeCK_counts_normalize:
             -k {input} \
             -n {params.name} \
             --norm-method total > {log}"
+

@@ -1,7 +1,7 @@
 
 
 tsv = pd.read_csv(config['tsv_file'], sep="\t")
-if len(tsv.columns) > 2:
+if len(tsv.columns) > 3:
     if "fastq" in tsv.columns:
         ruleorder: mageck_count_fastq > mageck_count_bam
         ruleorder: mageck_count_fastq > MAGeCK_counts_normalize
@@ -11,6 +11,7 @@ if len(tsv.columns) > 2:
 else:
     ruleorder: MAGeCK_counts_normalize > mageck_count_bam
     ruleorder: MAGeCK_counts_normalize > mageck_count_fastq
+
 
 rule mageck_count_fastq:
     input:
@@ -56,7 +57,7 @@ rule mageck_count_bam:
         revcom_opt = lambda x: "--reverse-complement" if config['mageck_count_rev_comp'] == 'True' else '',
         normalization_opt = config['mageck_count_normalization'],
         length_opt = config['mageck_count_length'],
-        align_all_opt = lambda x: "--count-pair" if config['mageck_count_all_align'] == 'True' else '',
+        align_all_opt = lambda x: "True" if config['mageck_count_all_align'] == 'True' else 'False',
         count_N_opt = lambda x: "--count-n" if config['mageck_count_N'] == 'True' else ''
     log:
         "logs/mapping/MAGeCK_counts_bam.log"
