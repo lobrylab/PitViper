@@ -32,5 +32,5 @@ PitViper/workflow/notebooks/archives/.ipynb_checkpoints
 *.gz
 *.bt2
 benchmarks/
-
+.tests/unit/
 PitViper/workflow/envs/jupyter.yaml
