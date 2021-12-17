@@ -25,10 +25,10 @@ table <- merge(x=cor, y=res, by = "sgRNA")
 
 # Elements prioritization.
 in.house.res <- table %>%
-  mutate(Efficient = ifelse(abs(log2FoldChange) >= 1 & pvalue <= 0.05, log2FoldChange*(1/-log10(pvalue)), 0)) %>%
+  mutate(Efficient = ifelse(abs(log2FoldChange) >= 1 & pvalue <= 0.05, log2FoldChange*(-log10(pvalue)), 0)) %>%
   filter(!is.na(Efficient)) %>%
   group_by(Gene) %>%
-  summarize(up = sum(Efficient>0), down = sum(Efficient<0), n = n(), score = sum(Efficient)*(down/n), prop = (down/n)) %>%
+  summarize(up = sum(Efficient>0), down = sum(Efficient<0), n = n(), score = sum(Efficient)/n, prop = (down/n)) %>%
   arrange(score) %>%
   mutate(category = ifelse( down >= 2 & up >= 2, "ambiguous", ifelse(down >= 2 & up < 2 & score < 0, "down", ifelse(up >= 2 & down < 2  & score > 0, "up", "unchanged"))))
 
