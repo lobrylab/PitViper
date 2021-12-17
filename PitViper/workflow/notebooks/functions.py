@@ -69,7 +69,7 @@ def open_yaml(yml):
             print(exc)
 
 
-def setup_step_1(token):
+def import_results(token):
     print('Token: %s\n' % token)
     config = "./config/%s.yaml" % token
     print('Config file used: %s' % config)
