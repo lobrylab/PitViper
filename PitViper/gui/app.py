@@ -30,7 +30,7 @@ def documentation():
 
 def run_pitviper(token):
     configfile = 'config/{token}.yaml'.format(token=token)
-    cmd = "python3 pitviper.py --run_snakemake True --configfile {conf} --jobs 4".format(conf=configfile)
+    cmd = "python3 pitviper.py --configfile {conf} --jobs 4".format(conf=configfile)
     print(cmd)
     os.system(cmd)
 
@@ -43,7 +43,7 @@ def result():
         try:
             library_file = request.files.get('library_file')
         except KeyError:
-            library_file = False    
+            library_file = False
 
         #library_file = request.files.get('library_file')
         tsv_file = request.files.get('tsv_file')
