@@ -1708,64 +1708,93 @@ def intersection(tools_available, token):
 
 
         def depmap_button_clicked(b):
-            data_types_widget = widgets.RadioButtons(options=['crispr', 'proteomic', 'rnai', 'tpm'],value='crispr',description='Data type:',disabled=False)
+            data_types_widget = widgets.RadioButtons(options=['crispr', 'proteomic', 'rnai', 'tpm', 'mutations'],value='crispr',description='Data type:',disabled=False)
 
             def depmap_query_button_clicked(b):
                 save_path = "resources/depmap/%s.txt" % data_types_widget.value
                 Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
+                treatment, control = condition_selected.split("_vs_")
+                ranks, occurences = ranking(treatment, control, token, tools_available, params)
                 with output:
                     clear_output(wait=True)
                     if not os.path.isfile(save_path):
                         print("This step can take some time.")
                         print("Querying: %s..." % data_types_widget.value)
                         eh = experimentHub.ExperimentHub()
-                        if data_types_widget.value == "rnai":
-                            depmap_data = depmap.depmap_rnai()
-                        elif data_types_widget.value == "crispr":
-                            depmap_data = depmap.depmap_crispr()
-                        elif data_types_widget.value == "proteomic":
-                            depmap_data = depmap.depmap_proteomic()
-                        elif data_types_widget.value == "tpm":
-                            depmap_data = depmap.depmap_TPM()
-                        print("Import...")
                         utils_package = importr("utils")
+                        base_package = importr("base")
+                        dplyr = importr("dplyr")
+                        tidyr = importr("tidyr")
+                        readr = importr("readr")
+                        if data_types_widget.value == "rnai":
+                            depmap_data = tidyr.drop_na(dplyr.select(depmap.depmap_rnai(), "depmap_id", "gene_name", "dependency"))
+                        elif data_types_widget.value == "crispr":
+                            depmap_data = tidyr.drop_na(dplyr.select(depmap.depmap_crispr(), "depmap_id", "gene_name", "dependency"))
+                        elif data_types_widget.value == "proteomic":
+                            depmap_data = tidyr.drop_na(dplyr.select(depmap.depmap_proteomic(), "depmap_id", "gene_name", "protein_expression"))
+                        elif data_types_widget.value == "tpm":
+                            depmap_data = tidyr.drop_na(dplyr.select(depmap.depmap_TPM(), "depmap_id", "gene_name", "rna_expression"))
+                        elif data_types_widget.value == "mutations":
+                            depmap_data = tidyr.drop_na(dplyr.select(depmap.depmap_mutationCalls(), 'depmap_id', 'gene_name', 'protein_change', 'is_deleterious'))
+                        if not os.path.isfile("resources/depmap/metadata.txt"):
+                            depmap_metadata = dplyr.select(depmap.depmap_metadata(), 'depmap_id', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease','subtype_disease', 'cell_line', 'cell_line_name')
+                            print("Saving metadata...")
+                            utils_package.write_table(depmap_metadata, "resources/depmap/metadata.txt", row_names=False, quote=False, sep="\t")
+                        else:
+                            print("Import metadata...")
+                            depmap_metadata = readr.read_delim("resources/depmap/metadata.txt", delim="\t")
+                        depmap_data = base_package.merge(depmap_data, depmap_metadata, by = "depmap_id")
                         print("Saving %s" % save_path)
                         utils_package.write_table(depmap_data, save_path, row_names=False, quote=False, sep="\t")
-                    #print("Converting to python object...")
-                    #with localconverter(ro.default_converter + pandas2ri.converter):
-                    #    py_tissues = ro.conversion.rpy2py(depmap_data)
-                    #del depmap_data
-                    #gc.collect()
-                    #print("Conversion complete.")
                     print("Opening %s" % save_path)
                     py_tissues = pd.read_table(save_path, sep="\t")
                     cell_line = list(set(py_tissues.cell_line))
                     tissues = ["_".join(str(tissu).split("_")[1:]) for tissu in cell_line]
                     tissues = list(set(tissues))
-                    tissues_widget = widgets.Select(options = tissues, description="Tissu:")
-
+                    tissues_widget = widgets.SelectMultiple(options = tissues, description="Tissu:", value=(tissues[0],))
                     def tissu_selection_button_clicked(b):
                         with output:
-                            dic = {"rnai": "dependency", "crispr":"dependency", "tpm":"rna_expression", "proteomic":"protein_expression"}
+                            dic = {"rnai":"dependency", "crispr":"dependency", "tpm":"rna_expression", "proteomic":"protein_expression", "mutations":["protein_change","is_deleterious"]}
                             variable = dic[data_types_widget.value]
                             save_path = "resources/depmap/%s.txt" % data_types_widget.value
                             py_tissues = pd.read_table(save_path, sep="\t")
-                            table = py_tissues[py_tissues['cell_line'].str.contains(tissues_widget.value, na=False)]
-                            treatment, control = condition_selected.split("_vs_")
-                            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+                            table = py_tissues[py_tissues['primary_disease'].str.contains('|'.join(primary_tissu_widget.value), na=False)]
                             genes_list = list(occurences[occurences.all(axis='columns')].index)
-                            essential_genes = table[table.gene_name.isin(genes_list)][["gene_name", "cell_line", variable]].pivot_table(index='gene_name', columns='cell_line', values=variable).dropna()
-                            del py_tissues
-                            gc.collect()
-                            essential_genes = essential_genes.rename(columns=lambda s: s.split("_")[0])
-                            net.load_df(essential_genes)
-                            if data_types_widget.value == "tpm":
-                                net.normalize(axis='row', norm_type='zscore')
-                            net.cluster()
-                            display(net.widget())
-
+                            if data_types_widget.value == "mutations":
+                                columns = ['gene_name', 'cell_line', 'cell_line_name', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease','subtype_disease']
+                                for value in variable:
+                                    columns.append(value)
+                                essential_genes = table[table.gene_name.isin(genes_list)][columns]
+                                essential_genes = essential_genes.loc[essential_genes.is_deleterious == True]
+                                essential_genes = essential_genes.groupby(['gene_name', 'cell_line', 'cell_line_name', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease',
+           'subtype_disease'])['protein_change'].apply(lambda x: "%s" % '|'.join(map(str, x))).reset_index()
+                                chart = alt.Chart(
+                                    essential_genes,
+                                    title="depmap mutations"
+                                ).mark_rect().encode(
+                                    x='cell_line_name',
+                                    y='gene_name',
+                                    color=alt.Color('primary_disease', scale=alt.Scale(scheme="tableau20")),
+                                    tooltip=['protein_change', 'gene_name', 'cell_line', 'cell_line_name', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease','subtype_disease']
+                                ).interactive()
+                                display(chart)
+                            else:
+                                essential_genes = table[table.gene_name.isin(genes_list)][["gene_name", "cell_line", variable]].pivot_table(index='gene_name', columns='cell_line', values=variable).dropna()
+                                essential_genes = essential_genes.rename(columns=lambda s: s.split("_")[0])
+                                net.load_df(essential_genes)
+                                if data_types_widget.value == "tpm":
+                                    net.normalize(axis='row', norm_type='zscore')
+                                net.cluster()
+                                display(net.widget())
+                                
+                                
+                    primary_tissu_list = list(set(py_tissues[py_tissues['cell_line'].str.contains('|'.join(tissues_widget.value), na=False)].primary_disease))
+                    primary_tissu_widget = widgets.SelectMultiple(options = primary_tissu_list, description="Primary tissu:", value=(primary_tissu_list[0],))                    
+                    def update_primary_tissu(tissu):
+                        primary_tissu_widget.options = list(set(py_tissues[py_tissues['cell_line'].str.contains('|'.join(tissu['new']), na=False)].primary_disease))
+                    tissues_widget.observe(update_primary_tissu, 'value')
                     tissu_selection_button = widgets.Button(description="Run!")
-                    display(tissues_widget, tissu_selection_button)
+                    display(tissues_widget, primary_tissu_widget, tissu_selection_button)
                     tissu_selection_button.on_click(tissu_selection_button_clicked)
 
             depmap_query_button = widgets.Button(description="Query!")
