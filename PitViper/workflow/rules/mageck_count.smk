@@ -2,12 +2,18 @@
 
 tsv = pd.read_csv(config['tsv_file'], sep="\t")
 if len(tsv.columns) > 3:
-    if "fastq" in tsv.columns:
-        ruleorder: mageck_count_fastq > mageck_count_bam
-        ruleorder: mageck_count_fastq > MAGeCK_counts_normalize
-    elif "bam" in tsv.columns:
+    if config['bowtie_activate'] == "True":
+        ruleorder: bowtie_mapping > mageck_count_fastq
         ruleorder: mageck_count_bam > mageck_count_fastq
         ruleorder: mageck_count_bam > MAGeCK_counts_normalize
+        ruleorder: MAGeCK_counts_normalize > mageck_count_fastq
+    elif config['mageck_count_activate'] == "True":
+        if "fastq" in tsv.columns:
+            ruleorder: mageck_count_fastq > mageck_count_bam
+            ruleorder: mageck_count_fastq > MAGeCK_counts_normalize
+        elif "bam" in tsv.columns:
+            ruleorder: mageck_count_bam > mageck_count_fastq
+            ruleorder: mageck_count_bam > MAGeCK_counts_normalize
 else:
     ruleorder: MAGeCK_counts_normalize > mageck_count_bam
     ruleorder: MAGeCK_counts_normalize > mageck_count_fastq

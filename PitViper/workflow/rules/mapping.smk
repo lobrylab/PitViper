@@ -1,6 +1,10 @@
 
 
-
+def getFastqMapping(wildcards):
+    """Return name of fastq file."""
+    samples_sheet = pd.read_csv(config['tsv_file'], sep="\t")
+    fastq = samples_sheet.loc[samples_sheet["replicate"] == wildcards.sample].fastq
+    return fastq
 
 rule library_convert:
     input:
@@ -34,7 +38,7 @@ def index(wildcards):
 rule bowtie_mapping:
     input:
         index=rules.bowtie_build.output.index,
-        fastq="results/{token}/fastq/{sample}.fastq.gz"
+        fastq=getFastqMapping
     output:
         bam="results/{token}/bam/{sample}.bam"
     params:
@@ -42,7 +46,7 @@ rule bowtie_mapping:
         adap3=config['length_3_adapter'],
         index_base_name=index
     log:
-        "logs/Bowtie_mapping/{sample}_bowtie_mapping.log"
+        "logs/{token}/Bowtie_mapping/{sample}_bowtie_mapping.log"
     shell:
         "bowtie2 \
             -x {params.index_base_name} \

@@ -2,14 +2,26 @@
 def getFastqFiles(wildcards):
     """Return a list of experiment's files  in fastq format."""
     samples_sheet = pd.read_csv(config['tsv_file'], sep="\t")
-    fastqs = samples_sheet.fastq.values
+    if config['mageck_count_activate'] == 'True':
+        fastqs = samples_sheet.fastq.values
+    else:
+        fastqs = []
+    print(fastqs)
     return fastqs
 
 
 def getBamFiles(wildcards):
     """Return a list of experiment's files in bam format."""
     samples_sheet = pd.read_csv(config['tsv_file'], sep="\t")
-    bams = samples_sheet.bam.values
+    if config['mageck_count_activate'] == 'True':
+        bams = samples_sheet.bam.values
+    elif config['bowtie_activate'] == 'True':
+         bams = []
+         replicates = samples_sheet.replicate.values
+         for replicate in replicates:
+             bam = "results/%s/bam/%s.bam" % (config['token'], replicate)
+             bams.append(bam)
+    print(bams)
     return bams
 
 
@@ -25,16 +37,24 @@ def getLabels(wildcards):
 def getFiles(wildcards):
     """Return concatenation of experiment's files. Needed for MAGeCK count software."""
     samples_sheet = pd.read_csv(config['tsv_file'], sep="\t")
-    if 'fastq' in samples_sheet.columns:
-        fastqs = []
-        for i in range(0, len(samples_sheet.index)):
-            fastqs.append(samples_sheet.loc[i].fastq)
-        return " ".join(fastqs)
-    elif 'bam' in samples_sheet.columns:
-        bam_files = []
-        for i in range(0, len(samples_sheet.index)):
-            bam_files.append(samples_sheet.loc[i].bam)
-        return " ".join(bam_files)
+    if config['mageck_count_activate'] == 'True':
+        if 'fastq' in samples_sheet.columns:
+            fastqs = []
+            for i in range(0, len(samples_sheet.index)):
+                fastqs.append(samples_sheet.loc[i].fastq)
+            return " ".join(fastqs)
+        elif 'bam' in samples_sheet.columns:
+            bam_files = []
+            for i in range(0, len(samples_sheet.index)):
+                bam_files.append(samples_sheet.loc[i].bam)
+            return " ".join(bam_files)
+    elif config['bowtie_activate'] == 'True':
+        bams = []
+        replicates = samples_sheet.replicate.values
+        for replicate in replicates:
+            bam = "results/%s/bam/%s.bam" % (config['token'], replicate)
+            bams.append(bam)
+        return " ".join(bams)
 
 
 def getTreatmentIdsLen(wildcards):
