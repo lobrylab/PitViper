@@ -8,7 +8,8 @@ tsv = pd.read_csv(config['tsv_file'], sep="\t")
 include: "rules/commons.smk"
 if "fastq" in tsv.columns or "bam" in tsv.columns:
     include: "rules/mageck_count.smk"
-# include: "rules/mageck_count.smk"
+if config['bowtie_activate'] == 'True':
+    include: "rules/mapping.smk"
 include: "rules/mageck_mle.smk"
 include: "rules/differential_analysis.smk"
 include: "rules/mageck_rra.smk"
@@ -16,7 +17,6 @@ include: "rules/bagel.smk"
 include: "rules/gsea_like_analysis.smk"
 include: "rules/crisphiermix.smk"
 include: "rules/integration.smk"
-include: "rules/mapping.smk"
 
 rule all:
     input:

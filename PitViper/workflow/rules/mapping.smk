@@ -34,12 +34,12 @@ def index(wildcards):
 rule bowtie_mapping:
     input:
         index=rules.bowtie_build.output.index,
-        fastq="../data/fastq/{sample}.fastq.gz"
+        fastq="results/{token}/fastq/{sample}.fastq.gz"
     output:
-        bam="../data/bam/{sample}.bam"
+        bam="results/{token}/bam/{sample}.bam"
     params:
-        adap5="20",
-        adap3="10",
+        adap5=config['length_5_adapter'],
+        adap3=config['length_3_adapter'],
         index_base_name=index
     log:
         "logs/Bowtie_mapping/{sample}_bowtie_mapping.log"

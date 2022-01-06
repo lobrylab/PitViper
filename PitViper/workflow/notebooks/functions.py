@@ -960,8 +960,10 @@ def show_sgRNA_counts_lines(token):
     content = open_yaml(config)
     cts_file = content['normalized_count_table']
     cts = pd.read_csv(cts_file, sep="\t")
+    design_file = content['tsv_file']
+    design = pd.read_csv(design_file, sep="\t")
     @interact(element=widgets.Text(value='', placeholder='Element:', description='Element:'),
-              conditions=widgets.Text(value=",".join(cts.columns[2:]), placeholder='Conditions to show, in order and comma-separated:', description='Conditions:'))
+              conditions=widgets.Text(value=",".join(list(set(design.condition))), placeholder='Conditions to show, in order and comma-separated:', description='Conditions:'))
     def show_sgRNA_counts_lines(element, conditions):
         sort_cols = conditions.split(",")
         button = widgets.Button(description="Show sgRNA counts...")
@@ -974,17 +976,19 @@ def show_sgRNA_counts_lines(token):
                 print("Element '%s' not in counts matrix." % element)
             if not len(conditions.split(",")) > 1:
                 print("Choose more conditions to show.")
-            boolean_series = cts.variable.isin(sort_cols)
-            cts = cts[boolean_series]
             gene_cts = cts.loc[cts.Gene == element]
             source = gene_cts
+            source = pd.merge(source, design, left_on='variable', right_on='replicate')
+            source = source.groupby(['sgRNA', 'condition']).mean()
+            source = source.reset_index()
+            boolean_series = source.condition.isin(sort_cols)
+            source = source[boolean_series]
             out = alt.Chart(source).mark_line().encode(
-                x=alt.X('variable', axis=alt.Axis(title='Condition'), sort=sort_cols),
+                x=alt.X('condition', axis=alt.Axis(title='Condition'), sort=sort_cols),
                 y='value',
                 color='sgRNA'
-            ).interactive()
+            ).interactive().properties(width=300)
             with output:
-                print('Clicked')
                 display(out)
         button.on_click(on_button_clicked)
 

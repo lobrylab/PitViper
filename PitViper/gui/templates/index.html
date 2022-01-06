@@ -151,10 +151,37 @@
                   </button>
                 </h2>
                 <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample" style="padding: 2em;">
+
+                  <div id="bowtie">
+                    <fieldset class="row mb-3">
+                      <legend class="col-form-label col-sm-2 pt-0 text-primary">Bowtie</legend>
+                      <div class="col-sm-10">
+                        <div class="form-check form-switch">
+                          <input type='checkbox' value='True' name='bowtie_activate' class="form-check-input">
+                          <input type='hidden' value='False' name='bowtie_activate' class="form-check-input">
+                          <label class="form-check-label" for="bowtie_activate">Activate</label>
+                        </div>
+                        <legend class="col-form-label col-sm-2 pt-2">Length of 5' adapter:</legend>
+                        <div class=" pb-3">
+                          <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber" value=20 name='length_5_adapter' />
+                        </div>
+                        <legend class="col-form-label col-sm-2 pt-2">Length of 3' adapter:</legend>
+                        <div class=" pb-3">
+                          <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber" value=10 name='length_3_adapter' />
+                        </div>
+
+                    </fieldset>
+                  </div>
+
                   <div id="MAGeCK_count">
                   <fieldset class="row mb-3">
                      <legend class="col-form-label col-sm-2 pt-0 text-primary">MAGeCK count</legend>
                      <div class="col-sm-10">
+                       <div class="form-check form-switch">
+                         <input type='checkbox' value='True' name='mageck_count_activate' class="form-check-input">
+                         <input type='hidden' value='False' name='mageck_count_activate' class="form-check-input">
+                         <label class="form-check-label" for="mageck_count_activate">Activate</label>
+                       </div>
                        <legend class="col-form-label col-sm-2 pt-2">Normalization method:</legend>
                        <div class=" pb-3">
                        <select class="form-select" label="Normalization method" name="mageck_count_normalization">
@@ -500,6 +527,7 @@
     document.getElementById(box).style.display = count_table_vis;
     document.getElementById('count_table_div').required = ct;
     document.getElementById('MAGeCK_count').style.display = mageck_count_display;
+    document.getElementById('bowtie').style.display = mageck_count_display;
   }
 
   function loading(){
