@@ -44,6 +44,7 @@ rule bowtie_mapping:
     params:
         adap5=config['length_5_adapter'],
         adap3=config['length_3_adapter'],
+        bowtie_mapping_method=config['bowtie_mapping_method'],
         index_base_name=index
     log:
         "logs/{token}/Bowtie_mapping/{sample}_bowtie_mapping.log"
@@ -53,4 +54,5 @@ rule bowtie_mapping:
             -U {input.fastq} \
             -5 {params.adap5} \
             -3 {params.adap3} \
+            {params.bowtie_mapping_method} \
             --norc | samtools view -bS - > {output.bam}"

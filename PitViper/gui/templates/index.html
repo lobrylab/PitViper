@@ -97,6 +97,13 @@
                          </div>
                        </div>
                      </fieldset>
+                     <fieldset class="row mb-3">
+                       <legend class="col-form-label col-sm-2 pt-2">Jobs to run in parallel:</legend>
+                       <div class=" pb-3">
+                         <input class="form-select" type="number" id="replyNumber" min="1" data-bind="value:replyNumber" value=1 name='jobs' />
+                       </div>
+                   </fieldset>
+
                 </div>
               </div>
 
@@ -154,7 +161,7 @@
 
                   <div id="bowtie">
                     <fieldset class="row mb-3">
-                      <legend class="col-form-label col-sm-2 pt-0 text-primary">Bowtie</legend>
+                      <legend class="col-form-label col-sm-2 pt-0 text-primary">Bowtie2</legend>
                       <div class="col-sm-10">
                         <div class="form-check form-switch">
                           <input type='checkbox' value='True' name='bowtie_activate' class="form-check-input">
@@ -169,7 +176,16 @@
                         <div class=" pb-3">
                           <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber" value=10 name='length_3_adapter' />
                         </div>
-
+                        <legend class="col-form-label col-sm-2 pt-2">Normalization method:</legend>
+                        <div class=" pb-3">
+                        <select class="form-select" label="Bowtie2 mapping method" name="bowtie_mapping_method">
+                          <option selected>Open this select menu</option>
+                          <option value="--sensitive" selected>sensitive</option>
+                          <option value="--fast">fast</option>
+                          <option value="--very-fast">very-fast</option>
+                          <option value="--very-sensitive">very-sensitive</option>
+                        </select>
+                       </div>
                     </fieldset>
                   </div>
 

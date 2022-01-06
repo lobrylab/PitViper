@@ -34,3 +34,4 @@ PitViper/workflow/notebooks/archives/.ipynb_checkpoints
 benchmarks/
 PitViper/.tests/unit/*
 PitViper/workflow/envs/jupyter.yaml
+resources/depmap/*

@@ -6,7 +6,6 @@ def getFastqFiles(wildcards):
         fastqs = samples_sheet.fastq.values
     else:
         fastqs = []
-    print(fastqs)
     return fastqs
 
 
@@ -21,7 +20,6 @@ def getBamFiles(wildcards):
          for replicate in replicates:
              bam = "results/%s/bam/%s.bam" % (config['token'], replicate)
              bams.append(bam)
-    print(bams)
     return bams
 
 
@@ -136,4 +134,3 @@ rule MAGeCK_counts_normalize:
             -k {input} \
             -n {params.name} \
             --norm-method total > {log}"
-

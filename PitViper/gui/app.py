@@ -6,11 +6,7 @@ import yaml
 import webbrowser
 from threading import Timer
 
-UPLOAD_FOLDER = 'data/upload/'
-ALLOWED_EXTENSIONS = {'txt', 'tsv', 'csv'}
-
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def shutdown_server():
     func = request.environ.get('werkzeug.server.shutdown')
@@ -30,7 +26,10 @@ def documentation():
 
 def run_pitviper(token):
     configfile = 'config/{token}.yaml'.format(token=token)
-    cmd = "python3 pitviper.py --configfile {conf} --jobs 4".format(conf=configfile)
+    with open(configfile, 'r') as stream:
+        content = yaml.safe_load(stream)
+    print(content)
+    cmd = "python3 pitviper.py --configfile {conf} --jobs {n}".format(conf=configfile, n=content['jobs'])
     print(cmd)
     os.system(cmd)
 
