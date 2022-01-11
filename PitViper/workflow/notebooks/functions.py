@@ -13,6 +13,7 @@ import numpy as np
 import yaml
 import os.path
 from os import path
+from os import listdir
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn import decomposition
@@ -1714,14 +1715,32 @@ def intersection(tools_available, token):
         def depmap_button_clicked(b):
             data_types_widget = widgets.RadioButtons(options=['crispr', 'proteomic', 'rnai', 'tpm', 'mutations'],value='crispr',description='Data type:',disabled=False)
 
+            
+            def download_depmap_file(data_type, release):
+                target_file = "resources\/depmap\/%s_%s.txt" % (release, data_type) 
+                for file_name in listdir("resources/depmap/"):
+                    if file_name == target_file:
+                        return False
+                    elif data_type in file_name:
+                        if not release in str(file_name):
+                            os.remove(file_name)
+                            return True
+                        else:
+                            return False
+                    else:
+                        return True
+    
+    
             def depmap_query_button_clicked(b):
-                save_path = "resources/depmap/%s.txt" % data_types_widget.value
+                depmap_release_r = depmap.depmap_release()
+                depmap_release = robjects.r.depmap_release_r
+                save_path = "resources/depmap/%s_%s.txt" % (depmap_release, data_types_widget.value)
                 Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
                 treatment, control = condition_selected.split("_vs_")
                 ranks, occurences = ranking(treatment, control, token, tools_available, params)
                 with output:
                     clear_output(wait=True)
-                    if not os.path.isfile(save_path):
+                    if download_depmap_file(data_types_widget.value, depmap_release):
                         print("This step can take some time.")
                         print("Querying: %s..." % data_types_widget.value)
                         eh = experimentHub.ExperimentHub()
