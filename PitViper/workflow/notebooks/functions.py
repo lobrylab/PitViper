@@ -14,11 +14,11 @@ import yaml
 import os.path
 from os import path
 from os import listdir
-#import matplotlib.pyplot as plt
-#from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from sklearn import decomposition
 from sklearn import datasets
-from functools import reduce, partial
+from functools import reduce
 from IPython.display import display, clear_output
 from clustergrammer2 import net, Network, CGM2
 import rpy2
@@ -30,6 +30,8 @@ import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
 import rpy2.robjects as robjects
+from rpy2.robjects.conversion import rpy2py
+
 import gc
 ######################################################
 dplyr = importr("dplyr")
@@ -37,6 +39,8 @@ tibble = importr("tibble")
 stringr = importr("stringr")
 depmap = importr("depmap")
 experimentHub = importr("ExperimentHub")
+utils = importr('utils')
+
 from rpy2.robjects.lib.dplyr import DataFrame
 import rpy2.ipython.html
 rpy2.ipython.html.init_printing()
@@ -282,6 +286,7 @@ def CRISPhieRmix_results(results_directory, tools_available):
                 )
             with output:
                 display(plot)
+                return(plot)
 
         button = widgets.Button(description="Show plot")
         output = widgets.Output()
@@ -684,7 +689,18 @@ def MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_director
     domain = ['Yes', 'No']
     range_ = [sig, non_sig]
 
+    def show_chart(chart):
+        try:
+            print('Displaying chart...')
+            display(chart)
+        except:
+            print("Chart can't be displayed.")
+
+    
     def on_button_clicked(b):
+        
+        global chart
+        
         chart = alt.Chart(source).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y(treatment + '|beta:Q'),
@@ -696,13 +712,14 @@ def MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_director
         line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
 
         chart = (chart + line)
-        with output:
-            display(chart)
+        show_chart(chart)
+#         with output:
+#             display(chart)
 
     button = widgets.Button(description="Show plot")
-    output = widgets.Output()
-
-    display(button, output)
+#     output = widgets.Output()
+    display(button)
+#     display(button, output)
 
     button.on_click(on_button_clicked)
 
@@ -1490,7 +1507,7 @@ def plot_venn(occurences):
 
     with rpy2.robjects.lib.grdevices.render_to_bytesio(grdevices.png, width=1024, height=896, res=150) as img:
         venn_lib.venn(r_occurences, ilabels = False, zcolor = "style", ilcs= 1, sncs = 1, borders = False, box = False)
-    display(IPython.display.display(IPython.display.Image(data=img.getvalue(), format='png', embed=True)))
+    IPython.display.display(IPython.display.Image(data=img.getvalue(), format='png', embed=True, height=896, width=512))
 
 
 def run_rra(ranks):
@@ -1634,18 +1651,20 @@ def intersection(tools_available, token):
                 params['GSEA_like']['score'] = change['new']
 
         def venn_button_clicked(b):
-            global treatment
-            global control
-            treatment, control = condition_selected.split("_vs_")
-            global ranks
-            global occurences
-            ranks, occurences = ranking(treatment, control, token, tools_available, params)
-            df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).all(1), columns = ['intersection'])
-            intersection_genes = df.loc[df.intersection == True].index
-            plot_venn(occurences)
-            print("Genes at intersection of all methods:")
-            for gene in intersection_genes:
-                print(gene)
+            with output:
+                clear_output(wait=True)
+                global treatment
+                global control
+                treatment, control = condition_selected.split("_vs_")
+                global ranks
+                global occurences
+                ranks, occurences = ranking(treatment, control, token, tools_available, params)
+                df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).all(1), columns = ['intersection'])
+                intersection_genes = df.loc[df.intersection == True].index
+                plot_venn(occurences)
+                print("Genes at intersection of all methods:")
+                for gene in intersection_genes:
+                    print(gene)
 
 
         def rra_button_clicked(b):
@@ -1715,8 +1734,10 @@ def intersection(tools_available, token):
 
             
             def download_depmap_file(data_type, release):
-                target_file = "resources\/depmap\/%s_%s.txt" % (release, data_type) 
+                target_file = "resources\/depmap\/%s_%s.txt" % (release, data_type)
                 for file_name in listdir("resources/depmap/"):
+                    if ("metadata" in file_name) and (not release in file_name):
+                        os.remove(file_name)
                     if file_name == target_file:
                         return False
                     elif data_type in file_name:
@@ -1725,13 +1746,17 @@ def intersection(tools_available, token):
                             return True
                         else:
                             return False
-                    else:
-                        return True
-    
+
+                    
+            def getRelease():
+                depmap_release = depmap.depmap_release()
+                utils.write_table(depmap_release, "resources/depmap/release.txt", row_names=False, quote=False, col_names=False)
+                release = open("resources/depmap/release.txt", "r").read()
+                return release.rstrip()
+                
     
             def depmap_query_button_clicked(b):
-                depmap_release_r = depmap.depmap_release()
-                depmap_release = robjects.r.depmap_release_r
+                depmap_release = getRelease()
                 save_path = "resources/depmap/%s_%s.txt" % (depmap_release, data_types_widget.value)
                 Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
                 treatment, control = condition_selected.split("_vs_")
@@ -1742,7 +1767,6 @@ def intersection(tools_available, token):
                         print("This step can take some time.")
                         print("Querying: %s..." % data_types_widget.value)
                         eh = experimentHub.ExperimentHub()
-                        utils_package = importr("utils")
                         base_package = importr("base")
                         dplyr = importr("dplyr")
                         tidyr = importr("tidyr")
@@ -1757,29 +1781,31 @@ def intersection(tools_available, token):
                             depmap_data = tidyr.drop_na(dplyr.select(depmap.depmap_TPM(), "depmap_id", "gene_name", "rna_expression"))
                         elif data_types_widget.value == "mutations":
                             depmap_data = tidyr.drop_na(dplyr.select(depmap.depmap_mutationCalls(), 'depmap_id', 'gene_name', 'protein_change', 'is_deleterious'))
-                        if not os.path.isfile("resources/depmap/metadata.txt"):
+                        if not os.path.isfile("resources/depmap/%s_metadata.txt" % depmap_release):
                             depmap_metadata = dplyr.select(depmap.depmap_metadata(), 'depmap_id', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease','subtype_disease', 'cell_line', 'cell_line_name')
                             print("Saving metadata...")
-                            utils_package.write_table(depmap_metadata, "resources/depmap/metadata.txt", row_names=False, quote=False, sep="\t")
+                            utils.write_table(depmap_metadata, "resources/depmap/%s_metadata.txt" % depmap_release, row_names=False, quote=False, sep="\t")
                         else:
                             print("Import metadata...")
-                            depmap_metadata = readr.read_delim("resources/depmap/metadata.txt", delim="\t")
+                            depmap_metadata = readr.read_delim("resources/depmap/%s_metadata.txt" % depmap_release, delim="\t")
                         depmap_data = base_package.merge(depmap_data, depmap_metadata, by = "depmap_id")
                         print("Saving %s" % save_path)
-                        utils_package.write_table(depmap_data, save_path, row_names=False, quote=False, sep="\t")
+                        utils.write_table(depmap_data, save_path, row_names=False, quote=False, sep="\t")
                     print("Opening %s" % save_path)
                     py_tissues = pd.read_table(save_path, sep="\t")
                     cell_line = list(set(py_tissues.cell_line))
                     tissues = ["_".join(str(tissu).split("_")[1:]) for tissu in cell_line]
                     tissues = list(set(tissues))
-                    tissues_widget = widgets.SelectMultiple(options = tissues, description="Tissu:", value=(tissues[0],))
+                    tissues.insert(0, 'All')
+                    tissues_widget = widgets.SelectMultiple(options = tissues, description="Tissu:", value=(tissues[0], ))
                     def tissu_selection_button_clicked(b):
                         with output:
                             dic = {"rnai":"dependency", "crispr":"dependency", "tpm":"rna_expression", "proteomic":"protein_expression", "mutations":["protein_change","is_deleterious"]}
                             variable = dic[data_types_widget.value]
-                            save_path = "resources/depmap/%s.txt" % data_types_widget.value
+                            save_path = "resources/depmap/%s_%s.txt" % (depmap_release, data_types_widget.value)
                             py_tissues = pd.read_table(save_path, sep="\t")
                             table = py_tissues[py_tissues['primary_disease'].str.contains('|'.join(primary_tissu_widget.value), na=False)]
+                            table = table[table['cell_line'].str.contains('|'.join(cell_lines_widget.value), na=False)]
                             genes_list = list(occurences[occurences.all(axis='columns')].index)
                             if data_types_widget.value == "mutations":
                                 columns = ['gene_name', 'cell_line', 'cell_line_name', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease','subtype_disease']
@@ -1808,14 +1834,49 @@ def intersection(tools_available, token):
                                 net.cluster()
                                 display(net.widget())
                                 
-                                
-                    primary_tissu_list = list(set(py_tissues[py_tissues['cell_line'].str.contains('|'.join(tissues_widget.value), na=False)].primary_disease))
-                    primary_tissu_widget = widgets.SelectMultiple(options = primary_tissu_list, description="Primary tissu:", value=(primary_tissu_list[0],))                    
+                    if tissues_widget.value != "All":
+                        primary_tissu_list = list(set(py_tissues[py_tissues['cell_line'].str.contains('|'.join(tissues_widget.value), na=False)].primary_disease))
+                    else:
+                        primary_tissu_list = list(set(py_tissues['primary_disease'].tolist()))
+                    primary_tissu_list.insert(0, 'All')
+                    primary_tissu_widget = widgets.SelectMultiple(options = primary_tissu_list, description="Primary tissu:", value=(primary_tissu_list[0],))
+                    if primary_tissu_widget.value != "All":
+                        cell_lines_list = list(set(py_tissues[py_tissues['primary_disease'].str.contains('|'.join(primary_tissu_widget.value), na=False)].cell_line_name))
+                    else:
+                        cell_lines_list = list(set(py_tissues['cell_line_name'].to_list()))
+                    cell_lines_list = [x for x in cell_lines_list if str(x) != 'nan']
+                    cell_lines_list.insert(0, 'All')
+                    print("Cell lines:", cell_lines_list)
+                    cell_lines_widget = widgets.SelectMultiple(options = cell_lines_list, description="Cell line:", value=(cell_lines_list[0],))
+                    
                     def update_primary_tissu(tissu):
-                        primary_tissu_widget.options = list(set(py_tissues[py_tissues['cell_line'].str.contains('|'.join(tissu['new']), na=False)].primary_disease))
+                        if tissu['new'] != "All":
+                            primary_tissu_list = list(set(py_tissues[py_tissues['cell_line'].str.contains('|'.join(tissu['new']), na=False)].primary_disease))
+                        else:
+                            primary_tissu_list = list(set(py_tissues['primary_disease'].to_list()))
+                        print(len(primary_tissu_list))
+                        print(primary_tissu_list[0:3])
+                        primary_tissu_list.insert(0, 'All')
+                        primary_tissu_widget.options = primary_tissu_list
+                        primary_tissu_widget.value = (primary_tissu_list[0])
+                        
+                    def update_cell_lines(cell_lines):
+                        if cell_lines['new'] != "All":
+                            cell_lines_list_init = list(set(py_tissues[py_tissues['primary_disease'].str.contains('|'.join(cell_lines['new']), na=False)].cell_line_name))
+                        else:
+                            cell_lines_list_init = list(set(py_tissues['cell_line_name']))
+                        cell_lines = [x for x in cell_lines_list_init if str(x) != 'nan']
+                        cell_lines.insert(0, 'All')
+                        print(len(cell_lines))
+                        print(cell_lines[0:3])
+                        cell_lines_widget.options = cell_lines
+                        cell_lines_widget.value = tuple(cell_lines[0])
+                        
                     tissues_widget.observe(update_primary_tissu, 'value')
+                    primary_tissu_widget.observe(update_cell_lines, 'value')
                     tissu_selection_button = widgets.Button(description="Run!")
-                    display(tissues_widget, primary_tissu_widget, tissu_selection_button)
+                    
+                    display(tissues_widget, primary_tissu_widget, cell_lines_widget, tissu_selection_button)
                     tissu_selection_button.on_click(tissu_selection_button_clicked)
 
             depmap_query_button = widgets.Button(description="Query!")
@@ -1907,7 +1968,7 @@ def intersection(tools_available, token):
             GSEA_like_score.observe(GSEA_like_score_update, 'value')
             GSEA_like_fdr.observe(GSEA_like_fdr_update, 'value')
         buttons_box = HBox([venn_button, rra_button, genemania_button, enrichr_button, depmap_button])
-        display(buttons_box)
+        display(buttons_box, output)
         venn_button.on_click(venn_button_clicked)
         rra_button.on_click(rra_button_clicked)
         genemania_button.on_click(genemania_button_clicked)
