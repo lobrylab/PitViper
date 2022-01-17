@@ -7,7 +7,9 @@ from ipywidgets import interact
 import json
 import numpy as np
 import os
+from os import listdir
 import pandas as pd
+from pathlib import Path
 import re
 import rpy2
 import rpy2.robjects as ro
@@ -18,6 +20,9 @@ from rpy2.robjects.lib.dplyr import DataFrame
 import rpy2.ipython.html
 import requests
 import yaml
+
+depmap = importr("depmap")
+experimentHub = importr("ExperimentHub")
 
 
 def natural_sort(l):
@@ -1457,10 +1462,6 @@ def multiple_tools_results(tools_available, token):
     
     buttons_box = widgets.HBox([venn_button, rra_button, genemania_button, enrichr_button, depmap_button])
     display(buttons_box)
-    
-    enrichr_options_output = widgets.Output()
-    with enrichr_options_output:
-        display(enrichr_options_output)
     
     def venn_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
