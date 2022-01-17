@@ -14,11 +14,11 @@ import yaml
 import os.path
 from os import path
 from os import listdir
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+#import matplotlib.pyplot as plt
+#from mpl_toolkits.mplot3d import Axes3D
 from sklearn import decomposition
 from sklearn import datasets
-from functools import reduce
+from functools import reduce, partial
 from IPython.display import display, clear_output
 from clustergrammer2 import net, Network, CGM2
 import rpy2
@@ -1490,7 +1490,7 @@ def plot_venn(occurences):
 
     with rpy2.robjects.lib.grdevices.render_to_bytesio(grdevices.png, width=1024, height=896, res=150) as img:
         venn_lib.venn(r_occurences, ilabels = False, zcolor = "style", ilcs= 1, sncs = 1, borders = False, box = False)
-    IPython.display.display(IPython.display.Image(data=img.getvalue(), format='png', embed=True))
+    display(IPython.display.display(IPython.display.Image(data=img.getvalue(), format='png', embed=True)))
 
 
 def run_rra(ranks):
@@ -1634,20 +1634,18 @@ def intersection(tools_available, token):
                 params['GSEA_like']['score'] = change['new']
 
         def venn_button_clicked(b):
-            with output:
-                clear_output(wait=True)
-                global treatment
-                global control
-                treatment, control = condition_selected.split("_vs_")
-                global ranks
-                global occurences
-                ranks, occurences = ranking(treatment, control, token, tools_available, params)
-                df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).all(1), columns = ['intersection'])
-                intersection_genes = df.loc[df.intersection == True].index
-                plot_venn(occurences)
-                print("Genes at intersection of all methods:")
-                for gene in intersection_genes:
-                    print(gene)
+            global treatment
+            global control
+            treatment, control = condition_selected.split("_vs_")
+            global ranks
+            global occurences
+            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).all(1), columns = ['intersection'])
+            intersection_genes = df.loc[df.intersection == True].index
+            plot_venn(occurences)
+            print("Genes at intersection of all methods:")
+            for gene in intersection_genes:
+                print(gene)
 
 
         def rra_button_clicked(b):
@@ -1909,7 +1907,7 @@ def intersection(tools_available, token):
             GSEA_like_score.observe(GSEA_like_score_update, 'value')
             GSEA_like_fdr.observe(GSEA_like_fdr_update, 'value')
         buttons_box = HBox([venn_button, rra_button, genemania_button, enrichr_button, depmap_button])
-        display(buttons_box, output)
+        display(buttons_box)
         venn_button.on_click(venn_button_clicked)
         rra_button.on_click(rra_button_clicked)
         genemania_button.on_click(genemania_button_clicked)
