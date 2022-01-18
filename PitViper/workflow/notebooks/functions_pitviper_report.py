@@ -5,9 +5,11 @@ import IPython
 import ipywidgets as widgets
 from ipywidgets import interact
 import json
+import natsort as ns
 import numpy as np
 import os
 from os import listdir
+from os import path
 import pandas as pd
 from pathlib import Path
 import re
@@ -19,11 +21,20 @@ from rpy2.robjects import pandas2ri
 from rpy2.robjects.lib.dplyr import DataFrame
 import rpy2.ipython.html
 import requests
+from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.stats import zscore
+from sklearn import decomposition
+from sklearn import datasets
 import yaml
 
 depmap = importr("depmap")
 experimentHub = importr("ExperimentHub")
+utils = importr('utils')
 
+## Remove Altair max rows
+alt.data_transformers.disable_max_rows()
+
+pd.options.mode.chained_assignment = None
 
 def natural_sort(l):
     """Function for natural sorting of list."""
@@ -141,6 +152,108 @@ def add_columns(tools_available):
                     table['padj_nozero'] = table['padj'].replace(0, min_fdr)
                     min_fdr = table['padj'].values
                     table['log10(invPadj)'] = - np.log2(table['padj'])
+
+
+
+def show_mapping_qc(token):
+    path_qc = "./resources/%s/screen.countsummary.txt" % token
+    if not path.exists(path_qc):
+        print("No mapping QC file to show.")
+        return 0
+    table = pd.read_csv(path_qc, sep='\t')
+    table = table[['Label', 'Reads', 'Mapped', 'Percentage', 'Zerocounts', 'GiniIndex']]
+    table['Label'] = pd.Categorical(table['Label'], ordered=True, categories= ns.natsorted(table['Label'].unique()))
+    table = table.sort_values('Label')
+
+    def color_low_mapping_red(val):
+        """
+        Takes a scalar and returns a string with
+        the css property `'color: red'` for negative
+        strings, black otherwise.
+        """
+        color = 'red' if float(val) < 0.6 else 'green'
+        return 'color: %s' % color
+
+    def color_high_gini_red(val):
+        """
+        Takes a scalar and returns a string with
+        the css property `'color: red'` for negative
+        strings, black otherwise.
+        """
+        color = 'red' if val > 0.35 else 'green'
+        return 'color: %s' % color
+
+    s = table.style.\
+        applymap(color_low_mapping_red, subset=['Percentage']).\
+        applymap(color_high_gini_red, subset=['GiniIndex'])
+    return s
+
+
+def show_read_count_distribution(token, width=800, height=400):
+    config = "./config/%s.yaml" % token
+    content = open_yaml(config)
+    path_qc = content['normalized_count_table']
+    if not path.exists(path_qc):
+        print("No count file to show.")
+        return 0
+    table = pd.read_csv(path_qc, sep='\t')
+
+    table.iloc[:, 2:] = table.iloc[:, 2:] +1
+    table.iloc[:, 2:] = table.iloc[:, 2:].apply(np.log2)
+
+    chart = alt.Chart(table).transform_fold(
+        list(table.columns[2:]),
+        as_ = ['Measurement_type', 'counts']
+    ).transform_density(
+        density='counts',
+        bandwidth=0.3,
+        groupby=['Measurement_type'],
+        extent= [0, 20],
+        counts = True,
+        steps=200
+    ).mark_line().encode(
+        alt.X('value:Q', axis=alt.Axis(title='log2(read count)')),
+        alt.Y('density:Q'),
+        alt.Color('Measurement_type:N'),
+        tooltip = ['Measurement_type:N', 'value:Q', 'density:Q'],
+    ).properties(width=width, height=height)
+
+    return chart
+                    
+        
+def pca_counts(token):
+    config = "./config/%s.yaml" % token
+    content = open_yaml(config)
+
+    TSV = pd.read_csv(content['tsv_file'], sep="\t")
+    cts_file = content['normalized_count_table']
+    cts = pd.read_csv(cts_file, sep="\t")
+    X = cts[cts.columns[2:]].to_numpy().T
+    d = dict(zip(TSV.replicate, TSV.condition))
+    y = [d[k] for k in cts.columns[2:]]
+    y = np.array(y)
+    y_bis = np.array(cts.columns[2:])
+
+    pca = decomposition.PCA(n_components=2)
+    pca.fit(X)
+    X = pca.transform(X)
+
+    a = pd.DataFrame(X, columns=['dim1', 'dim2'])
+    b = pd.DataFrame(y, columns=['condition'])
+    c = pd.DataFrame(y_bis, columns=['replicate'])
+
+    df_c = pd.concat([a, b, c], axis=1)
+
+    source = df_c
+
+    pca_2d = alt.Chart(source).mark_circle(size=60).encode(
+        x='dim1',
+        y='dim2',
+        color='condition:N',
+        tooltip=['dim1', 'dim2', 'condition', 'replicate']
+    ).interactive()
+
+    return pca_2d
 
                     
 ### Enrichr
@@ -410,6 +523,7 @@ def BAGEL_data(comparison = "", control = "", tool = "BAGEL", results_directory 
 
 
 def CRISPhieRmix_data(comparison = "", control = "", tool = "", results_directory = "", tools_available = ""):
+    """Return CRISPhieRmix results as pandas dataframe."""
     tables_list = []
     for _comparison in os.listdir(os.path.join(results_directory, tool)):
         if _comparison.split("_vs_")[-1] == control:
@@ -618,7 +732,9 @@ def show_sgRNA_counts(token):
     cts_file = content['normalized_count_table']
     cts = pd.read_csv(cts_file, sep="\t")
     cts_columns = [col for col in cts.columns.tolist() if not col in ["sgRNA", "Gene"]]
-    element = widgets.Text(value='', placeholder='Element:', description='Element:')
+    cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
+    genes_list = list(set(cts.Gene.tolist()))
+    element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element:', value=genes_list[0], ensure_option=True)
     conditions = widgets.TagsInput(value=cts_columns, allowed_tags=cts_columns, allow_duplicates=False)
     
     display(element)
@@ -631,19 +747,35 @@ def show_sgRNA_counts(token):
         display(net.widget())
         
     def on_button_clicked(b):
-        cts = pd.read_csv(cts_file, sep="\t")
-        cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
+#         cts = pd.read_csv(cts_file, sep="\t")
+#         cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
         if not element.value in list(cts.Gene):
             gene_cts = cts
         else:
             gene_cts = cts.loc[cts.Gene == element.value]
         gene_cts = gene_cts.loc[gene_cts.variable.isin(conditions.value)]
-        gene_cts = gene_cts.pivot_table(index="sgRNA", columns="variable", values="value")
-        gene_cts = gene_cts[conditions.value]        
-        net.load_df(gene_cts)
-        net.normalize(axis='row', norm_type='zscore')
-        net.cluster()
-        display_network()
+#         gene_cts = gene_cts.pivot_table(index="sgRNA", columns="variable", values="value")
+#         gene_cts = gene_cts[conditions.value]
+        z_scores = gene_cts.groupby(['sgRNA']).value.transform(lambda x : zscore(x,ddof=1))
+        gene_cts['z-score'] = z_scores
+        sum_by_group = gene_cts.groupby(['sgRNA']).agg({'value': 'sum'}).reset_index()
+        sgRNA_to_keep = sum_by_group[sum_by_group.value > 50].sgRNA.values
+        gene_cts = gene_cts[gene_cts.sgRNA.isin(sgRNA_to_keep)]
+        chart = alt.Chart(
+            gene_cts,
+            title="%s Normalized read counts heatmap" % element.value
+        ).mark_rect().encode(
+            x=alt.X('variable', axis=alt.Axis(title='Replicate'), sort=conditions.value),
+            y=alt.Y('sgRNA', axis=alt.Axis(title='sgRNA')),
+            color=alt.Color('z-score:Q',scale=alt.Scale(scheme='blueorange')),
+            tooltip=['sgRNA', 'variable', 'value', 'z-score']
+        ).interactive()
+        display(chart)
+        
+#         net.load_df(gene_cts)
+#         net.normalize(axis='row', norm_type='zscore')
+#         net.cluster()
+#         display_network()
 
     button.on_click(on_button_clicked)
     
@@ -662,9 +794,9 @@ def show_sgRNA_counts_lines(token):
     for condition in conditions_list_init:
         if not condition in conditions_list:
             conditions_list.append(condition)
-    
-        
-    element=widgets.Text(value='', placeholder='Element:', description='Element:')
+
+    genes_list = list(set(pd.melt(cts, id_vars=['sgRNA', 'Gene']).Gene.tolist()))
+    element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element:', value=genes_list[0], ensure_option=True)
     conditions = widgets.TagsInput(value=conditions_list, allowed_tags=conditions_list, allow_duplicates=False)
     
     display(element)
@@ -687,7 +819,7 @@ def show_sgRNA_counts_lines(token):
         source = source.reset_index()
         boolean_series = source.condition.isin(sort_cols)
         source = source[boolean_series]
-        out = alt.Chart(source, title="%s normalized read counts" % element.value).mark_line().encode(
+        out = alt.Chart(source, title="%s mean normalized read counts" % element.value).mark_line().encode(
             x=alt.X('condition', axis=alt.Axis(title='Condition'), sort=sort_cols),
             y='value',
             color='sgRNA'
@@ -705,7 +837,6 @@ def tool_results(results_directory, tools_available):
         return ctrs
     
     def get_tool_results(results_directory, tools_available, tool):
-        print(tool)
         if tool == "CRISPhieRmix":
             result = CRISPhieRmix_data(comparison = "", control = control.value, tool = tool_widget.value, results_directory=results_directory, tools_available=tools_available)
         elif tool == "MAGeCK_MLE":
@@ -850,6 +981,31 @@ def tool_results(results_directory, tools_available):
                     width=100
             )
         display(plot)
+        
+        
+    def BAGEL_results(result, fdr_cutoff, control, gene):
+        result.loc[result['BF'] > 0, 'significant'] = 'Yes'
+        result.loc[result['BF'] <= 0, 'significant'] = 'No'
+        new_row = {'GENE':gene, 'condition':control, 'significant': 'Baseline', 'BF':0,}
+        result = result.append(new_row, ignore_index=True)
+        res = result.loc[result.GENE == gene]
+        domain = ['Yes', 'No', 'Baseline']
+        range_ = ['red', 'grey', 'black']
+        sort_cols = natural_sort(list(res.condition.values))
+        plot = alt.Chart(res).mark_circle(size=60).mark_point(
+            filled=True,
+            size=100,
+            ).encode(
+                    y='BF',
+                    x=alt.X('condition:N', sort=sort_cols),
+                    color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
+                    tooltip=["GENE", "BF", "STD", "NumObs", "condition"],
+            ).properties(
+                    title=gene + " Bayes Factor versus baseline (BAGEL)",
+                    width=100
+            )
+        display(plot)
+
 
 
     def inhouse_method_results(result, fdr_cutoff, control, gene):
@@ -889,6 +1045,8 @@ def tool_results(results_directory, tools_available):
             inhouse_method_results(result, fdr_cutoff.value, control.value, gene.value)
         elif tool_widget.value == "MAGeCK_RRA":
             MAGeCK_RRA_results(result, fdr_cutoff.value, control.value, gene.value)
+        elif tool_widget.value == "BAGEL":
+            BAGEL_results(result, fdr_cutoff.value, control.value, gene.value)
 
     button = widgets.Button(description="Show plot")
     display(button)
@@ -1221,7 +1379,7 @@ def ranking(treatment, control, token, tools_available, params):
         in_house['default_rank'] = in_house['score'].rank(method="dense").copy()
         in_house = in_house[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "in_house_rank"})
         pdList.append(in_house)
-
+        
     if params['GSEA_like']['on']:
         gsea = tools_available["GSEA-like"][comparison][comparison + "_all-elements_GSEA-like.txt"]
         gsea['default_rank'] = gsea['NES'].rank(method="dense").copy()
@@ -1374,7 +1532,7 @@ def display_tools_widgets(tools_selected):
         rra_text=widgets.HTML(value="<b>MAGeCK RRA</b>:")
         rra_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
         display(rra_text)
-        rra_box = HBox([rra_fdr, rra_direction, rra_score, rra_order])
+        rra_box = widgets.HBox([rra_fdr, rra_direction, rra_score, rra_order])
         display(rra_box)
         rra_direction.observe(rra_direction_update, 'value')
         rra_order.observe(rra_order_update, 'value')
@@ -1386,7 +1544,7 @@ def display_tools_widgets(tools_selected):
         bagel_text=widgets.HTML(value="<b>BAGEL</b>:")
         bagel_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
         display(bagel_text)
-        bagel_box = HBox([bagel_score, bagel_order])
+        bagel_box = widgets.HBox([bagel_score, bagel_order])
         display(bagel_box)
         bagel_order.observe(bagel_order_update, 'value')
         bagel_score.observe(bagel_score_update, 'value')
@@ -1397,7 +1555,7 @@ def display_tools_widgets(tools_selected):
         CRISPhieRmix_text=widgets.HTML(value="<b>CRISPhieRmix</b>:")
         CRISPhieRmix_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
         display(CRISPhieRmix_text)
-        CRISPhieRmix_box = HBox([CRISPhieRmix_fdr, CRISPhieRmix_score, CRISPhieRmix_order])
+        CRISPhieRmix_box = widgets.HBox([CRISPhieRmix_fdr, CRISPhieRmix_score, CRISPhieRmix_order])
         display(CRISPhieRmix_box)
         CRISPhieRmix_order.observe(CRISPhieRmix_order_update, 'value')
         CRISPhieRmix_score.observe(CRISPhieRmix_score_update, 'value')
@@ -1409,7 +1567,7 @@ def display_tools_widgets(tools_selected):
         in_house_method_text=widgets.HTML(value="<b>In-house method</b>:")
         in_house_method_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
         display(in_house_method_text)
-        in_house_method_box = HBox([in_house_method_direction, in_house_method_score, in_house_method_order])
+        in_house_method_box = widgets.HBox([in_house_method_direction, in_house_method_score, in_house_method_order])
         display(in_house_method_box)
         in_house_method_order.observe(in_house_method_order_update, 'value')
         in_house_method_score.observe(in_house_method_score_update, 'value')
@@ -1421,7 +1579,7 @@ def display_tools_widgets(tools_selected):
         GSEA_like_text=widgets.HTML(value="<b>GSEA-like</b>:")
         GSEA_like_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
         display(GSEA_like_text)
-        GSEA_like_box = HBox([GSEA_like_fdr, GSEA_like_score, GSEA_like_order])
+        GSEA_like_box = widgets.HBox([GSEA_like_fdr, GSEA_like_score, GSEA_like_order])
         display(GSEA_like_box)
         GSEA_like_order.observe(GSEA_like_order_update, 'value')
         GSEA_like_score.observe(GSEA_like_score_update, 'value')
@@ -1522,8 +1680,10 @@ def multiple_tools_results(tools_available, token):
 
 
         def download_depmap_file(data_type, release):
-            target_file = "resources\/depmap\/%s_%s.txt" % (release, data_type) 
+            target_file = "resources/depmap/%s_%s.txt" % (release, data_type)
             for file_name in listdir("resources/depmap/"):
+                if ("metadata" in file_name) and (not release in file_name):
+                    os.remove(file_name)
                 if file_name == target_file:
                     return False
                 elif data_type in file_name:
@@ -1532,13 +1692,16 @@ def multiple_tools_results(tools_available, token):
                         return True
                     else:
                         return False
-                else:
-                    return True
+            return True 
+
+
+        def getRelease():
+            depmap_release = depmap.depmap_release()
+            return str(depmap_release).rstrip()[5:-1]
 
 
         def depmap_query_button_clicked(b):
-            depmap_release = str(depmap.depmap_release()).rstrip()[5:-1]
-            print(">%s<" % str(depmap_release).rstrip())
+            depmap_release = getRelease()
             save_path = "resources/depmap/%s_%s.txt" % (depmap_release, data_types_widget.value)
             Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
             treatment, control = conditions_widget.value.split("_vs_")
@@ -1547,7 +1710,6 @@ def multiple_tools_results(tools_available, token):
                 print("This step can take some time.")
                 print("Querying: %s..." % data_types_widget.value)
                 eh = experimentHub.ExperimentHub()
-                utils_package = importr("utils")
                 base_package = importr("base")
                 dplyr = importr("dplyr")
                 tidyr = importr("tidyr")
@@ -1562,28 +1724,81 @@ def multiple_tools_results(tools_available, token):
                     depmap_data = tidyr.drop_na(dplyr.select(depmap.depmap_TPM(), "depmap_id", "gene_name", "rna_expression"))
                 elif data_types_widget.value == "mutations":
                     depmap_data = tidyr.drop_na(dplyr.select(depmap.depmap_mutationCalls(), 'depmap_id', 'gene_name', 'protein_change', 'is_deleterious'))
-                if not os.path.isfile("resources/depmap/metadata.txt"):
+                if not os.path.isfile("resources/depmap/%s_metadata.txt" % depmap_release):
                     depmap_metadata = dplyr.select(depmap.depmap_metadata(), 'depmap_id', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease','subtype_disease', 'cell_line', 'cell_line_name')
                     print("Saving metadata...")
-                    utils_package.write_table(depmap_metadata, "resources/depmap/metadata.txt", row_names=False, quote=False, sep="\t")
+                    utils.write_table(depmap_metadata, "resources/depmap/%s_metadata.txt" % depmap_release, row_names=False, quote=False, sep="\t")
                 else:
                     print("Import metadata...")
-                    depmap_metadata = readr.read_delim("resources/depmap/metadata.txt", delim="\t")
+                    depmap_metadata = readr.read_delim("resources/depmap/%s_metadata.txt" % depmap_release, delim="\t")
                 depmap_data = base_package.merge(depmap_data, depmap_metadata, by = "depmap_id")
                 print("Saving %s" % save_path)
-                utils_package.write_table(depmap_data, save_path, row_names=False, quote=False, sep="\t")
+                utils.write_table(depmap_data, save_path, row_names=False, quote=False, sep="\t")
             print("Opening %s" % save_path)
-            py_tissues = pd.read_table(save_path, sep="\t")
-            cell_line = list(set(py_tissues.cell_line))
-            tissues = ["_".join(str(tissu).split("_")[1:]) for tissu in cell_line]
+            data = pd.read_table(save_path, sep="\t")
+            
+            tissues_init = list(set(data.cell_line))
+            tissues = ["_".join(str(tissu).split("_")[1:]) for tissu in tissues_init if not str(tissu) in ["nan", ""]]
             tissues = list(set(tissues))
-            tissues_widget = widgets.SelectMultiple(options = tissues, description="Tissu:", value=(tissues[0],))
+            tissues.insert(0, 'All')
+
+            primary_diseases = list(set(data.primary_disease))
+            primary_diseases.insert(0, 'All')
+
+            cell_lines_init = list(set(data.cell_line_name))
+            cell_lines = [tissu for tissu in cell_lines_init if not str(tissu) in ["nan", ""]]
+            cell_lines = natural_sort(cell_lines)
+            cell_lines.insert(0, 'All')
+
+            tissues_widget = widgets.SelectMultiple(options = tissues, value = ['All'], description = "Tissu:")
+            primary_diseases_widget = widgets.SelectMultiple(options = primary_diseases, value = ['All'], description = "Primary tissu:")
+            cell_lines_widget = widgets.SelectMultiple(options = cell_lines, value = ['All'], description = "Cell line:")
+
+
+            def update_primary_diseases_widget(update):
+                if not 'All' in tissues_widget.value:
+                    subseted_data = data[data['cell_line'].str.contains('|'.join(tissues_widget.value), na=False)]
+                else:
+                    subseted_data = data
+                primary_diseases = list(set(subseted_data.primary_disease))
+                primary_diseases = natural_sort(primary_diseases)
+                primary_diseases.insert(0, 'All')
+                primary_diseases_widget.options = primary_diseases
+                primary_diseases_widget.value = ['All']
+
+            def update_cell_lines_widget(update):
+                if not 'All' in primary_diseases_widget.value:
+                    subseted_data = data[data['primary_disease'].str.contains('|'.join(primary_diseases_widget.value), na=False)]
+                else:
+                    if not 'All' in tissues_widget.value:
+                        subseted_data = data[data['cell_line'].str.contains('|'.join(tissues_widget.value), na=False)]
+                    else:
+                        subseted_data = data
+                cell_lines_init = list(set(subseted_data.cell_line_name))
+                cell_lines = [cell_line for cell_line in cell_lines_init if not str(cell_line) in ["nan"]]
+                cell_lines = natural_sort(cell_lines)
+                cell_lines.insert(0, 'All')
+                cell_lines_widget.options = cell_lines
+                cell_lines_widget.value = ['All']
+
+
+
+            tissues_widget.observe(update_primary_diseases_widget, 'value')
+            primary_diseases_widget.observe(update_cell_lines_widget, 'value')    
+            
+
             def tissu_selection_button_clicked(b):
+                print("Please wait!")
                 dic = {"rnai":"dependency", "crispr":"dependency", "tpm":"rna_expression", "proteomic":"protein_expression", "mutations":["protein_change","is_deleterious"]}
                 variable = dic[data_types_widget.value]
-                save_path = "resources/depmap/%s.txt" % data_types_widget.value
-                py_tissues = pd.read_table(save_path, sep="\t")
-                table = py_tissues[py_tissues['primary_disease'].str.contains('|'.join(primary_tissu_widget.value), na=False)]
+                save_path = "resources/depmap/%s_%s.txt" % (depmap_release, data_types_widget.value)
+                table = pd.read_table(save_path, sep="\t")
+                if 'All' in cell_lines_widget.value:
+                    cell_lines_selected = cell_lines_widget.options
+                else:
+                    cell_lines_selected = cell_lines_widget.value
+                boolean_series = table.cell_line_name.isin(cell_lines_selected)
+                table = table[boolean_series]
                 genes_list = list(occurences[occurences.all(axis='columns')].index)
                 if data_types_widget.value == "mutations":
                     columns = ['gene_name', 'cell_line', 'cell_line_name', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease','subtype_disease']
@@ -1592,18 +1807,38 @@ def multiple_tools_results(tools_available, token):
                     essential_genes = table[table.gene_name.isin(genes_list)][columns]
                     essential_genes = essential_genes.loc[essential_genes.is_deleterious == True]
                     essential_genes = essential_genes.groupby(['gene_name', 'cell_line', 'cell_line_name', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease',
-    'subtype_disease'])['protein_change'].apply(lambda x: "%s" % '|'.join(map(str, x))).reset_index()
+'subtype_disease'])['protein_change'].apply(lambda x: "%s" % '|'.join(map(str, x))).reset_index()
                     chart = alt.Chart(
                         essential_genes,
-                        title="depmap mutations"
+                        title="depmap deleterious mutations"
                     ).mark_rect().encode(
-                        x='cell_line_name',
-                        y='gene_name',
+                        x=alt.X('cell_line_name', axis=alt.Axis(title='Cell line')),
+                        y=alt.Y('gene_name', axis=alt.Axis(title='Gene name')),
                         color=alt.Color('primary_disease', scale=alt.Scale(scheme="tableau20")),
                         tooltip=['protein_change', 'gene_name', 'cell_line', 'cell_line_name', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease','subtype_disease']
                     ).interactive()
                     display(chart)
                 else:
+#                     gene_cts = table[table.gene_name.isin(genes_list)][["gene_name", "cell_line_name", variable]]
+#                     gene_cts_alt = pd.pivot_table(gene_cts, values=variable, index=['gene_name',], columns=['cell_line_name'])
+#                     array = np.array(gene_cts_alt)
+#                     linked = pd.DataFrame(linkage(array, 'single'), columns = ['a', 'b', 'c', 'd'])
+#                     print(array)
+#                     print(linked)
+#                     z_scores = gene_cts.groupby(['sgRNA']).value.transform(lambda x : zscore(x,ddof=1))
+#                     gene_cts['z-score'] = z_scores
+#                     gene_cts
+#                     chart = alt.Chart(
+#                         gene_cts,
+#                         title="%s" % variable
+#                     ).mark_rect().encode(
+#                         x=alt.X('cell_line_name', axis=alt.Axis(title='Cell line')),
+#                         y=alt.Y('gene_name', axis=alt.Axis(title='Gene')),
+#                         color=alt.Color(variable ,scale=alt.Scale(scheme='blueorange')),
+#                         tooltip=['gene_name', variable, 'cell_line_name',]
+#                     ).interactive()
+#                     display(chart)
+
                     essential_genes = table[table.gene_name.isin(genes_list)][["gene_name", "cell_line", variable]].pivot_table(index='gene_name', columns='cell_line', values=variable).dropna()
                     essential_genes = essential_genes.rename(columns=lambda s: s.split("_")[0])
                     net.load_df(essential_genes)
@@ -1611,20 +1846,15 @@ def multiple_tools_results(tools_available, token):
                         net.normalize(axis='row', norm_type='zscore')
                     net.cluster()
                     display(net.widget())
-
-
-            primary_tissu_list = list(set(py_tissues[py_tissues['cell_line'].str.contains('|'.join(tissues_widget.value), na=False)].primary_disease))
-            primary_tissu_widget = widgets.SelectMultiple(options = primary_tissu_list, description="Primary tissu:", value=(primary_tissu_list[0],))                    
-            def update_primary_tissu(tissu):
-                primary_tissu_widget.options = list(set(py_tissues[py_tissues['cell_line'].str.contains('|'.join(tissu['new']), na=False)].primary_disease))
-            tissues_widget.observe(update_primary_tissu, 'value')
-            tissu_selection_button = widgets.Button(description="Run!")
-            display(tissues_widget, primary_tissu_widget, tissu_selection_button)
-            tissu_selection_button.on_click(tissu_selection_button_clicked)
+                    
+            button = widgets.Button(description = "Run!")
+            button.on_click(tissu_selection_button_clicked)
+            display(tissues_widget, primary_diseases_widget, cell_lines_widget, button)
 
         depmap_query_button = widgets.Button(description="Query!")
         depmap_query_button.on_click(depmap_query_button_clicked)
-        display(data_types_widget, depmap_query_button)        
+        display(data_types_widget, depmap_query_button)
+      
         
     
     venn_button.on_click(venn_button_clicked)
