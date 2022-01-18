@@ -6,7 +6,7 @@
 
 PitViper is intended to facilitate analysis of functional screening data from various experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).
 
-The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/stable/), a workflow management system to create reproducible and scalable data analysis and [`Flask`](https://flask.palletsprojects.com/en/2.0.x/), a lightweight web framework.
+The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/stable/), a workflow management system to create reproducible and scalable data analysis, [`Flask`](https://flask.palletsprojects.com/en/2.0.x/), a lightweight web framework and [`Jupyter`](https://jupyter.org/), a web application for creating and sharing computational documents.
 
 
 ##### Table of contents
@@ -24,7 +24,7 @@ The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/sta
 
 ### Prerequisites
 
-To retrieve, install and run PitViper, [`Conda`](https://docs.conda.io/en/latest/) and [`Git`](https://git-scm.com/) need to be available from commande-line.
+To install and run PitViper, [`Conda`](https://docs.conda.io/en/latest/) and [`Git`](https://git-scm.com/) need to be available from commande-line.
 
 Once Conda is installed and in order to speed-up installation process, [`Mamba`](https://github.com/mamba-org/mamba) is needed:
 
@@ -32,19 +32,17 @@ Once Conda is installed and in order to speed-up installation process, [`Mamba`]
 $ conda install -c conda-forge mamba
 ```
 
-Once installed, Mamba should be available from the command-line.
-
-Choose in wich directory PitViper will be intalled and change working directory for it, then clone PitViper repository at this location using `Git`:
+Then, clone PitViper repository using `Git`:
 
 ```bash
 $ git clone https://github.com/PaulArthurM/PitViper.git  # Clone PitViper reposity in ~/PitViper/
 
-$ cd PitViper/PitViper  # You are now in PitViper main directory
+$ cd PitViper/PitViper  # Change working directory to PitViper root directory
 ```
 
 ### Installation
 
-Then, install PitViper dependancies. To facilitate dependancy management, a Conda YAML file containing all dependancies have been created and can be used along with `Mamba` to automatically install all dependencies: `pitviper_env.yaml`.
+Now, install PitViper dependancies. To facilitate dependancy management, a Conda YAML file containing all dependancies have been created and can be used along with `Mamba` to automatically install all dependencies: `pitviper_env.yaml`.
 
 Furthermore, `install_PitViper_env.sh` is a bash script created to perform this step in one command:
 
@@ -52,7 +50,7 @@ Furthermore, `install_PitViper_env.sh` is a bash script created to perform this 
 $ ./install_PitViper_env.sh
 ```
 
-`./install_PitViper_env.sh` first create a Conda environment call `pitviper_env` that should be visible once installation is over, as follow if you run:
+`./install_PitViper_env.sh` first create a Conda environment call `pitviper_env` that should be visible once installation is over, as follow:
 
 ```bash
 $ conda env list
@@ -62,7 +60,7 @@ $ conda env list
   pitviper_env             /home/paularthur/miniconda3/envs/pitviper_env
 ```
 
-Once `pitviper_env` is created, you can run `run.sh` script, it should run a server with `Flask` in background and open PitViper GUI in your default web browser:
+Once `pitviper_env` is created, you can run `run.sh` script from command-line, it should run a server with `Flask` in background and open PitViper GUI in your default web browser:
 
 ```bash
 $ ./run.sh
@@ -88,7 +86,7 @@ You will need:
 
 ##### Design matrix
 
-Let say that you have two conditions, A and B, with 3 replicates for each. The associated matrix should look as below:
+Let say that you have two conditions, A (control) and B (treatment), with 3 replicates for each. The associated matrix should look as below:
 
 | condition | replicate | fastq                 | order |
 |-----------|-----------|-----------------------|-------|
@@ -99,15 +97,17 @@ Let say that you have two conditions, A and B, with 3 replicates for each. The a
 | B         | B_2       | /path/to/B_rep2.fastq | 1     |
 | B         | B_3       | /path/to/B_rep3.fastq | 1     |
 
-Those name will be used for differentiation in results report. `order` define which condition to treat as a control and a treatment.
+`order` column define which condition to treat as a control versus which treatment. `order = x` will be used as control for any `order > x`. In this case: condition B (treatment) versus A (control).
 
 ##### Library file
 
-First column indicate the ID of the guide. This ID in this column should not be redundant.
+This file have to be comma-separeted.
 
-Second column is guide sequence.
+First column is for guide's ID. This column should not be redundant.
 
-Thirs column indicate the element targeted by the corresponding guide. Note: Multiple guides can target the same element.
+Second column is guide's sequence.
+
+Third column is the element targeted by the corresponding guide. Note: Multiple guides can target the same element.
 
 ```
 guide_A.1,CTTAGTTTTGAACAAGTACA,element_A
