@@ -117,6 +117,26 @@ guide_B.1,TTAGTTTATATCTTATGGCA,element_B
 guide_B.2,GATTGTCTGTGAAATTTCTG,element_B
 ```
 
+#### Starting from aligned BAM files
+
+##### Design matrix
+
+Let say that you have two conditions, A (control) and B (treatment), with 3 replicates for each but aligned BAM files instead of raw FASTQ files:
+
+- Replace column name `fastq` by `bam` and fastq files paths by bam files paths, as follow:
+
+| condition | replicate | bam                 | order |
+|-----------|-----------|---------------------|-------|
+| A         | A_1       | /path/to/A_rep1.bam | 0     |
+| A         | A_2       | /path/to/A_rep2.bam | 0     |
+| A         | A_3       | /path/to/A_rep3.bam | 0     |
+| B         | B_1       | /path/to/B_rep1.bam | 1     |
+| B         | B_2       | /path/to/B_rep2.bam | 1     |
+| B         | B_3       | /path/to/B_rep3.bam | 1     |
+
+
+
+
 #### Starting from count matrix
 
 When starting from a count matrix, fastq/bam column isn't necessary:
