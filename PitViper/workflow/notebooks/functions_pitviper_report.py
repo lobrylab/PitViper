@@ -57,8 +57,8 @@ def working_directory_update(output):
 
     with open(output, "w") as out:
         print("Notebook was runned.", file=out)
-        
-        
+
+
 def open_yaml(yml):
     """Open a YAML file and return it's content."""
     with open(yml, "r") as stream:
@@ -68,7 +68,7 @@ def open_yaml(yml):
         except yaml.YAMLError as exc:
             print(exc)
 
-                
+
 def import_results(token):
     """Import results for all tools selected in the GUI."""
     print('Token: %s\n' % token)
@@ -127,8 +127,7 @@ def add_columns(tools_available):
                     array = table['%s|fdr' % treatment].values
                     min_fdr = np.min(array[np.nonzero(array)])
                     table['%s|fdr_nozero' % treatment] = table['%s|fdr' % treatment].replace(0, min_fdr)
-                    min_fdr = table['%s|fdr' % treatment].values
-                    table['log10(invFDR)'] = - np.log2(table['%s|fdr_nozero' % treatment])
+                    table['log10(invFDR)'] = - np.log10(table['%s|fdr_nozero' % treatment])
     if 'MAGeCK_RRA' in tools_available:
         for condition in tools_available['MAGeCK_RRA']:
             treatment = condition.split('_vs_')[0]
@@ -139,8 +138,7 @@ def add_columns(tools_available):
                         array = table['%s|fdr' % direction].values
                         min_fdr = np.min(array[np.nonzero(array)])
                         table['%s|fdr_nozero' % direction] = table['%s|fdr' % direction].replace(0, min_fdr)
-                        min_fdr = table['%s|fdr' % direction].values
-                        table['%s|log10(invFDR)' % direction] = - np.log2(table['%s|fdr_nozero' % direction])
+                        table['%s|log10(invFDR)' % direction] = - np.log10(table['%s|fdr_nozero' % direction])
     if 'GSEA-like' in tools_available:
         for condition in tools_available['GSEA-like']:
             treatment = condition.split('_vs_')[0]
@@ -150,9 +148,17 @@ def add_columns(tools_available):
                     array = table['padj'].values
                     min_fdr = np.min(array[np.nonzero(array)])
                     table['padj_nozero'] = table['padj'].replace(0, min_fdr)
-                    min_fdr = table['padj'].values
-                    table['log10(invPadj)'] = - np.log2(table['padj'])
-
+                    table['log10(invPadj)'] = - np.log10(table['padj_nozero'])
+    if 'CRISPhieRmix' in tools_available:
+        for condition in tools_available['CRISPhieRmix']:
+            treatment = condition.split('_vs_')[0]
+            for file_suffixe in ['%s.txt']:
+                table = tools_available['CRISPhieRmix'][condition][file_suffixe % condition]
+                if (not 'log10(invFDR)' in list(table.columns)):
+                    array = table['locfdr'].values
+                    min_fdr = np.min(array[np.nonzero(array)])
+                    table['padj_nozero'] = table['locfdr'].replace(0, min_fdr)
+                    table['log10(invPadj)'] = - np.log10(table['padj_nozero'])
 
 
 def show_mapping_qc(token):
@@ -219,8 +225,8 @@ def show_read_count_distribution(token, width=800, height=400):
     ).properties(width=width, height=height)
 
     return chart
-                    
-        
+
+
 def pca_counts(token):
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
@@ -255,7 +261,7 @@ def pca_counts(token):
 
     return pca_2d
 
-                    
+
 ### Enrichr
 def getEnrichrResults(genes, description, gene_set_library):
     ENRICHR_URL = 'http://maayanlab.cloud/Enrichr/addList'
@@ -374,9 +380,9 @@ def enrichmentCirclePlot(source, n, description, col_1, col_2, base):
 
     return chart
 
-                    
-                    
-                    
+
+
+
 def GSEA_like_data(comparison = "", control = "", tool = "", results_directory = "", tools_available = ""):
     """Return GSEA-like results as pandas dataframe."""
     tables_list = []
@@ -538,27 +544,27 @@ def CRISPhieRmix_data(comparison = "", control = "", tool = "", results_director
     result = pd.concat(tables_list)
     return result
 
-                    
+
 
 def tool_results(results_directory, tools_available):
     """Display selected method's results for all genes."""
-    
+
     tools = [tool for tool in tools_available.keys() if tool != "DESeq2"]
     tools_widget = widgets.Dropdown(options=set(tools), description='Tool:', value=tools[0])
-    
+
     def update_comparisons_widget(new):
         comparisons_widget.options = tools_available[tools_widget.value].keys()
-    
+
     tools_widget.observe(update_comparisons_widget, 'value')
 
     comparisons_list = os.listdir(os.path.join(results_directory, tools_widget.value))
     comparisons_widget = widgets.Dropdown(options=set(comparisons_list), description='Comparison:')
-    
+
     fdr_widget = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off")
-    
+
     color_sig_widget = widgets.ColorPicker(concise=False, description='Significant color:', value='red')
     color_non_widget = widgets.ColorPicker(concise=False, description='Non-significant color:', value='gray')
-    
+
     def _MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
         tool = "MAGeCK_MLE"
         significant_label = 'fdr < %s' % fdr_cutoff
@@ -581,7 +587,7 @@ def tool_results(results_directory, tools_available):
         chart = (chart + line)
         display(chart)
 
-    
+
     def _MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
         tool = "MAGeCK_RRA"
         significant_label = 'fdr < %s' % fdr_cutoff
@@ -603,23 +609,23 @@ def tool_results(results_directory, tools_available):
         line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
         chart = (chart + line)
         display(chart)
-        
-        
+
+
     def _CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig,results_directory, tools_available):
         tool = "CRISPhieRmix"
         significant_label = 'fdr < %s' % fdr_cutoff
         non_significant_label = 'fdr >= %s' % fdr_cutoff
         treatment, control = comparison.split("_vs_")
         source = CRISPhieRmix_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
-        source['default_rank'] = source['locfdr'].rank(method='dense')
+        source['default_rank'] = source['top_3_mean_log2FoldChange'].rank(method='dense')
         source.loc[source['locfdr'] < fdr_cutoff, 'significant'] = significant_label
         source.loc[source['locfdr'] >= fdr_cutoff, 'significant'] = non_significant_label
         domain = [significant_label, non_significant_label]
         range_ = [sig, non_sig]
         chart = alt.Chart(source, title="CRISPhieRmix (%s)" % comparison).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
-            y=alt.Y('locfdr:Q', axis=alt.Axis(title='%s local FDR' % treatment)),
-            tooltip=['gene', 'locfdr', 'score', 'FDR', 'significant', 'default_rank'],
+            y=alt.Y('top_3_mean_log2FoldChange:Q', axis=alt.Axis(title='%s top-3 sgRNAs log2FoldChange average' % treatment)),
+            tooltip=['gene', 'locfdr', 'FDR', 'significant', 'default_rank', 'top_3_mean_log2FoldChange'],
             color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
             order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
@@ -627,7 +633,7 @@ def tool_results(results_directory, tools_available):
         chart = (chart + line)
         display(chart)
 
-        
+
     def _in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
         tool = "in_house_method"
         significant_label = 'abs(score) > 10 '
@@ -649,7 +655,7 @@ def tool_results(results_directory, tools_available):
         line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
         chart = (chart + line)
         display(chart)
-        
+
     def _GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
         tool = "GSEA-like"
         significant_label = 'fdr < %s' % fdr_cutoff
@@ -657,8 +663,8 @@ def tool_results(results_directory, tools_available):
         treatment, control = comparison.split("_vs_")
         source = GSEA_like_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
         source['default_rank'] = source[['NES']].rank(method='dense')
-        source.loc[abs(source['padj']) < fdr_cutoff, 'significant'] = significant_label
-        source.loc[abs(source['padj']) >= fdr_cutoff, 'significant'] = non_significant_label
+        source.loc[abs(source['pval']) < fdr_cutoff, 'significant'] = significant_label
+        source.loc[abs(source['pval']) >= fdr_cutoff, 'significant'] = non_significant_label
         domain = [significant_label, non_significant_label]
         range_ = [sig, non_sig]
 
@@ -698,8 +704,8 @@ def tool_results(results_directory, tools_available):
         display(chart)
 
 
-    
-    
+
+
     def _plot(event):
         tool = tools_widget.value
         comparison = comparisons_widget.value
@@ -720,75 +726,76 @@ def tool_results(results_directory, tools_available):
             _BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
         else:
             print("Choose a tool.")
-    
+
     display(tools_widget)
     display(comparisons_widget)
     display(fdr_widget)
     display(color_sig_widget)
     display(color_non_widget)
-    
+
     button = widgets.Button(description='Click!')
-    
+
     display(button)
-    
+
     button.on_click(_plot)
-    
-    
+
+
 
 def show_sgRNA_counts(token):
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
-    cts_file = content['normalized_count_table']
+    cts_file = "results/%s/normalized.filtered.counts.txt" % token
     cts = pd.read_csv(cts_file, sep="\t")
     cts_columns = [col for col in cts.columns.tolist() if not col in ["sgRNA", "Gene"]]
     cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
     genes_list = list(set(cts.Gene.tolist()))
-    element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element:', value=genes_list[0], ensure_option=True)
+    element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element:', value=genes_list[0], ensure_option=False)
     conditions = widgets.TagsInput(value=cts_columns, allowed_tags=cts_columns, allow_duplicates=False)
-    
+
     display(element)
     display(conditions)
-    
+
     button = widgets.Button(description="Show!")
     display(button)
-    
+
     def display_network():
         display(net.widget())
-        
+
     def on_button_clicked(b):
-        if not element.value in list(cts.Gene):
-            gene_cts = cts
-        else:
-            gene_cts = cts.loc[cts.Gene == element.value]
-        gene_cts = gene_cts.loc[gene_cts.variable.isin(conditions.value)]
-        z_scores = gene_cts.groupby(['sgRNA']).value.transform(lambda x : zscore(x,ddof=1))
-        gene_cts['z-score'] = z_scores
-        sum_by_group = gene_cts.groupby(['sgRNA']).agg({'value': 'sum'}).reset_index()
-        sgRNA_to_keep = sum_by_group[sum_by_group.value > 50].sgRNA.values
-        gene_cts = gene_cts[gene_cts.sgRNA.isin(sgRNA_to_keep)]
-        chart = alt.Chart(
-            gene_cts,
-            title="%s normalized read counts heatmap" % element.value
-        ).mark_rect().encode(
-            x=alt.X('variable', axis=alt.Axis(title='Replicate'), sort=conditions.value),
-            y=alt.Y('sgRNA', axis=alt.Axis(title='sgRNA')),
-            color=alt.Color('z-score:Q',scale=alt.Scale(scheme='blueorange')),
-            tooltip=['sgRNA', 'variable', 'value', 'z-score']
-        ).interactive()
-        display(chart)
-        
+        genes = element.value.split(",")
+        for gene in genes:
+            if not gene in list(cts.Gene):
+                print("%s was not found in %s." % (gene, cts_file))
+            else:
+                gene_cts = cts.loc[cts.Gene == gene]
+                gene_cts = gene_cts.loc[gene_cts.variable.isin(conditions.value)]
+                z_scores = gene_cts.groupby(['sgRNA']).value.transform(lambda x : zscore(x,ddof=1))
+                gene_cts['z-score'] = z_scores
+                sum_by_group = gene_cts.groupby(['sgRNA']).agg({'value': 'sum'}).reset_index()
+                sgRNA_to_keep = sum_by_group[sum_by_group.value > 50].sgRNA.values
+                gene_cts = gene_cts[gene_cts.sgRNA.isin(sgRNA_to_keep)]
+                chart = alt.Chart(
+                    gene_cts,
+                    title="%s normalized read counts heatmap" % gene
+                ).mark_rect().encode(
+                    x=alt.X('variable', axis=alt.Axis(title='Replicate'), sort=conditions.value),
+                    y=alt.Y('sgRNA', axis=alt.Axis(title='sgRNA')),
+                    color=alt.Color('z-score:Q',scale=alt.Scale(scheme='blueorange')),
+                    tooltip=['sgRNA', 'variable', 'value', 'z-score']
+                ).interactive()
+                display(chart)
+
     button.on_click(on_button_clicked)
-    
-    
-    
+
+
 def show_sgRNA_counts_lines(token):
-    config = "./config/%s.yaml" % token
+    config = "config/%s.yaml" % token
     content = open_yaml(config)
-    cts_file = content['normalized_count_table']
+    cts_file = "results/%s/normalized.filtered.counts.txt" % token
     cts = pd.read_csv(cts_file, sep="\t")
     design_file = content['tsv_file']
     design = pd.read_csv(design_file, sep="\t")
-    
+
     conditions_list_init = list(design.condition)
     conditions_list = []
     for condition in conditions_list_init:
@@ -796,43 +803,113 @@ def show_sgRNA_counts_lines(token):
             conditions_list.append(condition)
 
     genes_list = list(set(pd.melt(cts, id_vars=['sgRNA', 'Gene']).Gene.tolist()))
-    element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element:', value=genes_list[0], ensure_option=True)
+    element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element:', value=genes_list[0], ensure_option=False)
     conditions = widgets.TagsInput(value=conditions_list, allowed_tags=conditions_list, allow_duplicates=False)
-    
+
     display(element)
     display(conditions)
-    
+
     button = widgets.Button(description="Show!")
-    
+
     display(button)
 
-    def on_button_clicked(b):
-        cts = pd.read_csv(cts_file, sep="\t")
-        cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
-        if not element.value in list(cts.Gene):
-            print("Element '%s' not in counts matrix." % element.value)
-        sort_cols = conditions.value
-        gene_cts = cts.loc[cts.Gene == element.value]
-        source = gene_cts
-        source = pd.merge(source, design, left_on='variable', right_on='replicate')
-        boolean_series = source.condition.isin(sort_cols)
-        source = source[boolean_series]
-        source = source.groupby(['sgRNA', 'condition']).mean()
-        source = source.reset_index()
-        
-        line = alt.Chart(source, title="%s mean normalized read counts" % element.value).mark_line().encode(
-            x=alt.X('condition', axis=alt.Axis(title='Condition'), sort=sort_cols),
-            y='value',
-            color='sgRNA',
+    def show_plot(source, sort_cols, gene):
+        selection = alt.selection_multi(fields=['sgRNA'], bind='legend')
+        base = alt.Chart(source, title = "%s replicates normalized read counts" % gene).transform_fold(
+                sort_cols
+        ).encode(
+            x=alt.X('key:N', sort=sort_cols, axis=alt.Axis(title='Condition')),
+            y=alt.Y('value:Q', axis=alt.Axis(title='Condition')),
+            color='sgRNA:N',
+            detail='replicate_group:N',
+            tooltip = ['sgRNA', 'value:Q', 'replicate_group'],
         )
-        
-#         point = line.mark_circle()
-        
-#         chart = line + point
-    
-        display(line.interactive().properties(width=300))
-    
+        points = base.mark_circle().encode(
+            opacity=alt.condition(selection, alt.value(1), alt.value(0.0))
+        ).add_selection(
+            selection
+        ).properties(
+            width=600
+        )
+        lines = base.mark_line().encode(
+            opacity=alt.condition(selection, alt.value(1), alt.value(0.0))
+        )
+        chart = points + lines
+        display(chart.interactive())
+
+    def on_button_clicked(b):
+        # Read normalized counts file
+        cts = pd.read_csv(cts_file, sep="\t")
+        # Transform dataframe: one value per line
+        cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
+        genes = element.value.split(",")
+        for gene in genes:
+            if not gene in list(cts.Gene):
+                print("Element '%s' was not found in %s." % (gene, cts_file))
+            else:
+                sort_cols = conditions.value
+                gene_cts = cts.loc[cts.Gene == gene]
+                source = gene_cts
+                source = pd.merge(source, design, left_on='variable', right_on='replicate')
+                boolean_series = source.condition.isin(sort_cols)
+                source = source[boolean_series]
+                source['replicate_group'] = source['replicate'].str.extract(r'([1-9]+)$')
+                source = pd.pivot_table(source, values='value', index=['sgRNA', 'replicate_group'],
+                            columns=['condition'])
+                source = source.reset_index()
+                show_plot(source, sort_cols, gene)
+
     button.on_click(on_button_clicked)
+
+
+# def show_sgRNA_counts_lines(token):
+#     config = "./config/%s.yaml" % token
+#     content = open_yaml(config)
+#     cts_file = content['normalized_count_table']
+#     cts = pd.read_csv(cts_file, sep="\t")
+#     design_file = content['tsv_file']
+#     design = pd.read_csv(design_file, sep="\t")
+#
+#     conditions_list_init = list(design.condition)
+#     conditions_list = []
+#     for condition in conditions_list_init:
+#         if not condition in conditions_list:
+#             conditions_list.append(condition)
+#
+#     genes_list = list(set(pd.melt(cts, id_vars=['sgRNA', 'Gene']).Gene.tolist()))
+#     element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element:', value=genes_list[0], ensure_option=True)
+#     conditions = widgets.TagsInput(value=conditions_list, allowed_tags=conditions_list, allow_duplicates=False)
+#
+#     display(element)
+#     display(conditions)
+#
+#     button = widgets.Button(description="Show!")
+#
+#     display(button)
+#
+#     def on_button_clicked(b):
+#         cts = pd.read_csv(cts_file, sep="\t")
+#         cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
+#         if not element.value in list(cts.Gene):
+#             print("Element '%s' not in counts matrix." % element.value)
+#         sort_cols = conditions.value
+#         gene_cts = cts.loc[cts.Gene == element.value]
+#         source = gene_cts
+#         source = pd.merge(source, design, left_on='variable', right_on='replicate')
+#         boolean_series = source.condition.isin(sort_cols)
+#         source = source[boolean_series]
+#         source = source.groupby(['sgRNA', 'condition']).mean()
+#         source = source.reset_index()
+#
+#         line = alt.Chart(source, title="%s mean normalized read counts" % element.value).mark_line().encode(
+#             x=alt.X('condition', axis=alt.Axis(title='Condition'), sort=sort_cols),
+#             y='value',
+#             color='sgRNA',
+#         )
+#
+#         display(line.interactive().properties(width=300))
+#
+#     button.on_click(on_button_clicked)
 
 
 def tool_results_by_element(results_directory, tools_available):
@@ -841,7 +918,7 @@ def tool_results_by_element(results_directory, tools_available):
         comparisons_list = os.listdir(os.path.join(results_directory, tool))
         ctrs = list(set(map(lambda x: x.split("_vs_")[1], list(tools_available[tool].keys()))))
         return ctrs
-    
+
     def get_tool_results(results_directory, tools_available, tool):
         if tool == "CRISPhieRmix":
             result = CRISPhieRmix_data(comparison = "", control = control.value, tool = tool, results_directory=results_directory, tools_available=tools_available)
@@ -856,7 +933,7 @@ def tool_results_by_element(results_directory, tools_available):
         if tool == "BAGEL":
             result = BAGEL_data(comparison = "", control = control.value, tool = tool, results_directory=results_directory, tools_available=tools_available)
         return result
-        
+
     def get_genes_list(results_directory, tools_available, tool):
         result = get_tool_results(results_directory, tools_available, tool)
         if tool == "CRISPhieRmix":
@@ -870,42 +947,42 @@ def tool_results_by_element(results_directory, tools_available):
         elif tool == "GSEA-like":
             elements_list = list(set(result.pathway))
         elif tool == "in_house_method":
-            elements_list = list(set(result.Gene))       
+            elements_list = list(set(result.Gene))
         return elements_list
 
     def update_control(update):
         ctrs = get_controls(results_directory, tools_available)
         control.options = ctrs
-        
+
     def update_genes_list(update):
         result = CRISPhieRmix_data(comparison = "", control = control.value, tool = "CRISPhieRmix", results_directory=results_directory, tools_available=tools_available)
         elements_list = result.gene.to_list()
         gene.options = elements_list
         gene.value = elements_list[0]
 
-        
+
     tools_list =  [tool for tool in list(tools_available.keys()) if tool != 'DESeq2']
 #     tool_widget = widgets.Select(options = tools_list)
 #     tool_widget.observe(update_control, 'value')
-        
-    ctrs = get_controls(results_directory, tools_available, tools_list[0])    
+
+    ctrs = get_controls(results_directory, tools_available, tools_list[0])
     control = widgets.Dropdown(options=ctrs, value=ctrs[0], description='Control:', disabled=False)
     control.observe(update_genes_list, 'value')
-    
-    fdr_cutoff = widgets.FloatSlider(description='FDR:', min=0.0, max=1.0, step=0.01, value=0.05)
-    
-    elements_list = get_genes_list(results_directory, tools_available, tools_list[0])
-    gene = widgets.Combobox(placeholder='Choose one', options = elements_list, description='Element:', value=elements_list[0], ensure_option=True,)
-    
-    display(widgets.VBox([control, gene, fdr_cutoff]))  # tool_widget, 
 
-    
+    fdr_cutoff = widgets.FloatSlider(description='FDR:', min=0.0, max=1.0, step=0.01, value=0.05)
+
+    elements_list = get_genes_list(results_directory, tools_available, tools_list[0])
+    gene = widgets.Combobox(placeholder='Choose one', options = elements_list, description='Element:', value=elements_list[0], ensure_option=False,)
+
+    display(widgets.VBox([control, gene, fdr_cutoff]))  # tool_widget,
+
+
     def CRISPhieRmix_results(result, fdr_cutoff, control, gene):
         significant_label = 'Yes'#'fdr < %s' % fdr_cutoff
         non_significant_label = 'No'#'fdr >= %s' % fdr_cutoff
         result.loc[result['locfdr'] < fdr_cutoff, 'significant'] = significant_label
         result.loc[result['locfdr'] >= fdr_cutoff, 'significant'] = non_significant_label
-        new_row = {'gene':gene, 'condition':control, 'significant': 'Baseline', 'locfdr':1, 'score': 0}
+        new_row = {'gene':gene, 'condition':control, 'significant': 'Baseline', 'locfdr':1, 'top_3_mean_log2FoldChange': 0}
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.gene == gene]
         domain = [significant_label, non_significant_label, 'Baseline']
@@ -915,17 +992,17 @@ def tool_results_by_element(results_directory, tools_available):
             filled=True,
             size=100,
             ).encode(
-                    y=alt.Y('locfdr', axis=alt.Axis(title='local FDR')),
+                    y=alt.Y('top_3_mean_log2FoldChange', axis=alt.Axis(title='Top-3 sgRNAs log2FoldChange average')),
                     x=alt.X('condition:O', sort=sort_cols),
                     color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
-                    tooltip=['gene', 'locfdr', 'significant', 'score'],
+                    tooltip=['gene', 'locfdr', 'significant', 'top_3_mean_log2FoldChange'],
             ).properties(
                     title=gene + " (CRISPhieRmix)",
                     width=100
             )
         return plot
 #         display(plot)
-        
+
     def MAGeCK_RRA_results(result, fdr_cutoff, control, gene):
         significant_label = 'Yes'#'fdr < %s' % fdr_cutoff
         non_significant_label = 'No'#'fdr >= %s' % fdr_cutoff
@@ -952,8 +1029,8 @@ def tool_results_by_element(results_directory, tools_available):
         return plot
 #         display(plot)
 
-        
-        
+
+
     def MAGeCK_MLE_results(result, fdr_cutoff, control, gene):
         significant_label = 'Yes'#'fdr < %s' % fdr_cutoff
         non_significant_label = 'No'#'fdr >= %s' % fdr_cutoff
@@ -979,13 +1056,13 @@ def tool_results_by_element(results_directory, tools_available):
             )
         return plot
 #         display(plot)
-        
-        
+
+
     def GSEA_like_results(result, fdr_cutoff, control, gene):
         significant_label = 'Yes'#'fdr < %s' % fdr_cutoff
         non_significant_label = 'No'#'fdr >= %s' % fdr_cutoff
-        result.loc[result['padj'] < fdr_cutoff, 'significant'] = significant_label
-        result.loc[result['padj'] >= fdr_cutoff, 'significant'] = non_significant_label
+        result.loc[result['pval'] < fdr_cutoff, 'significant'] = significant_label
+        result.loc[result['pval'] >= fdr_cutoff, 'significant'] = non_significant_label
         new_row = {'pathway':gene, 'condition':control, 'significant': 'Baseline', 'pval':1, 'padj':1 ,'ES': 0, 'NES': 0, 'size':None}
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.pathway == gene]
@@ -999,15 +1076,14 @@ def tool_results_by_element(results_directory, tools_available):
                     y=alt.Y('NES', axis=alt.Axis(title='NES')),
                     x=alt.X('condition:N', sort=sort_cols),
                     color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
-                    tooltip=['pathway', 'condition', 'significant', 'padj', 'NES'],
+                    tooltip=['pathway', 'condition', 'significant', 'pval', 'padj', 'NES'],
             ).properties(
                     title=gene + " (GSEA-like method)",
                     width=100
             )
         return plot
-#         display(plot)
-        
-        
+
+
     def BAGEL_results(result, fdr_cutoff, control, gene):
         significant_label = 'Yes'
         non_significant_label = 'No'
@@ -1060,65 +1136,59 @@ def tool_results_by_element(results_directory, tools_available):
                     width=100
             )
         return plot
-#         display(plot)
-
 
 
     def on_button_clicked(b):
-#         i = 0
-        chart = alt.hconcat()
-        for tool in tools_list:
-#             i += 1
-            result = get_tool_results(results_directory, tools_available, tool) #, tool_widget.value)
-            if tool == "CRISPhieRmix":
-                plot = CRISPhieRmix_results(result, fdr_cutoff.value, control.value, gene.value)
-            elif tool == "MAGeCK_MLE":
-                plot = MAGeCK_MLE_results(result, fdr_cutoff.value, control.value, gene.value)
-            elif tool == "GSEA-like":
-                plot = GSEA_like_results(result, fdr_cutoff.value, control.value, gene.value)
-            elif tool == "in_house_method":
-                plot = inhouse_method_results(result, fdr_cutoff.value, control.value, gene.value)
-            elif tool == "MAGeCK_RRA":
-                plot = MAGeCK_RRA_results(result, fdr_cutoff.value, control.value, gene.value)
-            elif tool == "BAGEL":
-                plot = BAGEL_results(result, fdr_cutoff.value, control.value, gene.value)
-            chart |= plot
-        display(chart)
-#             if len(tools_list) == 1:
-#                 combined_plots = plot
-#             elif i == 1:
-#                 plot_1 = plot
-#             elif i == 2:
-#                 combined_plots = alt.hconcat(plot_1, plot)
-#             else:
-#                 combined_plots = alt.hconcat(combined_plots, plot)
-#         display(combined_plots)
+        genes = gene.value.split(",")
+        for element in genes:
+            chart = alt.hconcat()
+            for tool in tools_list:
+                result = get_tool_results(results_directory, tools_available, tool)
+                if tool == "CRISPhieRmix":
+                    plot = CRISPhieRmix_results(result, fdr_cutoff.value, control.value, element)
+                elif tool == "MAGeCK_MLE":
+                    plot = MAGeCK_MLE_results(result, fdr_cutoff.value, control.value, element)
+                elif tool == "GSEA-like":
+                    plot = GSEA_like_results(result, fdr_cutoff.value, control.value, element)
+                elif tool == "in_house_method":
+                    plot = inhouse_method_results(result, fdr_cutoff.value, control.value, element)
+                elif tool == "MAGeCK_RRA":
+                    plot = MAGeCK_RRA_results(result, fdr_cutoff.value, control.value, element)
+                elif tool == "BAGEL":
+                    plot = BAGEL_results(result, fdr_cutoff.value, control.value, element)
+                chart |= plot
+            display(chart)
 
     button = widgets.Button(description="Show plot")
     display(button)
     button.on_click(on_button_clicked)
-        
 
-def enrichr_plots(pitviper_res):
-    
+
+def enrichr_plots(token, pitviper_res):
+
+    config = "./config/%s.yaml" % token
+    content = open_yaml(config)
+    if content['screen_type'] == 'not_gene':
+        return "This module is available only if genes symbol are used."
+
     def update_conditions(update):
         conditions_list = list(pitviper_res[tool.value].keys())
         conditions.options = conditions_list
         conditions.value = conditions_list[0]
-        
-    
+
+
     BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
     TOOLS = [tool for tool in pitviper_res.keys() if tool != "DESeq2"]
-    
+
     tool = widgets.Dropdown(options=TOOLS, value=TOOLS[0], description='Tool:')
     tool.observe(update_conditions, 'value')
-    
+
     conditions_list = list(pitviper_res[tool.value].keys())
     conditions = widgets.Dropdown(options = conditions_list, value=conditions_list[0], description='Condition:')
-    
+
     description = widgets.Text(value='My gene list', placeholder='Description', description='Description:')
     bases = widgets.SelectMultiple(options=BASES)
-    
+
     col_2 = widgets.ColorPicker(concise=False, description='Top color', value='blue')
     col_1 = widgets.ColorPicker(concise=False, description='Bottom color', value='red')
     plot_type = widgets.Dropdown(options=['Circle', 'Bar'], value = 'Circle', description = "Plot type:")
@@ -1128,7 +1198,7 @@ def enrichr_plots(pitviper_res):
     button = widgets.Button(description="EnrichR!")
 
     display(widgets.VBox([tool, conditions, description, bases, fdr_cutoff, score_cutoff, plot_type, size, col_2, col_1, button]))
-    
+
     def on_button_clicked(b):
         charts = []
         tool_res = pitviper_res[tool.value]
@@ -1164,10 +1234,20 @@ def enrichr_plots(pitviper_res):
                     info = info.loc[info['NES'] > score_cutoff.value]
                 elif score_cutoff.value < 0:
                     info = info.loc[info['NES'] < score_cutoff.value]
-                info = info.loc[info['padj'] < fdr_cutoff.value]
+                info = info.loc[info['pval'] < fdr_cutoff.value]
                 genes = info['pathway']
 
-                
+            if tool.value == "CRISPhieRmix":
+                info = tool_res[conditions.value][conditions.value + ".txt"]
+                info = info.loc[info['locfdr'] < fdr_cutoff.value]
+                if score_cutoff.value > 0:
+                    info = info.loc[info['top_3_mean_log2FoldChange'] > score_cutoff.value]
+                elif score_cutoff.value < 0:
+                    info = info.loc[info['top_3_mean_log2FoldChange'] < score_cutoff.value]
+                genes = info['gene']
+
+
+
             enrichr_res = getEnrichrResults(genes, description.value, base)
             table = createEnrichrTable(enrichr_res)
             if plot_type.value == 'Bar':
@@ -1178,10 +1258,10 @@ def enrichr_plots(pitviper_res):
         for chart in charts:
             display(chart)
 
-    
+
     button.on_click(on_button_clicked)
-    
-    
+
+
 def run_rra(ranks):
     rra_lib = importr('RobustRankAggreg')
     r_source = ro.r['source']
@@ -1191,15 +1271,20 @@ def run_rra(ranks):
     RobustRankAggregate = ro.r['RobustRankAggregate']
     res = RobustRankAggregate(r_ranks)
     print(res)
-    
-    
-def genemania_link_results(tools_available):
-    
+
+
+def genemania_link_results(token, tools_available):
+
+    config = "./config/%s.yaml" % token
+    content = open_yaml(config)
+    if content['screen_type'] == 'not_gene':
+        return "This module is available only if genes symbol are used."
+
     def update_conditions(update):
         conditions_list = list(tools_available[tool.value].keys())
         conditions.options = conditions_list
         conditions.value = conditions_list[0]
-    
+
     def on_button_clicked(event):
         treatment, baseline = conditions.value.split("_vs_")
         print('Baseline:', baseline)
@@ -1207,9 +1292,9 @@ def genemania_link_results(tools_available):
         print('FDR cut-off:', fdr_cutoff.value)
         print('Score cut-off', score_cutoff.value)
         print('Tool:', tool.value)
-        
+
         tool_res = tools_available[tool.value]
-        
+
         if tool.value == 'MAGeCK_MLE':
             info = tool_res[conditions.value][conditions.value + ".gene_summary.txt"]
             info = info.loc[info[treatment+'|fdr'] < fdr_cutoff.value]
@@ -1240,32 +1325,32 @@ def genemania_link_results(tools_available):
                 info = info.loc[info['NES'] > float(score_cutoff.value)]
             elif float(score_cutoff.value) < 0:
                 info = info.loc[info['NES'] < float(score_cutoff.value)]
-            info = info.loc[info['padj'] < fdr_cutoff.value]
+            info = info.loc[info['pval'] < fdr_cutoff.value]
             genes = info['pathway']
 
         print("Size (gene set):", len(genes))
         link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes)
         print(link)
 
-    
+
     BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
     TOOLS = [tool for tool in tools_available.keys() if tool != "DESeq2"]
-    
+
     tool = widgets.Dropdown(options=TOOLS, value=TOOLS[0], description='Tool:')
     tool.observe(update_conditions, 'value')
-    
+
     conditions_list = list(tools_available[tool.value].keys())
     conditions = widgets.Dropdown(options = conditions_list, value=conditions_list[0], description='Condition:')
 
     fdr_cutoff=widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description = "FDR cut-off:")
     score_cutoff=widgets.IntText(value=0, description='Score cut-off:')
-    
+
     button = widgets.Button(description="Genemania!")
     button.on_click(on_button_clicked)
-    
+
     display(tool, conditions, fdr_cutoff, score_cutoff, button)
 
-    
+
 def ranking(treatment, control, token, tools_available, params):
 
     def get_occurence_df(data):
@@ -1381,14 +1466,14 @@ def ranking(treatment, control, token, tools_available, params):
 
 
     if params['CRISPhieRmix']['on']:
-        score = params['CRISPhieRmix']['score']
+        score = params['CRISPhieRmix']['top_3_mean_log2FoldChange']
         fdr = params['CRISPhieRmix']['fdr']
         greater = params['CRISPhieRmix']['greater']
         crisphie = tools_available["CRISPhieRmix"][comparison][comparison + ".txt"]
         if not greater:
-            crisphie = crisphie[(crisphie["score"] < score) & (crisphie["locfdr"] < fdr)]
+            crisphie = crisphie[(crisphie["top_3_mean_log2FoldChange"] < score) & (crisphie["locfdr"] < fdr)]
         else:
-            crisphie = crisphie[(crisphie["score"] > score) & (crisphie["locfdr"] < fdr)]
+            crisphie = crisphie[(crisphie["top_3_mean_log2FoldChange"] > score) & (crisphie["locfdr"] < fdr)]
         crisphie['default_rank'] = crisphie['FDR'].rank(method="dense").copy()
         crisphie = crisphie[["gene", "default_rank"]].rename(columns={"gene": "id", "default_rank": "crisphiermix_rank"})
         crisphie_genes = list(crisphie.id)
@@ -1425,7 +1510,7 @@ def ranking(treatment, control, token, tools_available, params):
         in_house['default_rank'] = in_house['score'].rank(method="dense").copy()
         in_house = in_house[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "in_house_rank"})
         pdList.append(in_house)
-        
+
     if params['GSEA_like']['on']:
         gsea = tools_available["GSEA-like"][comparison][comparison + "_all-elements_GSEA-like.txt"]
         gsea['default_rank'] = gsea['NES'].rank(method="dense").copy()
@@ -1441,11 +1526,10 @@ def ranking(treatment, control, token, tools_available, params):
     df_merged_reduced = reduce(lambda  left,right: pd.merge(left,right,on=['id'],
                                                 how='outer'), pdList)
 
-    df_merged_reduced = df_merged_reduced[df_merged_reduced['id'].isin(l)]
+    ranks = df_merged_reduced[df_merged_reduced['id'].isin(l)]
+    occurences = get_occurence_df(tool_results)
 
-    occurence_df = get_occurence_df(tool_results)
-
-    return (df_merged_reduced, occurence_df)
+    return (ranks, occurences)
 
 
 def plot_venn(occurences):
@@ -1458,7 +1542,7 @@ def plot_venn(occurences):
         venn_lib.venn(r_occurences, ilabels = False, zcolor = "style", ilcs= 1, sncs = 1, borders = False, box = False)
     display(IPython.display.display(IPython.display.Image(data=img.getvalue(), format='png', embed=True)))
 
-    
+
 def reset_params():
     params = {'MAGeCK_MLE': {'on': False,
                              'fdr': 0.05,
@@ -1474,8 +1558,8 @@ def reset_params():
                              'greater': True},
               'CRISPhieRmix': {'on': False,
                              'fdr': 0.05,
-                             'score': 0,
-                             'greater': True},
+                             'top_3_mean_log2FoldChange': 0,
+                             'greater': False},
               'in_house_method': {'on': False,
                              'direction': 'Negative',
                              'score': 0,
@@ -1532,7 +1616,7 @@ def display_tools_widgets(tools_selected):
     def CRISPhieRmix_fdr_update(change):
         params['CRISPhieRmix']['fdr'] = change['new']
     def CRISPhieRmix_score_update(change):
-        params['CRISPhieRmix']['score'] = change['new']
+        params['CRISPhieRmix']['top_3_mean_log2FoldChange'] = change['new']
 
     ### In-house
     def in_house_method_order_update(change):
@@ -1598,7 +1682,7 @@ def display_tools_widgets(tools_selected):
         CRISPhieRmix_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
         CRISPhieRmix_score=widgets.FloatText(value=0, description='Score cut-off:')
         CRISPhieRmix_text=widgets.HTML(value="<b>CRISPhieRmix</b>:")
-        CRISPhieRmix_order=widgets.ToggleButtons(options=['Greater than score', 'Lower than score'], description='Selection:')
+        CRISPhieRmix_order=widgets.ToggleButtons(options=['Lower than score', 'Greater than score'], description='Selection:')
         display(CRISPhieRmix_text)
         CRISPhieRmix_box = widgets.HBox([CRISPhieRmix_fdr, CRISPhieRmix_score, CRISPhieRmix_order])
         display(CRISPhieRmix_box)
@@ -1630,8 +1714,8 @@ def display_tools_widgets(tools_selected):
         GSEA_like_score.observe(GSEA_like_score_update, 'value')
         GSEA_like_fdr.observe(GSEA_like_fdr_update, 'value')
 
-        
-        
+
+
 def multiple_tools_results(tools_available, token):
     TOOLS = [tool for tool in tools_available.keys() if not tool in ["DESeq2"]]
 
@@ -1642,30 +1726,32 @@ def multiple_tools_results(tools_available, token):
     # Define widgets
     conditions_widget = widgets.Dropdown(options=conditions_options, description = "Conditions:")
     tools_widget = widgets.SelectMultiple(options=tools_options, description = "Tool:")
-    
+
     output_tools_form = widgets.Output()
-        
+
     @output_tools_form.capture()
     def tools_widget_updated(event):
         global params
         params = reset_params()
-        
+
         output_tools_form.clear_output()
         display_tools_widgets(event['new'])
-    
+
     tools_widget.observe(tools_widget_updated, 'value')
     display(widgets.VBox([conditions_widget, tools_widget]))
     display(output_tools_form)
-    
+
     venn_button = widgets.Button(description="Venn diagram", style=dict(button_color='#707070'))
     rra_button = widgets.Button(description="RRA ranking", style=dict(button_color='#707070'))
     genemania_button = widgets.Button(description="Genemania", style=dict(button_color='#707070'))
     enrichr_button = widgets.Button(description="EnrichR", style=dict(button_color='#707070'))
     depmap_button = widgets.Button(description="depmap", style=dict(button_color='#707070'))
-    
-    buttons_box = widgets.HBox([venn_button, rra_button, genemania_button, enrichr_button, depmap_button])
+
+    ranking_button = widgets.Button(description="ranking", style=dict(button_color='#707070'))
+
+    buttons_box = widgets.HBox([venn_button, rra_button, genemania_button, enrichr_button, depmap_button, ranking_button])
     display(buttons_box)
-    
+
     def venn_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
@@ -1675,7 +1761,7 @@ def multiple_tools_results(tools_available, token):
         print("Genes at intersection of all methods:")
         for gene in intersection_genes:
             print(gene)
-            
+
     def rra_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
@@ -1703,7 +1789,7 @@ def multiple_tools_results(tools_available, token):
                 charts.append(chart)
             for chart in charts:
                 display(chart)
-                    
+
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
         genes_list = list(occurences[occurences.all(axis='columns')].index)
@@ -1719,7 +1805,7 @@ def multiple_tools_results(tools_available, token):
         display(widgets.VBox([description, bases, plot_type, size, col_2, col_1, button_enrichr]))
         button_enrichr.on_click(partial(test, genes=genes_list, bases=bases, size=size, plot_type=plot_type, col_2=col_2, col_1=col_1, description=description))
 
-        
+
     def depmap_button_clicked(b):
         data_types_widget = widgets.RadioButtons(options=['crispr', 'proteomic', 'rnai', 'tpm', 'mutations'],value='crispr',description='Data type:',disabled=False)
 
@@ -1737,7 +1823,7 @@ def multiple_tools_results(tools_available, token):
                         return True
                     else:
                         return False
-            return True 
+            return True
 
 
         def getRelease():
@@ -1781,7 +1867,7 @@ def multiple_tools_results(tools_available, token):
                 utils.write_table(depmap_data, save_path, row_names=False, quote=False, sep="\t")
             print("Opening %s" % save_path)
             data = pd.read_table(save_path, sep="\t")
-            
+
             tissues_init = list(set(data.cell_line))
             tissues = ["_".join(str(tissu).split("_")[1:]) for tissu in tissues_init if not str(tissu) in ["nan", ""]]
             tissues = list(set(tissues))
@@ -1829,8 +1915,8 @@ def multiple_tools_results(tools_available, token):
 
 
             tissues_widget.observe(update_primary_diseases_widget, 'value')
-            primary_diseases_widget.observe(update_cell_lines_widget, 'value')    
-            
+            primary_diseases_widget.observe(update_cell_lines_widget, 'value')
+
 
             def tissu_selection_button_clicked(b):
                 print("Please wait!")
@@ -1891,7 +1977,7 @@ def multiple_tools_results(tools_available, token):
                         net.normalize(axis='row', norm_type='zscore')
                     net.cluster()
                     display(net.widget())
-                    
+
             button = widgets.Button(description = "Run!")
             button.on_click(tissu_selection_button_clicked)
             display(tissues_widget, primary_diseases_widget, cell_lines_widget, button)
@@ -1899,18 +1985,32 @@ def multiple_tools_results(tools_available, token):
         depmap_query_button = widgets.Button(description="Query!")
         depmap_query_button.on_click(depmap_query_button_clicked)
         display(data_types_widget, depmap_query_button)
-      
-        
-    
+
+
+
     venn_button.on_click(venn_button_clicked)
     rra_button.on_click(rra_button_clicked)
     genemania_button.on_click(genemania_button_clicked)
     enrichr_button.on_click(enrichr_button_clicked)
     depmap_button.on_click(depmap_button_clicked)
 
-    
-    
-    
+    def ranking_button_clicked(event):
+        treatment, control = conditions_widget.value.split("_vs_")
+        ranks, occurences = ranking(treatment, control, token, tools_available, params)
+        ranks_path = Path("results/%s/Integration/ranks.csv" % token)
+        ranks_path.parent.mkdir(parents=True, exist_ok=True)
+        ranks.to_csv(ranks_path)
+        print("Ranks table writed in %s" % ranks_path)
+        occurences_path = Path("results/%s/Integration/occurences.csv" % token)
+        occurences_path.parent.mkdir(parents=True, exist_ok=True)
+        occurences.to_csv(occurences_path)
+        print("Occurences table writed in %s" % occurences_path)
+
+    ranking_button.on_click(ranking_button_clicked)
+
+
+
+
 def plot_chart(data, tool, condition, file, x, y, method, column_filter='', cutoff=0, greater=False, element='', column_element='', elem_color='', pass_color='', fail_color='', category_column = '', color_scheme='', reverse=''):
     source = data[tool][condition][file].copy()
     show_plot = True
@@ -1983,7 +2083,7 @@ def call_form(tools_available):
                         if method == 'Cut-off':
                             display(widgets.HTML(value="Now choose a column with numerical data and a set a <b>cut-off</b> value."))
                             @interact(column_filter = widgets.Dropdown(options=columns,value=columns[0],description='Column:',disabled=False),
-                                      cutoff = widgets.FloatText(value=0.0,description='Cut-off:'),
+                                      cutoff = widgets.FloatText(value=0.05,description='Cut-off:'),
                                       greater = widgets.Checkbox(value=False,description='Greater?',disabled=False,indent=True),
                                       pass_color = widgets.ColorPicker(concise=False,description='Pass color:',value='red',disabled=False),
                                       fail_color = widgets.ColorPicker(concise=False,description='Fail color:',value='gray',disabled=False),
@@ -1994,6 +2094,7 @@ def call_form(tools_available):
                                 @interact(element = widgets.Text(value=first_element,placeholder='Element:',description='Element:',disabled=False),
                                           elem_color = widgets.ColorPicker(concise=False,description='Element color:',value='blue',disabled=False))
                                 def form(element, elem_color):
+                                    print("LOLOLOL")
                                     plot_chart(tools_available, tool, condition, file, x, y, method, column_filter, cutoff, greater, element, column_element, elem_color, pass_color, fail_color)
                         elif method == 'Category':
                             @interact(category_column = widgets.Dropdown(options=columns,value=columns[0],description='Category:',disabled=False),
