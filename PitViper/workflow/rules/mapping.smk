@@ -23,7 +23,7 @@ rule bowtie_build:
     params:
         config['library_file'][0:-4]
     log:
-        "logs/mapping/bowtie_build.log"
+        "logs/" + config['token'] + "/mapping/bowtie_build.log"
     shell:
         "bowtie2-build {input} {params} > {log}"
 

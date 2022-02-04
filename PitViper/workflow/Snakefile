@@ -7,10 +7,11 @@ tsv = pd.read_csv(config['tsv_file'], sep="\t")
 
 include: "rules/commons.smk"
 if config['bowtie_activate'] == 'True':
-    if ("fastq" in tsv.columns) and (not "bam" in tsv.columns): 
+    if ("fastq" in tsv.columns) and (not "bam" in tsv.columns):
         include: "rules/mapping.smk"
 if "fastq" in tsv.columns or "bam" in tsv.columns:
     include: "rules/mageck_count.smk"
+include: "rules/filtering.smk"
 include: "rules/mageck_mle.smk"
 include: "rules/differential_analysis.smk"
 include: "rules/mageck_rra.smk"

@@ -36,7 +36,7 @@ rule mageck_count_fastq:
         align_all_opt = lambda x: "--count-pair True" if config['mageck_count_all_align'] == 'True' else '',
         count_N_opt = lambda x: "--count-n" if config['mageck_count_N'] == 'True' else ''
     log:
-        "logs/mapping/MAGeCK_counts_fastq.log"
+        "logs/" + config['token'] + "/mapping/MAGeCK_counts_fastq.log"
     shell:
         "mageck count -l {input.library} \
             -n {params.name} \
@@ -66,7 +66,7 @@ rule mageck_count_bam:
         align_all_opt = lambda x: "True" if config['mageck_count_all_align'] == 'True' else 'False',
         count_N_opt = lambda x: "--count-n" if config['mageck_count_N'] == 'True' else ''
     log:
-        "logs/mapping/MAGeCK_counts_bam.log"
+        "logs/" + config['token'] + "/mapping/MAGeCK_counts_bam.log"
     shell:
         "mageck count -l {input.library} \
             -n {params.name} \

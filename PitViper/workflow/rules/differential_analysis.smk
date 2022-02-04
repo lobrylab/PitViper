@@ -4,7 +4,7 @@
 
 rule DESeq2_counts:
     input:
-        counts=config['count_table_file']
+        counts=rules.counts_filtering.output.raw_filtered_counts#config['count_table_file']
     output:
         deseq2_out="results/{token}/DESeq2/{treatment}_vs_{control}/{treatment}_vs_{control}_DESeq2_table.txt"
     params:
@@ -23,7 +23,7 @@ rule DESeq2_counts:
 rule filtering_method:
     """Implementation of a in-house method for screened elements prioritization based on sgRNAs filtering."""
     input:
-        count_table=config['normalized_count_table'],
+        count_table=rules.counts_filtering.output.normalized_filtered_counts,#config['normalized_count_table'],
         deseq2_table=rules.DESeq2_counts.output.deseq2_out
     output:
         down_elements="results/{token}/in_house_method/{treatment}_vs_{control}/{treatment}_vs_{control}_down-elements_in-house.txt",

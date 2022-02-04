@@ -35,8 +35,6 @@ count_table <- read.table(cts_file, header = TRUE)
 gene.sgrna <- count_table[c('sgRNA', 'Gene')]
 pathways <- unstack(gene.sgrna)
 
-print(ranking)
-
 # Use fgsea library for gsea-like element prioritization.
 fgseaRes <- fgsea(pathways = pathways,
                   stats    = ranking,

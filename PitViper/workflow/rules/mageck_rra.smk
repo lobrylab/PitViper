@@ -7,7 +7,7 @@ rule mageck_rra:
         output: genes and sgrnas summaries
         params: user must choose a normalization method"""
     input:
-        count_table=config['normalized_count_table']
+        count_table=rules.counts_filtering.output.normalized_filtered_counts#config['normalized_count_table']
     output:
         gene_summary = "results/{token}/MAGeCK_RRA/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt",
     params:
