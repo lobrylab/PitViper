@@ -124,20 +124,12 @@
                            <input class="form-control form-control-sm" id="count_table_file" name="count_table_file" type="file">
                          </div>
                        </div>
-                       <!-- <div class="mb-3">
-                         <label for="formFileSm" class="form-label">Files</label>
-                         <input class="form-control form-control-sm" id="files" name="files" type="file" required>
-                       </div> -->
                        <div id="library_div" style="display: block;">
                          <div class="mb-3">
                            <label for="formFileSm" class="form-label">Library (optinal if starting from count file)</label>
                            <input class="form-control form-control-sm" id="library_file" name="library_file" type="file">
                          </div>
                      </div>
-                       <!-- <div class="mb-3">
-                         <label for="formFileSm" class="form-label">Samples</label>
-                         <input class="form-control form-control-sm" id="samples" name="samples" type="file" required>
-                       </div> -->
                        <div id="tsv_div" style="display: block;">
                          <div class="mb-3">
                            <label for="formFileSm" class="form-label">Design file</label>
@@ -185,6 +177,7 @@
                           <option value="--very-fast">very-fast</option>
                           <option value="--very-sensitive">very-sensitive</option>
                         </select>
+                        <p style="padding: 1em;"> Reference: <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3322381/" class="link-primary text-dark">Bowtie2 article</a></p>
                        </div>
                     </fieldset>
                   </div>
@@ -246,9 +239,6 @@
                          <input type='hidden' value='False' name='mageck_count_pdf' class="form-check-input" style="margin-right: 1em;">
                          <label class="form-check-label" for="mageck_count_pdf"> Activate</label>
                        </div>
-
-
-
                        <p style="padding: 1em;"> Reference: <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-015-0843-6" class="link-primary text-dark">MAGeCK article</a></p>
                      </div>
                    </fieldset>
@@ -320,6 +310,7 @@
                           <option value="holm">Holm</option>
                           <option value="pounds">Pounds</option>
                         </select>
+                        <p style="padding: 1em;"> Reference: <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-015-0843-6" class="link-primary text-dark">MAGeCK MLE article</a></p>
                       </div>
                     </fieldset>
                     <!-- MLE -->
@@ -409,12 +400,9 @@
                   <option value="alphamean">Alpha mean</option>
                   <option value="secondbest">Second best</option>
                 </select>
-
-
+                <p style="padding: 1em;"> Reference: <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0554-4" class="link-primary text-dark">MAGeCK RRA article</a></p>
                 </div>
-
-                    </fieldset>
-                    <!-- <p style="padding: 1em;"> Reference: <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0554-4" class="link-primary text-dark">MAGeCK RRA article</a></p> -->
+              </fieldset>
 
 
                    <fieldset class="row mb-3">
@@ -473,6 +461,7 @@
                            <input class="form-check-input" type="hidden" id="crisphiermix_activate", name="gsea_activate" value="False">
                            <label class="form-check-label" for="gsea_activate">Activate</label>
                          </div>
+                         <p style="padding: 1em;"> Reference: <a href="https://www.pnas.org/content/102/43/15545" class="link-primary text-dark">Original GSEA article</a> and <a href="https://www.biorxiv.org/content/10.1101/060012v3" class="link-primary text-dark">fGSEA preprint</a></p>
                        </div>
                      </fieldset>
                 <dum/div>
