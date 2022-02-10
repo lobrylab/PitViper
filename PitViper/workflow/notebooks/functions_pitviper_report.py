@@ -749,11 +749,17 @@ def show_sgRNA_counts(token):
     cts_columns = [col for col in cts.columns.tolist() if not col in ["sgRNA", "Gene"]]
     cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
     genes_list = list(set(cts.Gene.tolist()))
+
+    color_schemes = ["blueorange", "brownbluegreen", "purplegreen", "pinkyellowgreen", "purpleorange", "redblue", "redgrey", "redyellowblue", "redyellowgreen", "spectral"]
+
     element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element:', value=genes_list[0], ensure_option=False)
     conditions = widgets.TagsInput(value=cts_columns, allowed_tags=cts_columns, allow_duplicates=False)
+    color_scheme_widget = widgets.Dropdown(placeholder='Choose one', options = color_schemes, description='Color scheme:', value=color_schemes[0])
+    reverse_widget = widgets.Checkbox(value=False, description='Reverse color scheme?')
 
-    display(element)
-    display(conditions)
+    # display(element)
+    # display(conditions)
+    display(widgets.VBox([element, conditions, color_scheme_widget, reverse_widget]))
 
     button = widgets.Button(description="Show!")
     display(button)
@@ -780,7 +786,7 @@ def show_sgRNA_counts(token):
                 ).mark_rect().encode(
                     x=alt.X('variable', axis=alt.Axis(title='Replicate'), sort=conditions.value),
                     y=alt.Y('sgRNA', axis=alt.Axis(title='sgRNA')),
-                    color=alt.Color('z-score:Q',scale=alt.Scale(scheme='blueorange')),
+                    color=alt.Color('z-score:Q',scale=alt.Scale(scheme=color_scheme_widget.value, reverse=reverse_widget.value)),
                     tooltip=['sgRNA', 'variable', 'value', 'z-score']
                 ).interactive()
                 display(chart)
@@ -1715,6 +1721,14 @@ def display_tools_widgets(tools_selected):
         GSEA_like_fdr.observe(GSEA_like_fdr_update, 'value')
 
 
+def disable_widgets(token):
+    config = "./config/%s.yaml" % token
+    content = open_yaml(config)
+    disabled = False
+    if content['screen_type'] == 'not_gene':
+        disabled = True
+    return disabled
+
 
 def multiple_tools_results(tools_available, token):
     TOOLS = [tool for tool in tools_available.keys() if not tool in ["DESeq2"]]
@@ -1726,6 +1740,7 @@ def multiple_tools_results(tools_available, token):
     # Define widgets
     conditions_widget = widgets.Dropdown(options=conditions_options, description = "Conditions:")
     tools_widget = widgets.SelectMultiple(options=tools_options, description = "Tool:")
+    selection_widgets = widgets.ToggleButtons(options=['Intersection', 'Union'], description='Selection mode:', tooltips=['Use elements at intersection of all selected methods', 'Use union of elements of all selected methods'])
 
     output_tools_form = widgets.Output()
 
@@ -1738,16 +1753,16 @@ def multiple_tools_results(tools_available, token):
         display_tools_widgets(event['new'])
 
     tools_widget.observe(tools_widget_updated, 'value')
-    display(widgets.VBox([conditions_widget, tools_widget]))
+    display(widgets.VBox([conditions_widget, tools_widget, selection_widgets]))
     display(output_tools_form)
 
+    disabled = disable_widgets(token)
     venn_button = widgets.Button(description="Venn diagram", style=dict(button_color='#707070'))
     rra_button = widgets.Button(description="RRA ranking", style=dict(button_color='#707070'))
-    genemania_button = widgets.Button(description="Genemania", style=dict(button_color='#707070'))
-    enrichr_button = widgets.Button(description="EnrichR", style=dict(button_color='#707070'))
-    depmap_button = widgets.Button(description="depmap", style=dict(button_color='#707070'))
-
-    ranking_button = widgets.Button(description="ranking", style=dict(button_color='#707070'))
+    genemania_button = widgets.Button(description="Genemania", style=dict(button_color='#707070'), disabled=disabled)
+    enrichr_button = widgets.Button(description="EnrichR", style=dict(button_color='#707070'), disabled=disabled)
+    depmap_button = widgets.Button(description="depmap", style=dict(button_color='#707070'), disabled=disabled)
+    ranking_button = widgets.Button(description="Save  ranking", style=dict(button_color='#707070'))
 
     buttons_box = widgets.HBox([venn_button, rra_button, genemania_button, enrichr_button, depmap_button, ranking_button])
     display(buttons_box)
@@ -1755,44 +1770,64 @@ def multiple_tools_results(tools_available, token):
     def venn_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).all(1), columns = ['intersection'])
-        intersection_genes = df.loc[df.intersection == True].index
+        if selection_widgets.value == "Intersection":
+            df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).all(1), columns = ['intersection'])
+            genes_list = df.loc[df.intersection == True].index
+        else:
+            df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns = ['union'])
+            genes_list = df.loc[df.union == True].index
         plot_venn(occurences)
-        print("Genes at intersection of all methods:")
-        for gene in intersection_genes:
+        print("Genes at %s of all methods:" % selection_widgets.value)
+        for gene in genes_list:
             print(gene)
 
     def rra_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
+        print("\n\n########################################")
         print("### RRA results ###")
         run_rra(ranks)
+        print("########################################")
 
     def genemania_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        genes_list = list(occurences[occurences.all(axis='columns')].index)
+        print("\n\n########################################")
+        print("### Genemania link using %s" % selection_widgets.value)
+        if selection_widgets.value == "Intersection":
+            df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).all(1), columns = ['intersection'])
+            genes_list = df.loc[df.intersection == True].index
+        else:
+            df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns = ['union'])
+            genes_list = df.loc[df.union == True].index
         link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
         print('Link to Genemania website: (%s elements)\n' % len(genes_list))
         print(link)
+        print("########################################")
 
     def enrichr_button_clicked(b):
-        def test(b, genes, bases, size, plot_type, col_2, col_1, description):
+        def show_enrichr_plots(b, genes, bases, size, plot_type, col_2, col_1, description):
             charts = []
+            title = description.value + " (%s)" % selection_widgets.value
             for base in bases.value:
                 enrichr_res = getEnrichrResults(genes, description.value, base)
                 table = createEnrichrTable(enrichr_res)
                 if plot_type.value == 'Bar':
-                    chart = enrichmentBarPlot(table, size.value, description.value, col_1.value, col_2.value, base)
+                    chart = enrichmentBarPlot(table, size.value, title, col_1.value, col_2.value, base)
                 else:
-                    chart = enrichmentCirclePlot(table, size.value, description.value, col_1.value, col_2.value, base)
+                    chart = enrichmentCirclePlot(table, size.value, title, col_1.value, col_2.value, base)
                 charts.append(chart)
             for chart in charts:
                 display(chart)
 
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        genes_list = list(occurences[occurences.all(axis='columns')].index)
+        if selection_widgets.value == "Intersection":
+            df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).all(1), columns = ['intersection'])
+            genes_list = df.loc[df.intersection == True].index
+        else:
+            df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns = ['union'])
+            genes_list = df.loc[df.union == True].index
         BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
         bases = widgets.SelectMultiple(options=BASES, description="Gene sets:", rows=10)
         col_2 = widgets.ColorPicker(concise=False, description='Top color', value='blue')
@@ -1803,7 +1838,7 @@ def multiple_tools_results(tools_available, token):
         button_enrichr = widgets.Button(description="EnrichR!")
 
         display(widgets.VBox([description, bases, plot_type, size, col_2, col_1, button_enrichr]))
-        button_enrichr.on_click(partial(test, genes=genes_list, bases=bases, size=size, plot_type=plot_type, col_2=col_2, col_1=col_1, description=description))
+        button_enrichr.on_click(partial(show_enrichr_plots, genes=genes_list, bases=bases, size=size, plot_type=plot_type, col_2=col_2, col_1=col_1, description=description))
 
 
     def depmap_button_clicked(b):
@@ -1930,7 +1965,12 @@ def multiple_tools_results(tools_available, token):
                     cell_lines_selected = cell_lines_widget.value
                 boolean_series = table.cell_line_name.isin(cell_lines_selected)
                 table = table[boolean_series]
-                genes_list = list(occurences[occurences.all(axis='columns')].index)
+                if selection_widgets.value == "Intersection":
+                    df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).all(1), columns = ['intersection'])
+                    genes_list = df.loc[df.intersection == True].index
+                else:
+                    df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns = ['union'])
+                    genes_list = df.loc[df.union == True].index
                 if data_types_widget.value == "mutations":
                     columns = ['gene_name', 'cell_line', 'cell_line_name', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease','subtype_disease']
                     for value in variable:
