@@ -2134,7 +2134,6 @@ def call_form(tools_available):
                                 @interact(element = widgets.Text(value=first_element,placeholder='Element:',description='Element:',disabled=False),
                                           elem_color = widgets.ColorPicker(concise=False,description='Element color:',value='blue',disabled=False))
                                 def form(element, elem_color):
-                                    print("LOLOLOL")
                                     plot_chart(tools_available, tool, condition, file, x, y, method, column_filter, cutoff, greater, element, column_element, elem_color, pass_color, fail_color)
                         elif method == 'Category':
                             @interact(category_column = widgets.Dropdown(options=columns,value=columns[0],description='Category:',disabled=False),
