@@ -2,6 +2,7 @@ import altair as alt
 from clustergrammer2 import net
 from functools import reduce, partial
 import IPython
+from IPython.core.display import HTML
 import ipywidgets as widgets
 from ipywidgets import interact
 import json
@@ -663,8 +664,8 @@ def tool_results(results_directory, tools_available):
         treatment, control = comparison.split("_vs_")
         source = GSEA_like_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
         source['default_rank'] = source[['NES']].rank(method='dense')
-        source.loc[abs(source['pval']) < fdr_cutoff, 'significant'] = significant_label
-        source.loc[abs(source['pval']) >= fdr_cutoff, 'significant'] = non_significant_label
+        source.loc[abs(source['padj']) < fdr_cutoff, 'significant'] = significant_label
+        source.loc[abs(source['padj']) >= fdr_cutoff, 'significant'] = non_significant_label
         domain = [significant_label, non_significant_label]
         range_ = [sig, non_sig]
 
@@ -1067,8 +1068,8 @@ def tool_results_by_element(results_directory, tools_available):
     def GSEA_like_results(result, fdr_cutoff, control, gene):
         significant_label = 'Yes'#'fdr < %s' % fdr_cutoff
         non_significant_label = 'No'#'fdr >= %s' % fdr_cutoff
-        result.loc[result['pval'] < fdr_cutoff, 'significant'] = significant_label
-        result.loc[result['pval'] >= fdr_cutoff, 'significant'] = non_significant_label
+        result.loc[result['padj'] < fdr_cutoff, 'significant'] = significant_label
+        result.loc[result['padj'] >= fdr_cutoff, 'significant'] = non_significant_label
         new_row = {'pathway':gene, 'condition':control, 'significant': 'Baseline', 'pval':1, 'padj':1 ,'ES': 0, 'NES': 0, 'size':None}
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.pathway == gene]
@@ -1240,7 +1241,7 @@ def enrichr_plots(token, pitviper_res):
                     info = info.loc[info['NES'] > score_cutoff.value]
                 elif score_cutoff.value < 0:
                     info = info.loc[info['NES'] < score_cutoff.value]
-                info = info.loc[info['pval'] < fdr_cutoff.value]
+                info = info.loc[info['padj'] < fdr_cutoff.value]
                 genes = info['pathway']
 
             if tool.value == "CRISPhieRmix":
@@ -1331,7 +1332,7 @@ def genemania_link_results(token, tools_available):
                 info = info.loc[info['NES'] > float(score_cutoff.value)]
             elif float(score_cutoff.value) < 0:
                 info = info.loc[info['NES'] < float(score_cutoff.value)]
-            info = info.loc[info['pval'] < fdr_cutoff.value]
+            info = info.loc[info['padj'] < fdr_cutoff.value]
             genes = info['pathway']
 
         print("Size (gene set):", len(genes))
@@ -1461,9 +1462,9 @@ def ranking(treatment, control, token, tools_available, params):
         greater = params['GSEA_like']['greater']
         gsea = tools_available["GSEA-like"][comparison][comparison + "_all-elements_GSEA-like.txt"]
         if not greater:
-            gsea = gsea[(gsea["NES"] < score) & (gsea["pval"] < fdr)]
+            gsea = gsea[(gsea["NES"] < score) & (gsea["padj"] < fdr)]
         else:
-            gsea = gsea[(gsea["NES"] > score) & (gsea["pval"] < fdr)]
+            gsea = gsea[(gsea["NES"] > score) & (gsea["padj"] < fdr)]
         gsea['default_rank'] = gsea['NES'].rank(method="dense").copy()
         gsea = gsea[["pathway", "default_rank"]].rename(columns={"pathway": "id", "default_rank": "gsea_rank"})
         gsea_genes = list(gsea.id)
@@ -1571,7 +1572,7 @@ def reset_params():
                              'score': 0,
                              'greater': False},
               'GSEA_like': {'on': False,
-                             'fdr': 0.05,
+                             'fdr': 0.25,
                              'score': 0,
                              'greater': False}}
     return params
@@ -1709,7 +1710,7 @@ def display_tools_widgets(tools_selected):
         in_house_method_direction.observe(in_house_method_direction_update, 'value')
     if 'GSEA-like' in tools_selected:
         params['GSEA_like']['on'] = True
-        GSEA_like_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description='FDR:')
+        GSEA_like_fdr = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.25, description='FDR:')
         GSEA_like_score=widgets.FloatText(value=0, description='Score cut-off:')
         GSEA_like_text=widgets.HTML(value="<b>GSEA-like</b>:")
         GSEA_like_order=widgets.ToggleButtons(options=['Lower than score', 'Greater than score'], description='Selection:')
@@ -1784,10 +1785,11 @@ def multiple_tools_results(tools_available, token):
     def rra_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        print("\n\n########################################")
-        print("### RRA results ###")
+        # print("\n\n########################################")
+        # print("### RRA results ###")
+        display(HTML('''<p style="color:white;font-weight: bold;background-color: green;">RRA results</p>'''))
         run_rra(ranks)
-        print("########################################")
+        # print("########################################")
 
     def genemania_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
