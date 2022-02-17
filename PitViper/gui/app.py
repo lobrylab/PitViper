@@ -43,6 +43,10 @@ def result():
             library_file = request.files.get('library_file')
         except KeyError:
             library_file = False
+        try:
+            controls_file = request.files.get('controls_file')
+        except KeyError:
+            controls_file = False
 
         tsv_file = request.files.get('tsv_file')
         count_table_file = request.files.get('count_table_file')
@@ -56,6 +60,13 @@ def result():
     else:
         library_filename = ''
     result_dict['library_file'] = library_filename
+
+    if controls_file:
+        controls_filename = 'resources/' + result_dict['token'] + '/' + controls_file.filename
+        controls_file.save(controls_filename)
+    else:
+        controls_filename = ''
+    result_dict['controls_file'] = controls_filename
 
     tsv_filename = 'resources/' + result_dict['token'] + '/' +  tsv_file.filename
     tsv_file.save(tsv_filename)

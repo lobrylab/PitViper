@@ -19,7 +19,8 @@ rule mageck_rra:
         rm_zero_threshold_opt = config['mageck_rra_count_min'],
         sorting_criteria_opt = config['mageck_rra_criteria'],
         test_threshold_opt = config['mageck_rra_pthreshold'],
-        remove_from_opt = config['mageck_rra_remove']
+        remove_from_opt = config['mageck_rra_remove'],
+        control_sgrna_opt = lambda x: "--control-sgrna {controls_file}".format(controls_file=config['controls_file']) if config['controls_file'] != '' else ''
     log:
         "logs/{token}/MAGeCK/RRA/{treatment}_vs_{control}.log"
     shell:
@@ -33,4 +34,5 @@ rule mageck_rra:
             --remove-zero-threshold {params.rm_zero_threshold_opt} \
             --sort-criteria {params.sorting_criteria_opt} \
             --gene-test-fdr-threshold {params.test_threshold_opt} \
-            --remove-zero {params.remove_from_opt} &> {log}"
+            --remove-zero {params.remove_from_opt} \
+            {params.control_sgrna_opt} &> {log}"
