@@ -641,20 +641,20 @@ def tool_results(results_directory, tools_available):
 
     def _in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
         tool = "in_house_method"
-        significant_label = 'abs(score) > 10 '
-        non_significant_label = 'abs(score) <= 10'
+        significant_label = 'Pass'
+        non_significant_label = "Don't pass"
         treatment, control = comparison.split("_vs_")
         source = in_house_method_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
-        source['default_rank'] = source['score'].rank(method='dense')
-        source.loc[abs(source['score']) > 10, 'significant'] = significant_label
-        source.loc[abs(source['score']) <= 10, 'significant'] = non_significant_label
+        source['default_rank'] = source['score'].rank(method='first')
+        source.loc[source.category.isin(["down", "up"]), 'significant'] = significant_label
+        source.loc[~source.category.isin(["down", "up"]), 'significant'] = non_significant_label
         domain = [significant_label, non_significant_label]
         range_ = [sig, non_sig]
         chart = alt.Chart(source, title="In-house method (%s)" % comparison).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y('score:Q', axis=alt.Axis(title='%s score' % treatment)),
             tooltip=['Gene', 'up', 'down', 'n', 'significant', 'score', 'default_rank'],
-            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
+            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Guides threshold:")),
             order=alt.Order('significant:N')
         ).properties(width=800, height=400).interactive()
         line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
@@ -762,8 +762,6 @@ def show_sgRNA_counts(token):
     color_scheme_widget = widgets.Dropdown(placeholder='Choose one', options = color_schemes, description='Color scheme:', value=color_schemes[0])
     reverse_widget = widgets.Checkbox(value=False, description='Reverse color scheme?')
 
-    # display(element)
-    # display(conditions)
     display(widgets.VBox([element, conditions, color_scheme_widget, reverse_widget]))
 
     button = widgets.Button(description="Show!")
@@ -873,55 +871,6 @@ def show_sgRNA_counts_lines(token):
     button.on_click(on_button_clicked)
 
 
-# def show_sgRNA_counts_lines(token):
-#     config = "./config/%s.yaml" % token
-#     content = open_yaml(config)
-#     cts_file = content['normalized_count_table']
-#     cts = pd.read_csv(cts_file, sep="\t")
-#     design_file = content['tsv_file']
-#     design = pd.read_csv(design_file, sep="\t")
-#
-#     conditions_list_init = list(design.condition)
-#     conditions_list = []
-#     for condition in conditions_list_init:
-#         if not condition in conditions_list:
-#             conditions_list.append(condition)
-#
-#     genes_list = list(set(pd.melt(cts, id_vars=['sgRNA', 'Gene']).Gene.tolist()))
-#     element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element:', value=genes_list[0], ensure_option=True)
-#     conditions = widgets.TagsInput(value=conditions_list, allowed_tags=conditions_list, allow_duplicates=False)
-#
-#     display(element)
-#     display(conditions)
-#
-#     button = widgets.Button(description="Show!")
-#
-#     display(button)
-#
-#     def on_button_clicked(b):
-#         cts = pd.read_csv(cts_file, sep="\t")
-#         cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
-#         if not element.value in list(cts.Gene):
-#             print("Element '%s' not in counts matrix." % element.value)
-#         sort_cols = conditions.value
-#         gene_cts = cts.loc[cts.Gene == element.value]
-#         source = gene_cts
-#         source = pd.merge(source, design, left_on='variable', right_on='replicate')
-#         boolean_series = source.condition.isin(sort_cols)
-#         source = source[boolean_series]
-#         source = source.groupby(['sgRNA', 'condition']).mean()
-#         source = source.reset_index()
-#
-#         line = alt.Chart(source, title="%s mean normalized read counts" % element.value).mark_line().encode(
-#             x=alt.X('condition', axis=alt.Axis(title='Condition'), sort=sort_cols),
-#             y='value',
-#             color='sgRNA',
-#         )
-#
-#         display(line.interactive().properties(width=300))
-#
-#     button.on_click(on_button_clicked)
-
 
 def tool_results_by_element(results_directory, tools_available):
 
@@ -973,8 +922,6 @@ def tool_results_by_element(results_directory, tools_available):
 
 
     tools_list =  [tool for tool in list(tools_available.keys()) if tool != 'DESeq2']
-#     tool_widget = widgets.Select(options = tools_list)
-#     tool_widget.observe(update_control, 'value')
 
     ctrs = get_controls(results_directory, tools_available, tools_list[0])
     control = widgets.Dropdown(options=ctrs, value=ctrs[0], description='Control:', disabled=False)
@@ -985,12 +932,12 @@ def tool_results_by_element(results_directory, tools_available):
     elements_list = get_genes_list(results_directory, tools_available, tools_list[0])
     gene = widgets.Combobox(placeholder='Choose one', options = elements_list, description='Element:', value=elements_list[0], ensure_option=False,)
 
-    display(widgets.VBox([control, gene, fdr_cutoff]))  # tool_widget,
+    display(widgets.VBox([control, gene, fdr_cutoff]))
 
 
     def CRISPhieRmix_results(result, fdr_cutoff, control, gene):
-        significant_label = 'Yes'#'fdr < %s' % fdr_cutoff
-        non_significant_label = 'No'#'fdr >= %s' % fdr_cutoff
+        significant_label = 'Yes'
+        non_significant_label = 'No'
         result.loc[result['locfdr'] < fdr_cutoff, 'significant'] = significant_label
         result.loc[result['locfdr'] >= fdr_cutoff, 'significant'] = non_significant_label
         new_row = {'gene':gene, 'condition':control, 'significant': 'Baseline', 'locfdr':1, 'top_3_mean_log2FoldChange': 0}
@@ -1012,11 +959,11 @@ def tool_results_by_element(results_directory, tools_available):
                     width=100
             )
         return plot
-#         display(plot)
+
 
     def MAGeCK_RRA_results(result, fdr_cutoff, control, gene):
-        significant_label = 'Yes'#'fdr < %s' % fdr_cutoff
-        non_significant_label = 'No'#'fdr >= %s' % fdr_cutoff
+        significant_label = 'Yes'
+        non_significant_label = 'No'
         result.loc[result['neg|fdr'] < fdr_cutoff, 'significant'] = significant_label
         result.loc[result['neg|fdr'] >= fdr_cutoff, 'significant'] = non_significant_label
         new_row = {'id':gene, 'condition':control, 'significant': 'Baseline', 'neg|fdr':1, 'neg|lfc': 0}
@@ -1038,13 +985,12 @@ def tool_results_by_element(results_directory, tools_available):
                     width=100
             )
         return plot
-#         display(plot)
 
 
 
     def MAGeCK_MLE_results(result, fdr_cutoff, control, gene):
-        significant_label = 'Yes'#'fdr < %s' % fdr_cutoff
-        non_significant_label = 'No'#'fdr >= %s' % fdr_cutoff
+        significant_label = 'Yes'
+        non_significant_label = 'No'
         result.loc[result['fdr'] < fdr_cutoff, 'significant'] = significant_label
         result.loc[result['fdr'] >= fdr_cutoff, 'significant'] = non_significant_label
         new_row = {'Gene':gene, 'condition':control, 'significant': 'Baseline', 'fdr':1, 'beta': 0}
@@ -1066,12 +1012,11 @@ def tool_results_by_element(results_directory, tools_available):
                     width=100
             )
         return plot
-#         display(plot)
 
 
     def GSEA_like_results(result, fdr_cutoff, control, gene):
-        significant_label = 'Yes'#'fdr < %s' % fdr_cutoff
-        non_significant_label = 'No'#'fdr >= %s' % fdr_cutoff
+        significant_label = 'Yes'
+        non_significant_label = 'No'
         result.loc[result['padj'] < fdr_cutoff, 'significant'] = significant_label
         result.loc[result['padj'] >= fdr_cutoff, 'significant'] = non_significant_label
         new_row = {'pathway':gene, 'condition':control, 'significant': 'Baseline', 'pval':1, 'padj':1 ,'ES': 0, 'NES': 0, 'size':None}
@@ -1119,16 +1064,15 @@ def tool_results_by_element(results_directory, tools_available):
                     width=100
             )
         return plot
-#         display(plot)
 
 
 
     def inhouse_method_results(result, fdr_cutoff, control, gene):
         significant_label = 'Yes'
         non_significant_label = 'No'
-        result.loc[result['category'] == "down", 'significant'] = significant_label
-        result.loc[result['category'] != "down", 'significant'] = non_significant_label
-        new_row = {'Gene':gene, 'condition':control, 'significant': 'Baseline', 'down':0 ,'score': 0, 'prop': 0, 'up': 0, 'n': 0, 'category': 'Baseline'}
+        result.loc[result.category.isin(["down", "up"]), 'significant'] = significant_label
+        result.loc[~result.category.isin(["down", "up"]), 'significant'] = non_significant_label
+        new_row = {'Gene':gene, 'condition':control, 'significant': 'Baseline', 'down':0 ,'score': 0, 'up': 0, 'n': 0, 'category': 'Baseline'}
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.Gene == gene]
         domain = [significant_label, non_significant_label, 'Baseline']
@@ -1141,7 +1085,7 @@ def tool_results_by_element(results_directory, tools_available):
                     y='score',
                     x=alt.X('condition:N', sort=sort_cols),
                     color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
-                    tooltip=['Gene', 'condition', 'down', 'up', 'n', 'score', 'prop', 'significant'],
+                    tooltip=['Gene', 'condition', 'down', 'up', 'n', 'score', 'significant'],
             ).properties(
                     title=gene + " (Filtering method)",
                     width=100
@@ -1236,7 +1180,10 @@ def enrichr_plots(token, pitviper_res):
 
             if tool.value == 'in_house_method':
                 info = tool_res[conditions.value][conditions.value + "_all-elements_in-house.txt"]
-                info = info.loc[info['score'] < score_cutoff.value]
+                if score_cutoff.value > 0:
+                    info = info.loc[info['score'] > score_cutoff.value]
+                else:
+                    info = info.loc[info['score'] < score_cutoff.value]
                 genes = info['Gene']
 
             if tool.value == "GSEA-like":
@@ -1253,7 +1200,7 @@ def enrichr_plots(token, pitviper_res):
                 info = info.loc[info['locfdr'] < fdr_cutoff.value]
                 if score_cutoff.value > 0:
                     info = info.loc[info['top_3_mean_log2FoldChange'] > score_cutoff.value]
-                elif score_cutoff.value < 0:
+                elif score_cutoff.value <= 0:
                     info = info.loc[info['top_3_mean_log2FoldChange'] < score_cutoff.value]
                 genes = info['gene']
 
@@ -1327,7 +1274,10 @@ def genemania_link_results(token, tools_available):
 
         if tool.value == 'in_house_method':
             info = tool_res[conditions.value][conditions.value + "_all-elements_in-house.txt"]
-            info = info.loc[info['score'] < float(score_cutoff.value)]
+            if score_cutoff.value > 0:
+                info = info.loc[info['score'] > score_cutoff.value]
+            else:
+                info = info.loc[info['score'] < score_cutoff.value]
             genes = info['Gene']
 
         if tool.value == "GSEA-like":
@@ -1440,20 +1390,12 @@ def ranking(treatment, control, token, tools_available, params):
         tool_genes.append(bagel_genes)
 
     if params['in_house_method']['on']:
-        score = params['in_house_method']['score']
-        greater = params['in_house_method']['greater']
         in_house = tools_available["in_house_method"][comparison][comparison + "_all-elements_in-house.txt"]
         if params['in_house_method']['direction'] == "Negative":
-            if not greater:
-                in_house = in_house[(in_house["down"] > 1) & (in_house["up"] < 2) & (in_house["score"] < score)]
-            else:
-                in_house = in_house[(in_house["down"] > 1) & (in_house["up"] < 2) & (in_house["score"] > score)]
+                in_house = in_house.loc[in_house.category == "down"]
         elif params['in_house_method']['direction'] == "Positive":
-            if not greater:
-                in_house = in_house[(in_house["down"] < 2) & (in_house["up"] > 1) & (in_house["score"] < score)]
-            else:
-                in_house = in_house[(in_house["down"] < 2) & (in_house["up"] > 1) & (in_house["score"] > score)]
-        in_house['default_rank'] = in_house['score'].rank(method="dense").copy()
+                in_house = in_house.loc[in_house.category == "up"]
+        in_house['default_rank'] = in_house['score'].rank(method="first").copy()
         in_house = in_house[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "in_house_rank"})
         in_house_genes = list(in_house.id)
         tool_results["In-house"] = in_house_genes
@@ -1518,7 +1460,7 @@ def ranking(treatment, control, token, tools_available, params):
 
     if params['in_house_method']['on']:
         in_house = tools_available["in_house_method"][comparison][comparison + "_all-elements_in-house.txt"]
-        in_house['default_rank'] = in_house['score'].rank(method="dense").copy()
+        in_house['default_rank'] = in_house['score'].rank(method="first").copy()
         in_house = in_house[["Gene", "default_rank"]].rename(columns={"Gene": "id", "default_rank": "in_house_rank"})
         pdList.append(in_house)
 
@@ -1572,9 +1514,7 @@ def reset_params():
                              'top_3_mean_log2FoldChange': 0,
                              'greater': False},
               'in_house_method': {'on': False,
-                             'direction': 'Negative',
-                             'score': 0,
-                             'greater': False},
+                             'direction': 'Negative'},
               'GSEA_like': {'on': False,
                              'fdr': 0.25,
                              'score': 0,
@@ -1630,15 +1570,8 @@ def display_tools_widgets(tools_selected):
         params['CRISPhieRmix']['top_3_mean_log2FoldChange'] = change['new']
 
     ### In-house
-    def in_house_method_order_update(change):
-        if change['new'] == 'Greater than score':
-            params['in_house_method']['greater'] = True
-        else:
-            params['in_house_method']['greater'] = False
     def in_house_method_direction_update(change):
         params['in_house_method']['direction'] = change['new']
-    def in_house_method_score_update(change):
-        params['in_house_method']['score'] = change['new']
 
     ### GSEA-like
     def GSEA_like_order_update(change):
@@ -1703,14 +1636,10 @@ def display_tools_widgets(tools_selected):
     if 'in_house_method' in tools_selected:
         params['in_house_method']['on'] = True
         in_house_method_direction=widgets.ToggleButtons(options=['Negative', 'Positive'], description='Direction:')
-        in_house_method_score=widgets.FloatText(value=0, description='Score cut-off:')
         in_house_method_text=widgets.HTML(value="<b>In-house method</b>:")
-        in_house_method_order=widgets.ToggleButtons(options=['Lower than score', 'Greater than score'], description='Selection:')
         display(in_house_method_text)
-        in_house_method_box = widgets.HBox([in_house_method_direction, in_house_method_score, in_house_method_order])
+        in_house_method_box = widgets.HBox([in_house_method_direction])
         display(in_house_method_box)
-        in_house_method_order.observe(in_house_method_order_update, 'value')
-        in_house_method_score.observe(in_house_method_score_update, 'value')
         in_house_method_direction.observe(in_house_method_direction_update, 'value')
     if 'GSEA-like' in tools_selected:
         params['GSEA_like']['on'] = True
@@ -2199,7 +2128,7 @@ def plot_chart(data, tool, condition, file, x, y, method, column_filter='', cuto
                 tooltip = list(source.columns),
                 color=alt.Color(category_column, legend=alt.Legend(title="%s:" % category_column), scale=alt.Scale(scheme=color_scheme, reverse=reverse))
             ).interactive()
-            display(chart)
+            print(chart)
 
 
 def call_form(tools_available):

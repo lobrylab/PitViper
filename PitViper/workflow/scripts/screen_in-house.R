@@ -42,11 +42,10 @@ in.house.res <- table %>%
                     ifelse(down >= inhouse_guides_threshold & up < inhouse_guides_threshold, "down",
                     ifelse(up >= inhouse_guides_threshold & down < inhouse_guides_threshold, "up", "unchanged")))) %>%
   rowwise() %>%
-  mutate(score = ifelse(category == "down" | category == "up", sum(scores)/(up + down), 0)) %>%
+  mutate(score = ifelse(category == "down", sum(unlist(scores)[which(unlist(scores) < 0)])/(down),
+                 ifelse(category == "up", sum(unlist(scores)[which(unlist(scores) > 0)])/(up), 0))) %>%
   arrange(score) %>%
   mutate(scores = 0)
-
-print(in.house.res)
 
 # Get results.
 in.house.down <- in.house.res %>%
