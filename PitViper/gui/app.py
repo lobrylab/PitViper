@@ -91,7 +91,7 @@ def result():
       documents = yaml.dump(result_dict, file)
     run_pitviper(token=result_dict['token'])
     shutdown_server()
-    return 'Server shutting down...'#render_template("result.html",result = result)
+    return 'Server shutting down. You can close this page.'
 
 def open_browser():
       webbrowser.open_new('http://127.0.0.1:5000/')

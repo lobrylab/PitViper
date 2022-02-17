@@ -31,7 +31,10 @@ rule filtering_method:
         all_elements="results/{token}/in_house_method/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_in-house.txt"
     params:
         treatment="{treatment}",
-        control="{control}"
+        control="{control}",
+        inhouse_fdr_threshold = config["inhouse_fdr_threshold"],
+        inhouse_log2_threshold = config["inhouse_log2_threshold"],
+        inhouse_guides_threshold = config["inhouse_guides_threshold"]
     log:
         "logs/{token}/in_house_method/{treatment}_vs_{control}.log"
     benchmark:

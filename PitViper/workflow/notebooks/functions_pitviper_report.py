@@ -13,6 +13,9 @@ from os import listdir
 from os import path
 import pandas as pd
 from pathlib import Path
+import plotly
+# import plotly.graph_objects as go
+# import plotly.figure_factory as ff
 import re
 import rpy2
 import rpy2.robjects as ro
@@ -24,9 +27,11 @@ import rpy2.ipython.html
 import requests
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.stats import zscore
+from scipy import stats
 from sklearn import decomposition
 from sklearn import datasets
 import yaml
+
 
 depmap = importr("depmap")
 experimentHub = importr("ExperimentHub")
@@ -1731,6 +1736,131 @@ def disable_widgets(token):
     return disabled
 
 
+def plot_interactive_heatmap(table, column_to_plot):
+    """Plot an interactive heatmap with dendrogram using Plotly from a depmap table."""
+
+
+    # Transform datatable to a wide form.
+    data = pd.pivot_table(table,index="cell_line_name",columns="gene_name", values=column_to_plot).reset_index().set_index("cell_line_name").dropna(axis=1)
+
+    # Store datable index and columns in two lists
+    labels = data.index
+    cols = data.columns
+
+    # Convert datatable to numpy array
+    data = data.to_numpy(dtype = float)
+
+    # Compute z-score.
+    if column_to_plot in ['rna_expression', 'protein_expression']:
+        data_array = stats.zscore(data, axis=0)
+    else:
+        data_array = data
+
+    # Initialize figure by creating upper dendrogram
+    fig = ff.create_dendrogram(data_array, orientation='bottom')#, labels=labels)
+    for i in range(len(fig['data'])):
+        fig['data'][i]['yaxis'] = 'y2'
+
+    # Create Side Dendrogram
+    dendro_side = ff.create_dendrogram(data_array.transpose(), orientation='right')#, labels=cols)
+    for i in range(len(dendro_side['data'])):
+        dendro_side['data'][i]['xaxis'] = 'x2'
+
+    # Add Side Dendrogram Data to Figure
+    for data in dendro_side['data']:
+        fig.add_trace(data)
+
+    # Create Heatmap
+    dendro_leaves_side = dendro_side['layout']['yaxis']['ticktext']
+    dendro_leaves_side = list(map(int, dendro_leaves_side))
+
+    dendro_leaves_upper = fig['layout']['xaxis']['ticktext']
+    dendro_leaves_upper = list(map(int, dendro_leaves_upper))
+
+    heat_data = data_array.transpose()
+    heat_data = heat_data[dendro_leaves_side,:]
+    heat_data = heat_data[:,dendro_leaves_upper]
+
+
+    # Center colorbar on zero
+    max_value = np.max(heat_data)
+    min_value = np.min(heat_data)
+    prop_zero = abs(min_value / (abs(max_value) + abs(min_value)))
+
+    # Define heatmap
+    heatmap = [
+        go.Heatmap(
+            x = dendro_leaves_upper,
+            y = dendro_leaves_side,
+            z = heat_data,
+            colorscale = [[0.0, "rgb(0, 13, 255)"],
+                    [prop_zero, "rgb(255, 255, 255)"],
+                    [1.0, "rgb(255, 0, 38)"]],
+            colorbar={'x': -0.1,
+                      'tickfont': {'size': 14}, 'lenmode':'fraction', 'len':0.25, 'thickness':20}
+        )
+    ]
+
+    heatmap[0]['x'] = fig['layout']['xaxis']['tickvals']
+    heatmap[0]['y'] = dendro_side['layout']['yaxis']['tickvals']
+
+    indicies_xaxis = list(map(int, fig['layout']['xaxis']['ticktext']))
+    indicies_yaxis = list(map(int, dendro_side['layout']['yaxis']['ticktext']))
+
+    # Add Heatmap Data to Figure
+    for data in heatmap:
+        fig.add_trace(data)
+
+    # Edit Layout
+    fig.update_layout({'width':800, 'height':900,
+                             'showlegend':False, 'hovermode': 'closest'})
+    # Edit xaxis
+    fig.update_layout(font={'size':10}, xaxis={'domain': [.15, 1],
+                                      'ticktext': labels[indicies_xaxis],
+                                      'mirror': False,
+                                      'showgrid': False,
+                                      'showline': False,
+                                      'zeroline': False,
+                                      'showticklabels': True,
+                                      'tickangle': 45,
+                                      'ticks':""})
+    # Edit xaxis2
+    fig.update_layout(xaxis2={'domain': [0, .15],
+                                       'mirror': False,
+                                       'showgrid': False,
+                                       'showline': False,
+                                       'zeroline': False,
+                                       'showticklabels': False,
+                                       'ticks':""})
+
+    # # Edit yaxis
+    fig.update_layout(font={'size':10}, yaxis={'domain': [0, .85],
+                                      'ticktext': cols[indicies_yaxis],
+                                      'tickmode': 'array',
+                                      'tickvals': dendro_side['layout']['yaxis']['tickvals'],
+                                      'mirror': False,
+                                      'showgrid': False,
+                                      'showline': False,
+                                      'zeroline': False,
+                                      'showticklabels': True,
+                                      'ticks': "",
+                                      'side': "right"
+                            })
+    # Edit yaxis2
+    fig.update_layout(yaxis2={'domain':[.825, .975],
+                                       'mirror': False,
+                                       'showgrid': False,
+                                       'showline': False,
+                                       'zeroline': False,
+                                       'showticklabels': False,
+                                       'ticks':""})
+
+
+    # Plot!
+    display(HTML('''<h4 style="color:white;font-weight: bold;background-color: red;padding: 0.5em;">Depmap %s heatmap</h4>''' % column_to_plot))
+    display(fig)
+
+
 def multiple_tools_results(tools_available, token):
     TOOLS = [tool for tool in tools_available.keys() if not tool in ["DESeq2"]]
 
@@ -1777,6 +1907,7 @@ def multiple_tools_results(tools_available, token):
         else:
             df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns = ['union'])
             genes_list = df.loc[df.union == True].index
+        display(HTML('''<p style="color:white;font-weight: bold;background-color: orange;padding: 0.5em;">Genes at %s</p>''' % selection_widgets.value))
         plot_venn(occurences)
         print("Genes at %s of all methods:" % selection_widgets.value)
         for gene in genes_list:
@@ -1785,27 +1916,23 @@ def multiple_tools_results(tools_available, token):
     def rra_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        # print("\n\n########################################")
-        # print("### RRA results ###")
-        display(HTML('''<p style="color:white;font-weight: bold;background-color: green;">RRA results</p>'''))
+        display(HTML('''<p style="color:white;font-weight: bold;background-color: green;padding: 0.5em;">RRA results</p>'''))
         run_rra(ranks)
-        # print("########################################")
+
 
     def genemania_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        print("\n\n########################################")
-        print("### Genemania link using %s" % selection_widgets.value)
         if selection_widgets.value == "Intersection":
             df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).all(1), columns = ['intersection'])
             genes_list = df.loc[df.intersection == True].index
         else:
             df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns = ['union'])
             genes_list = df.loc[df.union == True].index
+        display(HTML('''<p style="color:white;font-weight: bold;background-color: blue;padding: 0.5em;">Genemania link - %s</p>''' % selection_widgets.value))
         link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
         print('Link to Genemania website: (%s elements)\n' % len(genes_list))
         print(link)
-        print("########################################")
 
     def enrichr_button_clicked(b):
         def show_enrichr_plots(b, genes, bases, size, plot_type, col_2, col_1, description):
@@ -1822,6 +1949,7 @@ def multiple_tools_results(tools_available, token):
             for chart in charts:
                 display(chart)
 
+        display(HTML('''<p style="color:white;font-weight: bold;background-color: purple;padding: 0.5em;">EnrichR for genes at %s</p>''' % selection_widgets.value))
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
         if selection_widgets.value == "Intersection":
@@ -1844,6 +1972,7 @@ def multiple_tools_results(tools_available, token):
 
 
     def depmap_button_clicked(b):
+        display(HTML('''<p style="color:white;font-weight: bold;background-color: #A52A2A;padding: 0.5em;">depmap vizualisation module</p>'''))
         data_types_widget = widgets.RadioButtons(options=['crispr', 'proteomic', 'rnai', 'tpm', 'mutations'],value='crispr',description='Data type:',disabled=False)
 
 
@@ -1992,33 +2121,9 @@ def multiple_tools_results(tools_available, token):
                     ).interactive()
                     display(chart)
                 else:
-#                     gene_cts = table[table.gene_name.isin(genes_list)][["gene_name", "cell_line_name", variable]]
-#                     gene_cts_alt = pd.pivot_table(gene_cts, values=variable, index=['gene_name',], columns=['cell_line_name'])
-#                     array = np.array(gene_cts_alt)
-#                     linked = pd.DataFrame(linkage(array, 'single'), columns = ['a', 'b', 'c', 'd'])
-#                     print(array)
-#                     print(linked)
-#                     z_scores = gene_cts.groupby(['sgRNA']).value.transform(lambda x : zscore(x,ddof=1))
-#                     gene_cts['z-score'] = z_scores
-#                     gene_cts
-#                     chart = alt.Chart(
-#                         gene_cts,
-#                         title="%s" % variable
-#                     ).mark_rect().encode(
-#                         x=alt.X('cell_line_name', axis=alt.Axis(title='Cell line')),
-#                         y=alt.Y('gene_name', axis=alt.Axis(title='Gene')),
-#                         color=alt.Color(variable ,scale=alt.Scale(scheme='blueorange')),
-#                         tooltip=['gene_name', variable, 'cell_line_name',]
-#                     ).interactive()
-#                     display(chart)
+                    essential_genes = table[table.gene_name.isin(genes_list)][["gene_name", "cell_line_name", variable]]#.pivot_table(index='gene_name', columns='cell_line', values=variable).dropna()
+                    plot_interactive_heatmap(essential_genes, variable)
 
-                    essential_genes = table[table.gene_name.isin(genes_list)][["gene_name", "cell_line", variable]].pivot_table(index='gene_name', columns='cell_line', values=variable).dropna()
-                    essential_genes = essential_genes.rename(columns=lambda s: s.split("_")[0])
-                    net.load_df(essential_genes)
-                    if data_types_widget.value == "tpm":
-                        net.normalize(axis='row', norm_type='zscore')
-                    net.cluster()
-                    display(net.widget())
 
             button = widgets.Button(description = "Run!")
             button.on_click(tissu_selection_button_clicked)
