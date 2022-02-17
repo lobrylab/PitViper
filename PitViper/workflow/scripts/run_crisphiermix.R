@@ -8,14 +8,13 @@ print(snakemake@params[[1]])
 print(snakemake@params[[2]])
 
 ### Libraries
-
 library(readr)
 library(dplyr)
 library(CRISPhieRmix)
 
+set.seed(123)
 
 ### Data
-
 res <- read_delim(snakemake@input[[1]],
                           "\t", escape_double = FALSE, trim_ws = TRUE)
 
@@ -34,7 +33,6 @@ geneIds = factor(geneIds, levels = unique(geneIds))
 
 
 ### Compute mean log2FoldChange of Top-3 sgRNAs per target.
-
 meanlog2FoldChanges <- all_count.DESeq2 %>%
   group_by(Gene) %>%
   slice_max(order_by = abs(log2FoldChange), n = 3) %>%

@@ -13,9 +13,8 @@ from os import listdir
 from os import path
 import pandas as pd
 from pathlib import Path
-import plotly
-# import plotly.graph_objects as go
-# import plotly.figure_factory as ff
+import plotly.graph_objects as go
+import plotly.figure_factory as ff
 import re
 import rpy2
 import rpy2.robjects as ro

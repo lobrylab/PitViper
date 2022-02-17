@@ -14,7 +14,7 @@ treatment <- snakemake@params[1]
 baseline <- snakemake@params[2]
 design_file <- snakemake@params[[3]]
 
-print(cts_file)
+set.seed(123)
 
 # Process counts file (must be tab delimited and have a 'sgRNA' column).
 cts <- read.csv(cts_file, sep="\t", row.names="sgRNA", check.names=FALSE)

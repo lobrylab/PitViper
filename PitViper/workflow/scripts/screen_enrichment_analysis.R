@@ -9,6 +9,7 @@ library(DESeq2)
 library(tibble)
 library(matrixStats)
 
+set.seed(123)
 
 # Handle arguments.
 cts_file <- snakemake@input[[1]]

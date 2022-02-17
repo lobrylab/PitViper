@@ -6,6 +6,7 @@ library(dplyr)
 library(stringr)
 library(readr)
 
+set.seed(123)
 
 # Handle arguments.
 cts_file <- snakemake@input[[1]]
