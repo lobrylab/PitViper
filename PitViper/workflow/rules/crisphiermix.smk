@@ -33,7 +33,8 @@ rule CRISPhieRmix:
         gene_summary="results/{token}/CRISPhieRmix/{treatment}_vs_{control}/{treatment}_vs_{control}.txt",
     params:
         n_control=getControlIdsLen,
-        n_treatment=getTreatmentIdsLen
+        n_treatment=getTreatmentIdsLen,
+        control_sgrna_opt = lambda x: config['controls_file'] if config['controls_file'] != '' else ''
     log:
         "logs/{token}/CRISPhieRmix/{treatment}_vs_{control}.log"
     benchmark:

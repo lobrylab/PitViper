@@ -6,6 +6,7 @@ sink(con, append=TRUE, type="message")
 print(snakemake@input[[1]])
 print(snakemake@params[[1]])
 print(snakemake@params[[2]])
+print(snakemake@params[[3]])
 
 ### Libraries
 library(readr)
@@ -17,13 +18,17 @@ set.seed(123)
 ### Data
 res <- read_delim(snakemake@input[[1]],
                           "\t", escape_double = FALSE, trim_ws = TRUE)
-
 cts <- read_delim(snakemake@input[[2]],
                           "\t", escape_double = FALSE, trim_ws = TRUE)
 
-
 genes <- cts %>% select(Gene, sgRNA)
 all_count.DESeq2 <- merge(x = genes, y = res, by = "sgRNA")
+
+
+neg_controls_file <- snakemake@params[[3]]
+neg_controls_ids <- read.csv(neg_controls_file, header = F, col.names = "id")$id
+
+negCtrlGuides <- which(all_count.DESeq2$sgRNA %in% neg_controls_ids)
 
 
 log2fc = all_count.DESeq2$log2FoldChange
