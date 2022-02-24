@@ -249,7 +249,7 @@ def pca_counts(token):
     pca.fit(X)
     X = pca.transform(X)
 
-    a = pd.DataFrame(X, columns=['dim1', 'dim2'])
+    a = pd.DataFrame(X, columns=['PC1', 'PC2'])
     b = pd.DataFrame(y, columns=['condition'])
     c = pd.DataFrame(y_bis, columns=['replicate'])
 
@@ -257,11 +257,14 @@ def pca_counts(token):
 
     source = df_c
 
+    PC1_explained_variance_ratio = round(pca.explained_variance_ratio_[0]*100, 2)
+    PC2_explained_variance_ratio = round(pca.explained_variance_ratio_[1]*100, 2)
+
     pca_2d = alt.Chart(source).mark_circle(size=60).encode(
-        x='dim1',
-        y='dim2',
+        x=alt.X('PC1:Q', axis=alt.Axis(title='PC1 ({p}%)'.format(p=PC1_explained_variance_ratio))),
+        y=alt.X('PC2:Q', axis=alt.Axis(title='PC2 ({p}%)'.format(p=PC2_explained_variance_ratio))),
         color='condition:N',
-        tooltip=['dim1', 'dim2', 'condition', 'replicate']
+        tooltip=['PC1', 'PC2', 'condition', 'replicate']
     ).interactive()
 
     return pca_2d
