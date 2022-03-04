@@ -30,6 +30,7 @@ cts = read_cts(snakemake.input[0])
 cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'], value_vars=cts.columns.values[2:])
 
 cts = pd.merge(cts, design, left_on='variable', right_on='replicate')[["sgRNA", "Gene", "value", "condition", "replicate"]]
+
 cts = cts.groupby(['sgRNA', 'Gene', 'condition']).median().reset_index()
 
 
