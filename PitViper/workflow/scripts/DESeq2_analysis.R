@@ -19,8 +19,6 @@ set.seed(123)
 # Process counts file (must be tab delimited and have a 'sgRNA' column).
 cts <- read.csv(cts_file, sep="\t", row.names="sgRNA", check.names=FALSE)
 print(colnames(cts))
-#cts <- cbind(cts[ , grepl( c(baseline) , names( cts ) ) ], cts[ , grepl( c(treatment) , names( cts ) ) ])
-#print(names(cts))
 
 # Read design file for replicate/condition associations.
 design <- read.csv(design_file, sep="\t",  check.names=FALSE)

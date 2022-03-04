@@ -30,7 +30,12 @@ from scipy import stats
 from sklearn import decomposition
 from sklearn import datasets
 import yaml
+import warnings
 
+warnings.filterwarnings('ignore')
+
+from rpy2.rinterface import RRuntimeWarning
+warnings.filterwarnings("ignore", category=RRuntimeWarning)
 
 depmap = importr("depmap")
 experimentHub = importr("ExperimentHub")
@@ -249,7 +254,7 @@ def pca_counts(token):
     pca.fit(X)
     X = pca.transform(X)
 
-    a = pd.DataFrame(X, columns=['dim1', 'dim2'])
+    a = pd.DataFrame(X, columns=['PC1', 'PC2'])
     b = pd.DataFrame(y, columns=['condition'])
     c = pd.DataFrame(y_bis, columns=['replicate'])
 
@@ -257,11 +262,14 @@ def pca_counts(token):
 
     source = df_c
 
+    PC1_explained_variance_ratio = round(pca.explained_variance_ratio_[0]*100, 2)
+    PC2_explained_variance_ratio = round(pca.explained_variance_ratio_[1]*100, 2)
+
     pca_2d = alt.Chart(source).mark_circle(size=60).encode(
-        x='dim1',
-        y='dim2',
+        x=alt.X('PC1:Q', axis=alt.Axis(title='PC1 ({p}%)'.format(p=PC1_explained_variance_ratio))),
+        y=alt.X('PC2:Q', axis=alt.Axis(title='PC2 ({p}%)'.format(p=PC2_explained_variance_ratio))),
         color='condition:N',
-        tooltip=['dim1', 'dim2', 'condition', 'replicate']
+        tooltip=['PC1', 'PC2', 'condition', 'replicate']
     ).interactive()
 
     return pca_2d
@@ -551,49 +559,68 @@ def CRISPhieRmix_data(comparison = "", control = "", tool = "", results_director
 
 
 
-def tool_results(results_directory, tools_available):
+def tool_results(results_directory, tools_available, token):
     """Display selected method's results for all genes."""
 
+    config = "./config/%s.yaml" % token
+    content = open_yaml(config)
+    cts_file = "results/%s/normalized.filtered.counts.txt" % token
+    cts = pd.read_csv(cts_file, sep="\t")
+    cts_columns = [col for col in cts.columns.tolist() if not col in ["sgRNA", "Gene"]]
+    cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'])
+    genes_list = list(set(cts.Gene.tolist()))
+
     tools = [tool for tool in tools_available.keys() if tool != "DESeq2"]
-    tools_widget = widgets.Dropdown(options=set(tools), description='Tool:', value=tools[0])
+    tools_widget = widgets.SelectMultiple(options=set(tools), description='Tool:', value=(tools[0],))
 
     def update_comparisons_widget(new):
-        comparisons_widget.options = tools_available[tools_widget.value].keys()
+        comparisons_widget.options = tools_available[tools_widget.value[0]].keys()
 
     tools_widget.observe(update_comparisons_widget, 'value')
 
-    comparisons_list = os.listdir(os.path.join(results_directory, tools_widget.value))
+    comparisons_list = os.listdir(os.path.join(results_directory, tools_widget.value[0]))
     comparisons_widget = widgets.Dropdown(options=set(comparisons_list), description='Comparison:')
+
+    element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element(s):', value=genes_list[0], ensure_option=False)
 
     fdr_widget = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off")
 
     color_sig_widget = widgets.ColorPicker(concise=False, description='Significant color:', value='red')
     color_non_widget = widgets.ColorPicker(concise=False, description='Non-significant color:', value='gray')
 
-    def _MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
+    def _MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available, elements):
         tool = "MAGeCK_MLE"
         significant_label = 'fdr < %s' % fdr_cutoff
         non_significant_label = 'fdr >= %s' % fdr_cutoff
+        highlight_label = "Gene(s) of interest"
         treatment, control = comparison.split("_vs_")
         source = MAGeCK_MLE_data(comparison = comparison, control = "", tool = tool, results_directory=results_directory, tools_available=tools_available)
         source['default_rank'] = source[treatment + '|beta'].rank()
         source.loc[source[treatment + '|fdr'] < fdr_cutoff, 'significant'] = significant_label
         source.loc[source[treatment + '|fdr'] >= fdr_cutoff, 'significant'] = non_significant_label
-        domain = [significant_label, non_significant_label]
-        range_ = [sig, non_sig]
-        chart = alt.Chart(source, title="MAGeCK MLE (%s)" % comparison).mark_circle(size=60).encode(
+        source.loc[source.Gene.isin(elements), 'significant'] = highlight_label
+        domain = [significant_label, non_significant_label, highlight_label]
+        range_ = [sig, non_sig, "blue"]
+        chart = alt.Chart(source, title="MAGeCK MLE (%s)" % comparison).transform_calculate(
+            order="{'%s': 2, '%s': 1, '%s': 0}[datum.filter]" % (significant_label, non_significant_label, highlight_label)
+        ).mark_circle(size=60).encode(
             x=alt.X('default_rank:Q', axis=alt.Axis(title='Rank')),
             y=alt.Y(treatment + '|beta:Q', axis=alt.Axis(title='%s beta' % treatment)),
             tooltip=['Gene', 'sgRNA', treatment + '|beta', treatment + '|fdr', 'significant', 'default_rank'],
-            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:")),
-            order=alt.Order('significant:N')
+            color=alt.Color('significant', scale=alt.Scale(domain=domain, range=range_), legend=alt.Legend(title="Significativity:"), sort=[significant_label, non_significant_label, highlight_label]),
+            order='-order:Q'
         ).properties(width=800, height=400).interactive()
         line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule().encode(y='y')
-        chart = (chart + line)
+        text = (
+        alt.Chart(source.query("significant == 'Gene(s) of interest'"))
+            .mark_text(dy=-15, color="blue")
+            .encode(x=alt.X("default_rank:Q"), y=alt.Y(treatment + '|beta:Q'), text=alt.Text("Gene"))
+        )
+        chart = (chart + line + text)
         display(chart)
 
 
-    def _MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
+    def _MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available, elements):
         tool = "MAGeCK_RRA"
         significant_label = 'fdr < %s' % fdr_cutoff
         non_significant_label = 'fdr >= %s' % fdr_cutoff
@@ -616,7 +643,7 @@ def tool_results(results_directory, tools_available):
         display(chart)
 
 
-    def _CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig,results_directory, tools_available):
+    def _CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig,results_directory, tools_available, elements):
         tool = "CRISPhieRmix"
         significant_label = 'fdr < %s' % fdr_cutoff
         non_significant_label = 'fdr >= %s' % fdr_cutoff
@@ -639,7 +666,7 @@ def tool_results(results_directory, tools_available):
         display(chart)
 
 
-    def _in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
+    def _in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available, elements):
         tool = "in_house_method"
         significant_label = 'Pass'
         non_significant_label = "Don't pass"
@@ -661,7 +688,7 @@ def tool_results(results_directory, tools_available):
         chart = (chart + line)
         display(chart)
 
-    def _GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
+    def _GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available, elements):
         tool = "GSEA-like"
         significant_label = 'fdr < %s' % fdr_cutoff
         non_significant_label = 'fdr >= %s' % fdr_cutoff
@@ -685,7 +712,7 @@ def tool_results(results_directory, tools_available):
         display(chart)
 
 
-    def _BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available):
+    def _BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available, elements):
         tool = "BAGEL"
         significant_label = 'BF > 0'
         non_significant_label = 'BF <= 0'
@@ -717,22 +744,24 @@ def tool_results(results_directory, tools_available):
         fdr_cutoff = fdr_widget.value
         non_sig = color_non_widget.value
         sig = color_sig_widget.value
-        if tool == "MAGeCK_RRA":
-            _MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
-        if tool == "MAGeCK_MLE":
-            _MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
-        if tool == "CRISPhieRmix":
-            _CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
-        if tool == "in_house_method":
-            _in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
-        if tool == "GSEA-like":
-            _GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
-        if tool == "BAGEL":
-            _BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available)
+        elements = element.value.split(",")
+        if "MAGeCK_RRA" in tool:
+            _MAGeCK_RRA_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available, elements)
+        if "MAGeCK_MLE" in tool:
+            _MAGeCK_MLE_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available, elements)
+        if "CRISPhieRmix" in tool:
+            _CRISPhieRmix_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available, elements)
+        if "in_house_method" in tool:
+            _in_house_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available, elements)
+        if "GSEA-like" in tool:
+            _GSEA_like_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available, elements)
+        if "BAGEL" in tool:
+            _BAGEL_snake_plot(comparison, fdr_cutoff, non_sig, sig, results_directory, tools_available, elements)
         else:
             print("Choose a tool.")
 
     display(tools_widget)
+    display(element)
     display(comparisons_widget)
     display(fdr_widget)
     display(color_sig_widget)
@@ -1124,7 +1153,8 @@ def enrichr_plots(token, pitviper_res):
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
     if content['screen_type'] == 'not_gene':
-        return "This module is available only if genes symbol are used."
+        return HTML('''<p style="color:red;background-color: white;padding: 0.5em;">This module is available only if genes symbol are available.</p>''')
+        # return "This module is available only if genes symbol are used."
 
     def update_conditions(update):
         conditions_list = list(pitviper_res[tool.value].keys())
@@ -1236,7 +1266,8 @@ def genemania_link_results(token, tools_available):
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
     if content['screen_type'] == 'not_gene':
-        return "This module is available only if genes symbol are used."
+        return HTML('''<p style="color:red;background-color: white;padding: 0.5em;">This module is available only if genes symbol are available.</p>''')
+        # return "This module is available only if genes symbol are used."
 
     def update_conditions(update):
         conditions_list = list(tools_available[tool.value].keys())

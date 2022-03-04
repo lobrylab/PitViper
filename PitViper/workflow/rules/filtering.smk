@@ -10,6 +10,8 @@ rule counts_filtering:
         normalized_filtered_counts = "results/" + config['token'] + "/normalized.filtered.counts.txt",
         raw_filtered_counts = "results/" + config['token'] + "/raw.filtered.counts.txt"
     params:
-        config['tsv_file'],
+        config['tsv_file']
+    log:
+        "logs/" + config['token'] + "/counts_filtering/" + "counts_filtering.log"
     script:
         "../../workflow/scripts/counts_filtering.py"

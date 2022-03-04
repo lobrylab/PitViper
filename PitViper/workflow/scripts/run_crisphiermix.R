@@ -60,7 +60,8 @@ if (snakemake@params[[3]] != "") {
 } else {
   log2fcCRISPhieRmixFit = CRISPhieRmix::CRISPhieRmix(x = all_count.DESeq2$log2FoldChange, geneIds = geneIds)
 }
-log2fcCRISPhieRmixScores = data.frame(gene = log2fcCRISPhieRmixFit$genes, locfdr = log2fcCRISPhieRmixFit$locfdr, score = log2fcCRISPhieRmixFit$geneScores, FDR = log2fcCRISPhieRmixFit$FDR)
+print(log2fcCRISPhieRmixFit)
+log2fcCRISPhieRmixScores = data.frame(gene = log2fcCRISPhieRmixFit$genes, locfdr = log2fcCRISPhieRmixFit$locfdr, FDR = log2fcCRISPhieRmixFit$FDR)
 log2fcCRISPhieRmixScores$locfdr[which(log2fcCRISPhieRmixScores$FDR < 0)] = 0
 log2fcCRISPhieRmixScores = log2fcCRISPhieRmixScores[order(log2fcCRISPhieRmixScores$locfdr, decreasing = FALSE), ]
 
