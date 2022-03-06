@@ -76,4 +76,9 @@ fgseaRes <- fgsea(pathways = pathways,
 # Remove leadingEdge as a string.
 fgseaRes <- fgseaRes %>% select(-leadingEdge)
 
+sign.down.res <- fgseaRes[ES < 0 & padj < 0.25] %>% arrange(padj)
+sign.up.res <- fgseaRes[ES > 0 & padj < 0.25] %>% arrange(padj)
+
+write.table(data.frame(sign.down.res), snakemake@output[[1]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
+write.table(data.frame(sign.up.res), snakemake@output[[2]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
 write.table(data.frame(fgseaRes), snakemake@output[[3]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
