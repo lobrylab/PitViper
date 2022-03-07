@@ -1,7 +1,7 @@
 #!/bin/bash -i
 
 ### Activation of pitviper_env.
-conda activate pitviper_test
+conda activate pitviper_env
 
 ### Get absolute path of Flask application.
 app_full_path=$(realpath gui/app.py)
