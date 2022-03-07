@@ -60,6 +60,7 @@ dependencies:
   - scipy=1.7.2=py38h56a6a73_0
   - snakemake=6.7.0
   - statsmodels=0.13.0
+  - tk=8.6.11
   - yaml=0.2.5=h516909a_0
   - pip:
     - fastcluster==1.2.4
