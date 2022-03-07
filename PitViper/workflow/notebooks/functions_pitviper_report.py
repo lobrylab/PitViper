@@ -581,7 +581,7 @@ def tool_results(results_directory, tools_available, token):
     comparisons_list = os.listdir(os.path.join(results_directory, tools_widget.value[0]))
     comparisons_widget = widgets.Dropdown(options=set(comparisons_list), description='Comparison:')
 
-    element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element(s):', value=genes_list[0], ensure_option=False)
+    element = widgets.Combobox(placeholder='Choose one', options = genes_list, description='Element(s):', ensure_option=False)
 
     fdr_widget = widgets.FloatSlider(min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off")
 
@@ -1735,131 +1735,6 @@ def disable_widgets(token):
     return disabled
 
 
-def plot_interactive_heatmap(table, column_to_plot):
-    """Plot an interactive heatmap with dendrogram using Plotly from a depmap table."""
-
-
-    # Transform datatable to a wide form.
-    data = pd.pivot_table(table,index="cell_line_name",columns="gene_name", values=column_to_plot).reset_index().set_index("cell_line_name").dropna(axis=1)
-
-    # Store datable index and columns in two lists
-    labels = data.index
-    cols = data.columns
-
-    # Convert datatable to numpy array
-    data = data.to_numpy(dtype = float)
-
-    # Compute z-score.
-    if column_to_plot in ['rna_expression', 'protein_expression']:
-        data_array = stats.zscore(data, axis=0)
-    else:
-        data_array = data
-
-    # Initialize figure by creating upper dendrogram
-    fig = ff.create_dendrogram(data_array, orientation='bottom')#, labels=labels)
-    for i in range(len(fig['data'])):
-        fig['data'][i]['yaxis'] = 'y2'
-
-    # Create Side Dendrogram
-    dendro_side = ff.create_dendrogram(data_array.transpose(), orientation='right')#, labels=cols)
-    for i in range(len(dendro_side['data'])):
-        dendro_side['data'][i]['xaxis'] = 'x2'
-
-    # Add Side Dendrogram Data to Figure
-    for data in dendro_side['data']:
-        fig.add_trace(data)
-
-    # Create Heatmap
-    dendro_leaves_side = dendro_side['layout']['yaxis']['ticktext']
-    dendro_leaves_side = list(map(int, dendro_leaves_side))
-
-    dendro_leaves_upper = fig['layout']['xaxis']['ticktext']
-    dendro_leaves_upper = list(map(int, dendro_leaves_upper))
-
-    heat_data = data_array.transpose()
-    heat_data = heat_data[dendro_leaves_side,:]
-    heat_data = heat_data[:,dendro_leaves_upper]
-
-
-    # Center colorbar on zero
-    max_value = np.max(heat_data)
-    min_value = np.min(heat_data)
-    prop_zero = abs(min_value / (abs(max_value) + abs(min_value)))
-
-    # Define heatmap
-    heatmap = [
-        go.Heatmap(
-            x = dendro_leaves_upper,
-            y = dendro_leaves_side,
-            z = heat_data,
-            colorscale = [[0.0, "rgb(0, 13, 255)"],
-                    [prop_zero, "rgb(255, 255, 255)"],
-                    [1.0, "rgb(255, 0, 38)"]],
-            colorbar={'x': -0.1,
-                      'tickfont': {'size': 14}, 'lenmode':'fraction', 'len':0.25, 'thickness':20}
-        )
-    ]
-
-    heatmap[0]['x'] = fig['layout']['xaxis']['tickvals']
-    heatmap[0]['y'] = dendro_side['layout']['yaxis']['tickvals']
-
-    indicies_xaxis = list(map(int, fig['layout']['xaxis']['ticktext']))
-    indicies_yaxis = list(map(int, dendro_side['layout']['yaxis']['ticktext']))
-
-    # Add Heatmap Data to Figure
-    for data in heatmap:
-        fig.add_trace(data)
-
-    # Edit Layout
-    fig.update_layout({'width':800, 'height':900,
-                             'showlegend':False, 'hovermode': 'closest'})
-    # Edit xaxis
-    fig.update_layout(font={'size':10}, xaxis={'domain': [.15, 1],
-                                      'ticktext': labels[indicies_xaxis],
-                                      'mirror': False,
-                                      'showgrid': False,
-                                      'showline': False,
-                                      'zeroline': False,
-                                      'showticklabels': True,
-                                      'tickangle': 45,
-                                      'ticks':""})
-    # Edit xaxis2
-    fig.update_layout(xaxis2={'domain': [0, .15],
-                                       'mirror': False,
-                                       'showgrid': False,
-                                       'showline': False,
-                                       'zeroline': False,
-                                       'showticklabels': False,
-                                       'ticks':""})
-
-    # # Edit yaxis
-    fig.update_layout(font={'size':10}, yaxis={'domain': [0, .85],
-                                      'ticktext': cols[indicies_yaxis],
-                                      'tickmode': 'array',
-                                      'tickvals': dendro_side['layout']['yaxis']['tickvals'],
-                                      'mirror': False,
-                                      'showgrid': False,
-                                      'showline': False,
-                                      'zeroline': False,
-                                      'showticklabels': True,
-                                      'ticks': "",
-                                      'side': "right"
-                            })
-    # Edit yaxis2
-    fig.update_layout(yaxis2={'domain':[.825, .975],
-                                       'mirror': False,
-                                       'showgrid': False,
-                                       'showline': False,
-                                       'zeroline': False,
-                                       'showticklabels': False,
-                                       'ticks':""})
-
-
-    # Plot!
-    display(HTML('''<h4 style="color:white;font-weight: bold;background-color: red;padding: 0.5em;">Depmap %s heatmap</h4>''' % column_to_plot))
-    display(fig)
-
-
 def multiple_tools_results(tools_available, token):
     TOOLS = [tool for tool in tools_available.keys() if not tool in ["DESeq2"]]
 
@@ -1873,6 +1748,132 @@ def multiple_tools_results(tools_available, token):
     selection_widgets = widgets.ToggleButtons(options=['Intersection', 'Union'], description='Selection mode:', tooltips=['Use elements at intersection of all selected methods', 'Use union of elements of all selected methods'])
 
     output_tools_form = widgets.Output()
+
+
+    def plot_interactive_heatmap(table, column_to_plot):
+        """Plot an interactive heatmap with dendrogram using Plotly from a depmap table."""
+
+
+        # Transform datatable to a wide form.
+        data = pd.pivot_table(table,index="cell_line_name",columns="gene_name", values=column_to_plot).reset_index().set_index("cell_line_name").dropna(axis=1)
+
+        # Store datable index and columns in two lists
+        labels = data.index
+        cols = data.columns
+
+        # Convert datatable to numpy array
+        data = data.to_numpy(dtype = float)
+
+        # Compute z-score.
+        if column_to_plot in ['rna_expression', 'protein_expression']:
+            data_array = stats.zscore(data, axis=0)
+        else:
+            data_array = data
+
+        # Initialize figure by creating upper dendrogram
+        fig = ff.create_dendrogram(data_array, orientation='bottom')#, labels=labels)
+        for i in range(len(fig['data'])):
+            fig['data'][i]['yaxis'] = 'y2'
+
+        # Create Side Dendrogram
+        dendro_side = ff.create_dendrogram(data_array.transpose(), orientation='right')#, labels=cols)
+        for i in range(len(dendro_side['data'])):
+            dendro_side['data'][i]['xaxis'] = 'x2'
+
+        # Add Side Dendrogram Data to Figure
+        for data in dendro_side['data']:
+            fig.add_trace(data)
+
+        # Create Heatmap
+        dendro_leaves_side = dendro_side['layout']['yaxis']['ticktext']
+        dendro_leaves_side = list(map(int, dendro_leaves_side))
+
+        dendro_leaves_upper = fig['layout']['xaxis']['ticktext']
+        dendro_leaves_upper = list(map(int, dendro_leaves_upper))
+
+        heat_data = data_array.transpose()
+        heat_data = heat_data[dendro_leaves_side,:]
+        heat_data = heat_data[:,dendro_leaves_upper]
+
+
+        # Center colorbar on zero
+        max_value = np.max(heat_data)
+        min_value = np.min(heat_data)
+        prop_zero = abs(min_value / (abs(max_value) + abs(min_value)))
+
+        # Define heatmap
+        heatmap = [
+            go.Heatmap(
+                x = dendro_leaves_upper,
+                y = dendro_leaves_side,
+                z = heat_data,
+                colorscale = [[0.0, "rgb(0, 13, 255)"],
+                        [prop_zero, "rgb(255, 255, 255)"],
+                        [1.0, "rgb(255, 0, 38)"]],
+                colorbar={'x': -0.1,
+                          'tickfont': {'size': 14}, 'lenmode':'fraction', 'len':0.25, 'thickness':20}
+            )
+        ]
+
+        heatmap[0]['x'] = fig['layout']['xaxis']['tickvals']
+        heatmap[0]['y'] = dendro_side['layout']['yaxis']['tickvals']
+
+        indicies_xaxis = list(map(int, fig['layout']['xaxis']['ticktext']))
+        indicies_yaxis = list(map(int, dendro_side['layout']['yaxis']['ticktext']))
+
+        # Add Heatmap Data to Figure
+        for data in heatmap:
+            fig.add_trace(data)
+
+        # Edit Layout
+        fig.update_layout({'width':800, 'height':900,
+                                 'showlegend':False, 'hovermode': 'closest'})
+        # Edit xaxis
+        fig.update_layout(font={'size':10}, xaxis={'domain': [.15, 1],
+                                          'ticktext': labels[indicies_xaxis],
+                                          'mirror': False,
+                                          'showgrid': False,
+                                          'showline': False,
+                                          'zeroline': False,
+                                          'showticklabels': True,
+                                          'tickangle': 45,
+                                          'ticks':""})
+        # Edit xaxis2
+        fig.update_layout(xaxis2={'domain': [0, .15],
+                                           'mirror': False,
+                                           'showgrid': False,
+                                           'showline': False,
+                                           'zeroline': False,
+                                           'showticklabels': False,
+                                           'ticks':""})
+
+        # # Edit yaxis
+        fig.update_layout(font={'size':10}, yaxis={'domain': [0, .85],
+                                          'ticktext': cols[indicies_yaxis],
+                                          'tickmode': 'array',
+                                          'tickvals': dendro_side['layout']['yaxis']['tickvals'],
+                                          'mirror': False,
+                                          'showgrid': False,
+                                          'showline': False,
+                                          'zeroline': False,
+                                          'showticklabels': True,
+                                          'ticks': "",
+                                          'side': "right"
+                                })
+        # Edit yaxis2
+        fig.update_layout(yaxis2={'domain':[.825, .975],
+                                           'mirror': False,
+                                           'showgrid': False,
+                                           'showline': False,
+                                           'zeroline': False,
+                                           'showticklabels': False,
+                                           'ticks':""})
+
+
+        # Plot!
+        display(HTML('''<h4 style="color:white;font-weight: bold;background-color: red;padding: 0.5em;">Depmap %s heatmap</h4>''' % column_to_plot))
+        show_parameters(params)
+        display(fig)
 
     @output_tools_form.capture()
     def tools_widget_updated(event):
@@ -1897,6 +1898,42 @@ def multiple_tools_results(tools_available, token):
     buttons_box = widgets.HBox([venn_button, rra_button, genemania_button, enrichr_button, depmap_button, ranking_button])
     display(buttons_box)
 
+    def show_parameters(params):
+        if "MAGeCK_MLE" in tools_widget.value:
+            if params['MAGeCK_MLE']['greater']:
+                word = "greater"
+            else:
+                word = "less"
+            display(HTML('''<p style="color:black;padding: 0.5em;"><b>MAGeCK MLE</b>: FDR < %s, β score threshold = %s, keep elements with β score %s than threshold.</p>''' % (params['MAGeCK_MLE']['fdr'], params['MAGeCK_MLE']['score'], word)))
+        if "MAGeCK_RRA" in tools_widget.value:
+            if params['MAGeCK_RRA']['greater']:
+                word = "greater"
+            else:
+                word = "less"
+            display(HTML('''<p style="color:black;padding: 0.5em;"><b>MAGeCK RRA</b>: FDR < %s, LogFoldChange threshold = %s, keep elements with LogFoldChange %s than threshold and use FDR values associated to %s selection.</p>''' % (params['MAGeCK_RRA']['fdr'], params['MAGeCK_RRA']['score'], word, params['MAGeCK_RRA']['direction'])))
+        if "BAGEL" in tools_widget.value:
+            if params['BAGEL']['greater']:
+                word = "greater"
+            else:
+                word = "less"
+            display(HTML('''<p style="color:black;padding: 0.5em;"><b>BAGEL</b>: Bayesian factor threshold = %s, keep elements with Bayesian factor %s than threshold.</p>''' % (params['BAGEL']['score'], word)))
+        if "CRISPhieRmix" in tools_widget.value:
+            if params['CRISPhieRmix']['greater']:
+                word = "greater"
+            else:
+                word = "less"
+            display(HTML('''<p style="color:black;padding: 0.5em;"><b>CRISPhieRmix</b>: FDR < %s, Top-3 LogFoldChange Average threshold = %s, keep elements with Top-3 LogFoldChange Average %s than threshold.</p>''' % (params['CRISPhieRmix']['fdr'], params['CRISPhieRmix']['top_3_mean_log2FoldChange'], word)))
+        if "GSEA-like" in tools_widget.value:
+            if params['GSEA_like']['greater']:
+                word = "greater"
+            else:
+                word = "less"
+            display(HTML('''<p style="color:black;padding: 0.5em;"><b>GSEA-like (fGSEA)</b>: FDR < %s, NES threshold = %s, keep elements with NES %s than threshold.</p>''' % (params['GSEA_like']['fdr'], params['GSEA_like']['score'], word)))
+        if "in_house_method" in tools_widget.value:
+            display(HTML('''<p style="color:black;padding: 0.5em;"><b>Filtering method</b>: %s selection.</p>''' % (params['in_house_method']['direction'])))
+
+
+
     def venn_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
@@ -1906,7 +1943,8 @@ def multiple_tools_results(tools_available, token):
         else:
             df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns = ['union'])
             genes_list = df.loc[df.union == True].index
-        display(HTML('''<p style="color:white;font-weight: bold;background-color: orange;padding: 0.5em;">Genes at %s</p>''' % selection_widgets.value))
+        display(HTML('''<p style="color:white;font-weight: bold;background-color: orange;padding: 0.5em;">Venn diagram: %s</p>''' % selection_widgets.value))
+        show_parameters(params)
         plot_venn(occurences)
         print("Genes at %s of all methods:" % selection_widgets.value)
         for gene in genes_list:
@@ -1916,6 +1954,7 @@ def multiple_tools_results(tools_available, token):
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
         display(HTML('''<p style="color:white;font-weight: bold;background-color: green;padding: 0.5em;">RRA results</p>'''))
+        show_parameters(params)
         run_rra(ranks)
 
 
@@ -1929,6 +1968,7 @@ def multiple_tools_results(tools_available, token):
             df = pd.DataFrame(occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns = ['union'])
             genes_list = df.loc[df.union == True].index
         display(HTML('''<p style="color:white;font-weight: bold;background-color: blue;padding: 0.5em;">Genemania link - %s</p>''' % selection_widgets.value))
+        show_parameters(params)
         link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
         print('Link to Genemania website: (%s elements)\n' % len(genes_list))
         print(link)
@@ -1949,6 +1989,7 @@ def multiple_tools_results(tools_available, token):
                 display(chart)
 
         display(HTML('''<p style="color:white;font-weight: bold;background-color: purple;padding: 0.5em;">EnrichR for genes at %s</p>''' % selection_widgets.value))
+        show_parameters(params)
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
         if selection_widgets.value == "Intersection":
@@ -2118,6 +2159,7 @@ def multiple_tools_results(tools_available, token):
                         color=alt.Color('primary_disease', scale=alt.Scale(scheme="tableau20")),
                         tooltip=['protein_change', 'gene_name', 'cell_line', 'cell_line_name', 'sample_collection_site', 'primary_or_metastasis', 'primary_disease','subtype_disease']
                     ).interactive()
+                    show_parameters(params)
                     display(chart)
                 else:
                     essential_genes = table[table.gene_name.isin(genes_list)][["gene_name", "cell_line_name", variable]]#.pivot_table(index='gene_name', columns='cell_line', values=variable).dropna()
