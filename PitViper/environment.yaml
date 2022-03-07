@@ -36,6 +36,7 @@ dependencies:
   - pandas=1.1.3=py38he6710b0_0
   - pillow=8.4.0=py38h8e6f84c_0
   - pip=20.2.4
+  - plotly=5.5.0
   - pyyaml=5.4.1
   - r-base=4.1.1=hb93adac_1
   - r-devtools=2.4.2=r41hc72bb7e_0
@@ -61,7 +62,8 @@ dependencies:
   - statsmodels=0.13.0
   - yaml=0.2.5=h516909a_0
   - pip:
-    - clustergrammer2==0.18.0
+    - fastcluster==1.2.4
     - jsonschema==3.2.0
     - nest-asyncio==1.5.1
     - ipywidgets==8.0.0b0
+    
