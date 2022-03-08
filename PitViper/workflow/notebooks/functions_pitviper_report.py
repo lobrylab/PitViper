@@ -1,5 +1,4 @@
 import altair as alt
-from clustergrammer2 import net
 from functools import reduce, partial
 import IPython
 from IPython.core.display import HTML
