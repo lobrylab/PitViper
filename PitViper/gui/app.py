@@ -4,15 +4,9 @@ from flask import Flask, render_template, request, redirect, url_for
 from werkzeug.utils import secure_filename
 import yaml
 import webbrowser
-from threading import Timer
+from threading import Timer, Thread
 
 app = Flask(__name__)
-
-def shutdown_server():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
 
 @app.route('/')
 def index():
@@ -21,7 +15,7 @@ def index():
 
 @app.route('/documentation')
 def documentation():
-    return 'Documentation!  '
+    return 'Documentation!'
 
 
 def run_pitviper(token):
@@ -31,6 +25,11 @@ def run_pitviper(token):
     print(content)
     cmd = "python3 pitviper.py --configfile {conf} --jobs {n}".format(conf=configfile, n=content['jobs'])
     print(cmd)
+    os.system(cmd)
+
+
+def open_jupyter_notebook(token):
+    cmd = 'jupyter notebook --notebook-dir="results/{token}/"'.format(token=token)
     os.system(cmd)
 
 
@@ -101,11 +100,11 @@ def result():
     with open(yaml_file_name, 'w') as file:
       documents = yaml.dump(result_dict, file)
     run_pitviper(token=result_dict['token'])
-    shutdown_server()
-    return 'Server shutting down. You can close this page.'
+    jupy = Thread(target=open_jupyter_notebook, args=(result_dict['token'],))
+    jupy.start()
+    return "You can close this page."
 
 def open_browser():
       webbrowser.open_new('http://127.0.0.1:5000/')
 
 Timer(1, open_browser).start();
-app.run(port=5000)
