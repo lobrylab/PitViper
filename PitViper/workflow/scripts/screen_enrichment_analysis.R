@@ -80,3 +80,4 @@ fgseaRes <- fgseaRes %>% select(-leadingEdge)
 print(snakemake@output[[1]])
 
 write.table(data.frame(fgseaRes), snakemake@output[[1]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
+

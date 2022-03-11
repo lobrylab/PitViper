@@ -1,6 +1,6 @@
 <img src="PitViper/docs/logo/pitviper_remasteredv2.png" alt="alt text" width="500" height="175">
 
-> **An pipeline to analyze functional screening data from shRNA, CRISPR/Cas9 and CRISPR/dCas9 experiments.**
+> **A pipeline to analyze functional screening data from shRNA, CRISPR/Cas9 and CRISPR/dCas9 experiments.**
 
 ## Introduction
 
@@ -17,7 +17,7 @@ The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/sta
 
 - [Inputs](#inputs)
 
-  - [Starting from raw FASTQ](#starting-from-raw-fastq-files)
+  - [Starting from raw FASTQ or BAM files](#starting-from-raw-fastq-files)
 
   - [Starting from count matrix](#starting-from-count-matrix)
 
