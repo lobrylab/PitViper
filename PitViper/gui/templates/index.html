@@ -486,6 +486,13 @@
                            <input class="form-check-input" type="hidden" id="crisphiermix_activate", name="gsea_activate" value="False">
                            <label class="form-check-label" for="gsea_activate">Activate</label>
                          </div>
+                         <legend class="col-form-label col-sm-5 pt-3">Ranking method: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Signal-to-Noise ratio can be used only if there is at least three replicates by sample.">Help
+                         </a></legend>
+                         <select class="form-select" label="gsea_ranking_method" name="gsea_ranking_method">
+                             <option selected>Open this select menu</option>
+                             <option value="signal_to_noise" selected>Signal-to-Noise</option>
+                             <option value="fold_change">Fold-change</option>
+                        </select>
                          <p style="padding: 1em;"> Reference: <a href="https://www.pnas.org/content/102/43/15545" class="link-primary text-dark">Original GSEA article</a> and <a href="https://www.biorxiv.org/content/10.1101/060012v3" class="link-primary text-dark">fGSEA preprint</a></p>
                        </div>
                      </fieldset>

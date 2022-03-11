@@ -9,12 +9,11 @@ rule gsea_like:
         deseq2_table=rules.DESeq2_counts.output.deseq2_out,
         design=config["tsv_file"]
     output:
-        down_elements="results/{token}/GSEA-like/{treatment}_vs_{control}/{treatment}_vs_{control}_down-elements_GSEA-like.txt",
-        up_elements="results/{token}/GSEA-like/{treatment}_vs_{control}/{treatment}_vs_{control}_up-elements_GSEA-like.txt",
         all_elements="results/{token}/GSEA-like/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_GSEA-like.txt"
     params:
         treatment="{treatment}",
-        control="{control}"
+        control="{control}",
+        method=config["gsea_ranking_method"]
     log:
         "logs/{token}/GSEA-like/{treatment}_vs_{control}.log"
     benchmark:

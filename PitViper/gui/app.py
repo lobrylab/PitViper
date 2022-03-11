@@ -102,7 +102,7 @@ def result():
     run_pitviper(token=result_dict['token'])
     jupy = Thread(target=open_jupyter_notebook, args=(result_dict['token'],))
     jupy.start()
-    return "You can close this page."
+    return "You can close this page and start using the Jupyter Notebook report."
 
 def open_browser():
       webbrowser.open_new('http://127.0.0.1:5000/')

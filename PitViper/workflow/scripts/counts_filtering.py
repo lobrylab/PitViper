@@ -41,8 +41,6 @@ for comparison in pairwise_comparisons:
 
 matrix = pd.pivot_table(cts, values='below_threshold', index=['sgRNA', 'Gene'], columns=['condition']).reset_index()
 matrix['keep'] = ~matrix.all(axis='columns', bool_only = bool)
-matrix.to_csv("matrix.txt", sep = "\t", index = False)
-
 
 guides_to_keep = matrix.loc[matrix['keep'] == True].sgRNA.values
 

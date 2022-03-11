@@ -16,6 +16,7 @@ cts_file <- snakemake@input[[1]]
 res_file <- snakemake@input[[2]]
 treatment <- snakemake@params[1]
 baseline <- snakemake@params[2]
+method <- snakemake@params[3]
 design_file <- snakemake@input[[3]]
 
 # Process counts file (must be tab delimited and have a 'sgRNA' column).
@@ -38,7 +39,7 @@ n.baseline <- ncol(select(cts, all_of(baseline.name)))
 treatment_df <- cts %>% select(treatment_columns)
 control_df <- cts %>% select(control_columns)
 
-if (n.treatment > 2 && n.baseline > 2) {
+if (method == "signal_to_noise" && n.treatment > 2 && n.baseline > 2) {
   print("Signal to Noise")
   table <- data.frame(mean_treatment=rowMeans(treatment_df[,]),
              mean_control=rowMeans(control_df[,]),
@@ -76,9 +77,7 @@ fgseaRes <- fgsea(pathways = pathways,
 # Remove leadingEdge as a string.
 fgseaRes <- fgseaRes %>% select(-leadingEdge)
 
-sign.down.res <- fgseaRes[ES < 0 & padj < 0.25] %>% arrange(padj)
-sign.up.res <- fgseaRes[ES > 0 & padj < 0.25] %>% arrange(padj)
+print(snakemake@output[[1]])
 
-write.table(data.frame(sign.down.res), snakemake@output[[1]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
-write.table(data.frame(sign.up.res), snakemake@output[[2]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
-write.table(data.frame(fgseaRes), snakemake@output[[3]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
+write.table(data.frame(fgseaRes), snakemake@output[[1]], quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE)
+
