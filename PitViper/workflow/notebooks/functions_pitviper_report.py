@@ -1,7 +1,7 @@
 import altair as alt
 from functools import reduce, partial
 import IPython
-from IPython.core.display import HTML
+from IPython.core.display import HTML, display
 import ipywidgets as widgets
 from ipywidgets import interact
 import json
@@ -45,15 +45,25 @@ alt.data_transformers.disable_max_rows()
 
 pd.options.mode.chained_assignment = None
 
-def natural_sort(l):
-    """Function for natural sorting of list."""
+def natural_sort(l: list):
+    """Do a natural sorting on the input list l.
+
+    Args:
+        l (list): List of strings.
+
+    Returns:
+        _type_: Natural sorted list of strings.
+    """
     convert = lambda text: int(text) if text.isdigit() else text.lower()
     alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
     return sorted(l, key = alphanum_key)
 
+def working_directory_update(output: str):
+    """Change working directory to ./PitViper
 
-def working_directory_update(output):
-    """Update working directory."""
+    Args:
+        output (str): Name of the file to write.
+    """
     switch = True
     while os.path.basename(os.getcwd()) != "PitViper":
         if switch:
@@ -68,8 +78,15 @@ def working_directory_update(output):
         print("Notebook was runned.", file=out)
 
 
-def open_yaml(yml):
-    """Open a YAML file and return it's content."""
+def open_yaml(yml: str):
+    """Open and read content of YAML file yml. 
+
+    Args:
+        yml (str): Path to yaml file to open and read.
+
+    Returns:
+        dict: Dictionnary containing yml content.
+    """
     with open(yml, "r") as stream:
         try:
             content = yaml.safe_load(stream)
@@ -78,8 +95,15 @@ def open_yaml(yml):
             print(exc)
 
 
-def import_results(token):
-    """Import results for all tools selected in the GUI."""
+def import_results(token: str):
+    """Load PitViper results inside token sub-directory.
+
+    Args:
+        token (str): Results token.
+
+    Returns:
+        Tuple(str, dict): Tuple containing directory scanned and dictionnary of results by tool, condition and file.
+    """
     print('Token: %s\n' % token)
     config = "./config/%s.yaml" % token
     print('Config file used: %s' % config)
@@ -125,8 +149,12 @@ def import_results(token):
     return (results_directory, tools_available)
 
 
-def add_columns(tools_available):
-    """Add columns to files for exploratory vizualisation."""
+def add_columns(tools_available: dict):
+    """Add columns to result dataframes in tools_available.
+
+    Args:
+        tools_available (dict): Dictionnary of PitViper results.
+    """
     if 'MAGeCK_MLE' in tools_available:
         for condition in tools_available['MAGeCK_MLE']:
             treatment = condition.split('_vs_')[0]
@@ -170,7 +198,15 @@ def add_columns(tools_available):
                     table['log10(invPadj)'] = - np.log10(table['padj_nozero'])
 
 
-def show_mapping_qc(token):
+def show_mapping_qc(token: str):
+    """Display mapping quality control table, if available.
+
+    Args:
+        token (str): Results token.
+
+    Returns:
+        pandas.DataFrame: DataFrame of mapping quality control.
+    """
     path_qc = "./resources/%s/screen.countsummary.txt" % token
     if not path.exists(path_qc):
         print("No mapping QC file to show.")
@@ -181,20 +217,10 @@ def show_mapping_qc(token):
     table = table.sort_values('Label')
 
     def color_low_mapping_red(val):
-        """
-        Takes a scalar and returns a string with
-        the css property `'color: red'` for negative
-        strings, black otherwise.
-        """
         color = 'red' if float(val) < 0.6 else 'green'
         return 'color: %s' % color
 
     def color_high_gini_red(val):
-        """
-        Takes a scalar and returns a string with
-        the css property `'color: red'` for negative
-        strings, black otherwise.
-        """
         color = 'red' if val > 0.35 else 'green'
         return 'color: %s' % color
 
@@ -204,7 +230,17 @@ def show_mapping_qc(token):
     return s
 
 
-def show_read_count_distribution(token, width=800, height=400):
+def show_read_count_distribution(token: str, width=800, height=400):
+    """Display an altair chart of read counts distribution.
+
+    Args:
+        token (str): Results token.
+        width (int, optional): Figure width. Defaults to 800.
+        height (int, optional): Figure height. Defaults to 400.
+
+    Returns:
+        altair.Chart: Chart of normalized read counts distribution.
+    """
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
     path_qc = content['normalized_count_table']
@@ -236,7 +272,15 @@ def show_read_count_distribution(token, width=800, height=400):
     return chart
 
 
-def pca_counts(token):
+def pca_counts(token: str):
+    """Compute and display PCA of normalized read counts.
+
+    Args:
+        token (str): Results token.
+
+    Returns:
+        altair.Chart: Altair chart
+    """
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
 
@@ -829,9 +873,6 @@ def show_sgRNA_counts(token):
 
     button = widgets.Button(description="Show!")
     display(button)
-
-    def display_network():
-        display(net.widget())
 
     def on_button_clicked(b):
         genes = element.value.split(",")
