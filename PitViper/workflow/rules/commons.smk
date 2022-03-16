@@ -101,7 +101,7 @@ def get_pipeline_outputs(wildcards):
     samples_file = pd.read_csv(config['tsv_file'], sep="\t")
     comparaisons = get_all_pairwise_comparisons()
     token = config['token']
-    wanted_outputs.append("results/" + config['token'] + "/ExecutionComplete.txt")
+    wanted_outputs.append("results/" + config['token'] + "/Report.ipynb")
     for comparaison in comparaisons:
         if (config['filtering_activate'] == 'True'):
             wanted_outputs.append("results/{token}/in_house_method/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_in-house.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))

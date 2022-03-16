@@ -28,7 +28,7 @@ rule genes_integration:
     input:
         generatedResults
     output:
-        "results/" + config['token'] + "/ExecutionComplete.txt"
+        "results/" + config['token'] + "/Report.ipynb"
     params:
         config['token']
     log:
