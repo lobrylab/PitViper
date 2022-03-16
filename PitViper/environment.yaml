@@ -62,6 +62,7 @@ dependencies:
   - snakemake=6.7.0
   - statsmodels=0.13.0
   - tk=8.6.11
+  - waitress=2.1.0
   - yaml=0.2.5=h516909a_0
   - pip:
     - fastcluster==1.2.4
