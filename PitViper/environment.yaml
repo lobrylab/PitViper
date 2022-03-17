@@ -47,7 +47,7 @@ dependencies:
   - r-ggridges=0.5.3=r41hc72bb7e_0
   - r-magrittr=2.0.1=r41hcfec24a_1
   - r-mixtools=1.2.0
-  - r-nloptr= 1.2.2.1
+  - r-nloptr
   - r-readr=2.1.0=r41h03ef668_0
   - r-robustrankaggreg=1.1=r41ha770c72_1003
   - r-stringi=1.7.5=r41hcabe038_0
