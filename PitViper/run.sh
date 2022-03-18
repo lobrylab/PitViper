@@ -1,10 +1,12 @@
-#!/bin/bash -i
+#!/bin/bash
 
 ### Activation of pitviper_env.
+CONDA_PATH=$(conda info | grep -i 'base environment' | awk '{print $4}')
+source $CONDA_PATH/etc/profile.d/conda.sh
 conda activate pitviper_env
 
 ### Get absolute path of Flask application.
-app_full_path=$(realpath PitViper/gui/app.py)
+app_full_path=$(realpath gui/app.py)
 
 ### Show app.py absolute path.
 echo $app_full_path
@@ -19,4 +21,6 @@ fi
 echo $FLASK_APP
 
 ### Run PitViper application with Flask.
-python3 gui/waitress_server.py
+flask run --host=0.0.0.0
+
+jupyter notebook --allow-root --no-browser --ip=0.0.0.0 results/
