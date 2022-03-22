@@ -2030,7 +2030,6 @@ def genemania_link_results(token, tools_available):
         return HTML(
             """<p style="color:red;background-color: white;padding: 0.5em;">This module is available only if genes symbol are available.</p>"""
         )
-        # return "This module is available only if genes symbol are used."
 
     def update_conditions(update):
         conditions_list = list(tools_available[tool.value].keys())
@@ -3296,7 +3295,7 @@ def multiple_tools_results(tools_available, token):
                 else:
                     essential_genes = table[table.gene_name.isin(genes_list)][
                         ["gene_name", "cell_line_name", variable]
-                    ]  # .pivot_table(index='gene_name', columns='cell_line', values=variable).dropna()
+                    ]
                     plot_interactive_heatmap(essential_genes, variable)
 
             button = widgets.Button(description="Run!")
