@@ -17,7 +17,7 @@ def index():
 
 @app.route("/documentation")
 def documentation():
-    return "Documentation!"
+    return render_template("doc.html")
 
 
 def shutdown_server():
