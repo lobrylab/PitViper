@@ -95,6 +95,48 @@ def open_yaml(yml: str):
             print(exc)
 
 
+def download(tools_available: dict, tool: str, treatment: str, control: str):
+    """Display a button to download a file.
+
+    Args:
+        tools_available (dict): Dictionnary of PitViper results.
+        tool (str): Tool name.
+        treatment (str): Treatment condition.
+        control (str): Control condition.
+    """
+    condition = f"{treatment}_vs_{control}"
+    files_list = list(tools_available[tool][condition].keys())
+    for file in files_list:
+        content = tools_available[tool][condition][file].to_string()
+        download_file(
+            content=content, filename=tool + "_" + file, label=f"Download {file}"
+        )
+
+
+def download_raw_counts(token):
+    config_name = "./config/%s.yaml" % token
+    config = open_yaml(config_name)
+    raw_cts_name = config["count_table_file"]
+    raw_cts_content = pd.read_table(raw_cts_name).to_string()
+    download_file(
+        content=raw_cts_content,
+        filename=raw_cts_name,
+        label=f"Download raw counts matrix!",
+    )
+
+
+def download_normalized_counts(token):
+    config_name = "./config/%s.yaml" % token
+    config = open_yaml(config_name)
+    cts_name = config["normalized_count_table"]
+    cts_content = pd.read_table(cts_name).to_string()
+    download_file(
+        content=cts_content,
+        filename=cts_name,
+        label=f"Download normalized counts matrix!",
+    )
+
+
 def import_results(token: str):
     """Load PitViper results inside token sub-directory.
 
@@ -253,7 +295,26 @@ def show_mapping_qc(token: str):
     s = table.style.applymap(color_low_mapping_red, subset=["Percentage"]).applymap(
         color_high_gini_red, subset=["GiniIndex"]
     )
-    return s
+    display(s)
+
+
+def download_file(content, label, filename):
+    # Add download button
+    outname = os.path.basename(filename)
+    display(
+        HTML(
+            '<textarea id="textbox_{outname}" style="display: none;">{content}</textarea> <button id="create_{outname}">{label}</button> <a download="{filename}" id="downloadlink_{outname}" style="display: none">Download</a>'.format(
+                **locals()
+            )
+        )
+    )
+    display(
+        HTML(
+            '<script type="text/javascript">!function(){{var e=null,t=document.getElementById("create_{outname}"),n=document.getElementById("textbox_{outname}");t.addEventListener("click",function(){{var t,l,c=document.getElementById("downloadlink_{outname}");c.href=(t=n.value,l=new Blob([t],{{type:"text/plain"}}),null!==e&&window.URL.revokeObjectURL(e),e=window.URL.createObjectURL(l)),c.click()}},!1)}}();</script>'.format(
+                **locals()
+            )
+        )
+    )
 
 
 def show_read_count_distribution(token: str, width=800, height=400):
@@ -1174,6 +1235,8 @@ def tool_results(results_directory, tools_available, token):
         non_sig = color_non_widget.value
         sig = color_sig_widget.value
         elements = element.value.split(",")
+        treatment = comparison.split("_vs_")[0]
+        control = comparison.split("_vs_")[1]
         if "MAGeCK_RRA" in tool:
             _MAGeCK_RRA_snake_plot(
                 comparison,
@@ -1183,6 +1246,9 @@ def tool_results(results_directory, tools_available, token):
                 results_directory,
                 tools_available,
                 elements,
+            )
+            download(
+                tools_available, tool="MAGeCK_RRA", treatment=treatment, control=control
             )
         if "MAGeCK_MLE" in tool:
             _MAGeCK_MLE_snake_plot(
@@ -1194,6 +1260,9 @@ def tool_results(results_directory, tools_available, token):
                 tools_available,
                 elements,
             )
+            download(
+                tools_available, tool="MAGeCK_MLE", treatment=treatment, control=control
+            )
         if "CRISPhieRmix" in tool:
             _CRISPhieRmix_snake_plot(
                 comparison,
@@ -1203,6 +1272,12 @@ def tool_results(results_directory, tools_available, token):
                 results_directory,
                 tools_available,
                 elements,
+            )
+            download(
+                tools_available,
+                tool="CRISPhieRmix",
+                treatment=treatment,
+                control=control,
             )
         if "in_house_method" in tool:
             _in_house_snake_plot(
@@ -1214,6 +1289,12 @@ def tool_results(results_directory, tools_available, token):
                 tools_available,
                 elements,
             )
+            download(
+                tools_available,
+                tool="in_house_method",
+                treatment=treatment,
+                control=control,
+            )
         if "GSEA-like" in tool:
             _GSEA_like_snake_plot(
                 comparison,
@@ -1224,6 +1305,9 @@ def tool_results(results_directory, tools_available, token):
                 tools_available,
                 elements,
             )
+            download(
+                tools_available, tool="GSEA-like", treatment=treatment, control=control
+            )
         if "BAGEL" in tool:
             _BAGEL_snake_plot(
                 comparison,
@@ -1233,6 +1317,9 @@ def tool_results(results_directory, tools_available, token):
                 results_directory,
                 tools_available,
                 elements,
+            )
+            download(
+                tools_available, tool="BAGEL", treatment=treatment, control=control
             )
         else:
             print("Choose a tool.")
@@ -2926,6 +3013,7 @@ def multiple_tools_results(tools_available, token):
         def show_enrichr_plots(
             b, genes, bases, size, plot_type, col_2, col_1, description
         ):
+            show_parameters(params)
             charts = []
             title = description.value + " (%s)" % selection_widgets.value
             for base in bases.value:
@@ -2949,7 +3037,6 @@ def multiple_tools_results(tools_available, token):
                 % selection_widgets.value
             )
         )
-        show_parameters(params)
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
         if selection_widgets.value == "Intersection":
@@ -3313,16 +3400,32 @@ def multiple_tools_results(tools_available, token):
     depmap_button.on_click(depmap_button_clicked)
 
     def ranking_button_clicked(event):
+        display(
+            HTML(
+                """<p style="color:white;font-weight: bold;background-color: #03fc3d;padding: 0.5em;">Save ranking and occurences</p>"""
+            )
+        )
+        show_parameters(params)
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        ranks_path = Path("results/%s/Integration/ranks.csv" % token)
-        ranks_path.parent.mkdir(parents=True, exist_ok=True)
-        ranks.to_csv(ranks_path)
-        print("Ranks table writed in %s" % ranks_path)
-        occurences_path = Path("results/%s/Integration/occurences.csv" % token)
-        occurences_path.parent.mkdir(parents=True, exist_ok=True)
-        occurences.to_csv(occurences_path)
-        print("Occurences table writed in %s" % occurences_path)
+        # ranks_path = Path("results/%s/Integration/ranks.csv" % token)
+        # ranks_path.parent.mkdir(parents=True, exist_ok=True)
+        # ranks.to_csv(ranks_path)
+        download_file(
+            content=ranks.to_string(),
+            filename="ranking.txt",
+            label=f"Download ranking!",
+        )
+        # print("Ranks table writed in %s" % ranks_path)
+        # occurences_path = Path("results/%s/Integration/occurences.csv" % token)
+        # occurences_path.parent.mkdir(parents=True, exist_ok=True)
+        # occurences.to_csv(occurences_path)
+        # print("Occurences table writed in %s" % occurences_path)
+        download_file(
+            content=occurences.to_string(),
+            filename="occurences.txt",
+            label=f"Download occurences!",
+        )
 
     ranking_button.on_click(ranking_button_clicked)
 
