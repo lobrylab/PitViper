@@ -3408,19 +3408,11 @@ def multiple_tools_results(tools_available, token):
         show_parameters(params)
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        # ranks_path = Path("results/%s/Integration/ranks.csv" % token)
-        # ranks_path.parent.mkdir(parents=True, exist_ok=True)
-        # ranks.to_csv(ranks_path)
         download_file(
             content=ranks.to_string(),
             filename="ranking.txt",
             label=f"Download ranking!",
         )
-        # print("Ranks table writed in %s" % ranks_path)
-        # occurences_path = Path("results/%s/Integration/occurences.csv" % token)
-        # occurences_path.parent.mkdir(parents=True, exist_ok=True)
-        # occurences.to_csv(occurences_path)
-        # print("Occurences table writed in %s" % occurences_path)
         download_file(
             content=occurences.to_string(),
             filename="occurences.txt",
