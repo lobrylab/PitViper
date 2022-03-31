@@ -1,5 +1,6 @@
 import json
 import os
+import random as rd
 import re
 import warnings
 from functools import partial, reduce
@@ -30,6 +31,17 @@ from scipy import stats
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.stats import zscore
 from sklearn import datasets, decomposition
+
+buf = []
+
+
+def f(x):
+    buf.append(x)
+
+
+rpy2.rinterface_lib.callbacks.consolewrite_print = f
+rpy2.rinterface_lib.callbacks.consolewrite_warnerror = f
+rpy2.rinterface_lib.callbacks.showmessage = f
 
 warnings.filterwarnings("ignore")
 
@@ -301,16 +313,17 @@ def show_mapping_qc(token: str):
 def download_file(content, label, filename):
     # Add download button
     outname = os.path.basename(filename)
+    id_file = rd.random()
     display(
         HTML(
-            '<textarea id="textbox_{outname}" style="display: none;">{content}</textarea> <button id="create_{outname}">{label}</button> <a download="{filename}" id="downloadlink_{outname}" style="display: none">Download</a>'.format(
+            '<textarea id="textbox_{id_file}" style="display: none;">{content}</textarea> <button id="create_{id_file}">{label}</button> <a download="{filename}" id="downloadlink_{id_file}" style="display: none">Download</a>'.format(
                 **locals()
             )
         )
     )
     display(
         HTML(
-            '<script type="text/javascript">!function(){{var e=null,t=document.getElementById("create_{outname}"),n=document.getElementById("textbox_{outname}");t.addEventListener("click",function(){{var t,l,c=document.getElementById("downloadlink_{outname}");c.href=(t=n.value,l=new Blob([t],{{type:"text/plain"}}),null!==e&&window.URL.revokeObjectURL(e),e=window.URL.createObjectURL(l)),c.click()}},!1)}}();</script>'.format(
+            '<script type="text/javascript">!function(){{var e=null,t=document.getElementById("create_{id_file}"),n=document.getElementById("textbox_{id_file}");t.addEventListener("click",function(){{var t,l,c=document.getElementById("downloadlink_{id_file}");c.href=(t=n.value,l=new Blob([t],{{type:"text/plain"}}),null!==e&&window.URL.revokeObjectURL(e),e=window.URL.createObjectURL(l)),c.click()}},!1)}}();</script>'.format(
                 **locals()
             )
         )
@@ -3408,302 +3421,16 @@ def multiple_tools_results(tools_available, token):
         show_parameters(params)
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
+        download_name = widgets.Text(value="analysis", description="Name:")
         download_file(
             content=ranks.to_string(),
             filename="ranking.txt",
-            label=f"Download ranking!",
+            label="Download ranking!",
         )
         download_file(
             content=occurences.to_string(),
             filename="occurences.txt",
-            label=f"Download occurences!",
+            label="Download occurences!",
         )
 
     ranking_button.on_click(ranking_button_clicked)
-
-
-def plot_chart(
-    data,
-    tool,
-    condition,
-    file,
-    x,
-    y,
-    method,
-    column_filter="",
-    cutoff=0,
-    greater=False,
-    element="",
-    column_element="",
-    elem_color="",
-    pass_color="",
-    fail_color="",
-    category_column="",
-    color_scheme="",
-    reverse="",
-):
-    source = data[tool][condition][file].copy()
-    show_plot = True
-    if method == "Cut-off":
-        if source[column_filter].dtype in [np.float64, np.int64]:
-            elements = element.split(",")
-            if not greater:
-                pass_value = "%s < %s" % (column_filter, cutoff)
-                fail_value = "%s >= %s" % (column_filter, cutoff)
-                source.loc[source[column_filter] < cutoff, "filter"] = pass_value
-                source.loc[source[column_filter] >= cutoff, "filter"] = fail_value
-            else:
-                pass_value = "%s >= %s" % (column_filter, cutoff)
-                fail_value = "%s < %s" % (column_filter, cutoff)
-                source.loc[source[column_filter] >= cutoff, "filter"] = pass_value
-                source.loc[source[column_filter] < cutoff, "filter"] = fail_value
-            source["filter"] = np.where(
-                source[column_element].isin(elements), element, source["filter"]
-            )
-            domain = [pass_value, fail_value, element]
-            range_ = [pass_color, fail_color, elem_color]
-        else:
-            source["filter"] = "pass"
-            show_plot = False
-            print("Choose a column of integer or float type.")
-    if show_plot:
-        if method == "Cut-off":
-            chart = (
-                alt.Chart(source)
-                .transform_calculate(
-                    order="{'%s': 2, '%s': 1, '%s': 0}[datum.filter]"
-                    % (element, pass_value, fail_value)
-                )
-                .mark_circle()
-                .encode(
-                    x=x,
-                    y=y,
-                    tooltip=list(source.columns),
-                    color=alt.Color(
-                        "filter",
-                        scale=alt.Scale(domain=domain, range=range_),
-                        legend=alt.Legend(title="Pass filter:"),
-                    ),
-                    order="order:Q",
-                )
-                .interactive()
-            )
-            display(chart)
-        else:
-            chart = (
-                alt.Chart(source)
-                .mark_circle()
-                .encode(
-                    x=x,
-                    y=y,
-                    tooltip=list(source.columns),
-                    color=alt.Color(
-                        category_column,
-                        legend=alt.Legend(title="%s:" % category_column),
-                        scale=alt.Scale(scheme=color_scheme, reverse=reverse),
-                    ),
-                )
-                .interactive()
-            )
-            print(chart)
-
-
-def call_form(tools_available):
-    SCHEMES = ["reds", "accent", "redblue", "rainbow"]
-    tools = list(tools_available.keys())
-    display(widgets.HTML(value="First, choose a <b>tool</b> to browse results:"))
-
-    @interact(
-        tool=widgets.Dropdown(
-            options=tools, value=tools[0], description="Tool:", disabled=False
-        )
-    )
-    def form(tool):
-        display(
-            widgets.HTML(value="Choose a <b>condition</b> available for this tool:")
-        )
-        conditions = list(tools_available[tool].keys())
-
-        @interact(
-            condition=widgets.Dropdown(
-                options=conditions,
-                value=conditions[0],
-                description="Condition:",
-                disabled=False,
-            )
-        )
-        def form(condition):
-            display(widgets.HTML(value="Choose a <b>file</b>:"))
-            files = list(tools_available[tool][condition].keys())
-
-            @interact(
-                file=widgets.Dropdown(
-                    options=files, value=files[0], description="File:", disabled=False
-                )
-            )
-            def form(file):
-                display(
-                    widgets.HTML(
-                        value="Choose which columns to use as <b>x</b> and <b>y</b> axis:"
-                    )
-                )
-                columns = tools_available[tool][condition][file].columns
-
-                @interact(
-                    x=widgets.Dropdown(
-                        options=columns,
-                        value=columns[0],
-                        description="x:",
-                        disabled=False,
-                    ),
-                    y=widgets.Dropdown(
-                        options=columns,
-                        value=columns[1],
-                        description="y:",
-                        disabled=False,
-                    ),
-                )
-                def form(x, y):
-                    display(
-                        widgets.HTML(
-                            value="Results can be colored using two <b>methods</b>.</br> <ul><li>Cut-off: Choose a <b>column</b> with numerical values on which you want to apply a <b>cut-off</b></li><li>Category: choose a column and a color scheme.</li></ul>"
-                        )
-                    )
-
-                    @interact(
-                        method=widgets.ToggleButtons(
-                            options=["Cut-off", "Category"],
-                            value="Cut-off",
-                            description="Method:",
-                        )
-                    )
-                    def form(method):
-                        if method == "Cut-off":
-                            display(
-                                widgets.HTML(
-                                    value="Now choose a column with numerical data and a set a <b>cut-off</b> value."
-                                )
-                            )
-
-                            @interact(
-                                column_filter=widgets.Dropdown(
-                                    options=columns,
-                                    value=columns[0],
-                                    description="Column:",
-                                    disabled=False,
-                                ),
-                                cutoff=widgets.FloatText(
-                                    value=0.05, description="Cut-off:"
-                                ),
-                                greater=widgets.Checkbox(
-                                    value=False,
-                                    description="Greater?",
-                                    disabled=False,
-                                    indent=True,
-                                ),
-                                pass_color=widgets.ColorPicker(
-                                    concise=False,
-                                    description="Pass color:",
-                                    value="red",
-                                    disabled=False,
-                                ),
-                                fail_color=widgets.ColorPicker(
-                                    concise=False,
-                                    description="Fail color:",
-                                    value="gray",
-                                    disabled=False,
-                                ),
-                                column_element=widgets.Dropdown(
-                                    options=columns,
-                                    value=columns[0],
-                                    description="Column:",
-                                    disabled=False,
-                                ),
-                            )
-                            def form(
-                                column_filter,
-                                cutoff,
-                                greater,
-                                pass_color,
-                                fail_color,
-                                column_element,
-                            ):
-                                display(
-                                    widgets.HTML(
-                                        value="It is possible to highlight an <b>element</b> based on a column and value from that column."
-                                    )
-                                )
-                                first_element = str(
-                                    tools_available[tool][condition][file][
-                                        column_element
-                                    ][0]
-                                )
-
-                                @interact(
-                                    element=widgets.Text(
-                                        value=first_element,
-                                        placeholder="Element:",
-                                        description="Element:",
-                                        disabled=False,
-                                    ),
-                                    elem_color=widgets.ColorPicker(
-                                        concise=False,
-                                        description="Element color:",
-                                        value="blue",
-                                        disabled=False,
-                                    ),
-                                )
-                                def form(element, elem_color):
-                                    plot_chart(
-                                        tools_available,
-                                        tool,
-                                        condition,
-                                        file,
-                                        x,
-                                        y,
-                                        method,
-                                        column_filter,
-                                        cutoff,
-                                        greater,
-                                        element,
-                                        column_element,
-                                        elem_color,
-                                        pass_color,
-                                        fail_color,
-                                    )
-
-                        elif method == "Category":
-
-                            @interact(
-                                category_column=widgets.Dropdown(
-                                    options=columns,
-                                    value=columns[0],
-                                    description="Category:",
-                                    disabled=False,
-                                ),
-                                reverse=widgets.Checkbox(
-                                    value=False,
-                                    description="Reverse?",
-                                    disabled=False,
-                                    indent=True,
-                                ),
-                                color_scheme=widgets.Dropdown(
-                                    options=SCHEMES,
-                                    value=SCHEMES[0],
-                                    description="Scheme:",
-                                    disabled=False,
-                                ),
-                            )
-                            def form(category_column, reverse, color_scheme):
-                                plot_chart(
-                                    tools_available,
-                                    tool,
-                                    condition,
-                                    file,
-                                    x,
-                                    y,
-                                    method,
-                                    category_column=category_column,
-                                    color_scheme=color_scheme,
-                                    reverse=reverse,
-                                )
