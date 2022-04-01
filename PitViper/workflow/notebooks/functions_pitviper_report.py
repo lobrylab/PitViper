@@ -1607,26 +1607,82 @@ def tool_results_by_element(results_directory, tools_available, token):
             elements_list = list(set(result.Gene))
         return elements_list
 
-    def update_control(update):
-        ctrs = get_controls(results_directory, tools_available)
-        control.options = ctrs
+    # def update_control(update):
+    #    ctrs = get_controls(results_directory, tools_available)
+    #    control.options = ctrs
 
     def update_genes_list(update):
-        result = CRISPhieRmix_data(
-            comparison="",
-            control=control.value,
-            tool="CRISPhieRmix",
-            results_directory=results_directory,
-            tools_available=tools_available,
-        )
-        elements_list = result.gene.to_list()
+        tools = tools_available.keys()
+        for tool in tools:
+            if tool == "CRISPhieRmix":
+                result = CRISPhieRmix_data(
+                    comparison="",
+                    control=control.value,
+                    tool=tool,
+                    results_directory=results_directory,
+                    tools_available=tools_available,
+                )
+                gene_var = "gene"
+                break
+            if tool == "MAGeCK_MLE":
+                result = MAGeCK_MLE_data(
+                    comparison="",
+                    control=control.value,
+                    tool=tool,
+                    results_directory=results_directory,
+                    tools_available=tools_available,
+                )
+                gene_var = "Gene"
+                break
+            if tool == "MAGeCK_RRA":
+                result = MAGeCK_RRA_data(
+                    comparison="",
+                    control=control.value,
+                    tool=tool,
+                    results_directory=results_directory,
+                    tools_available=tools_available,
+                )
+                gene_var = "ig"
+                break
+            if tool == "BAGEL":
+                result = BAGEL_data(
+                    comparison="",
+                    control=control.value,
+                    tool=tool,
+                    results_directory=results_directory,
+                    tools_available=tools_available,
+                )
+                gene_var = "GENE"
+                break
+            if tool == "GSEA-like":
+                result = GSEA_like_data(
+                    comparison="",
+                    control=control.value,
+                    tool=tool,
+                    results_directory=results_directory,
+                    tools_available=tools_available,
+                )
+                gene_var = "pathway"
+                break
+            if tool == "in_house_method":
+                result = in_house_method_data(
+                    comparison="",
+                    control=control.value,
+                    tool=tool,
+                    results_directory=results_directory,
+                    tools_available=tools_available,
+                )
+                gene_var = "Gene"
+                break
+
+        elements_list = result[gene_var].to_list()
         gene.options = elements_list
         gene.value = elements_list[0]
 
     config = "config/%s.yaml" % token
     content = open_yaml(config)
     cts_file = "results/%s/normalized.filtered.counts.txt" % token
-    cts = pd.read_csv(cts_file, sep="\t")
+    # cts = pd.read_csv(cts_file, sep="\t")
     design_file = content["tsv_file"]
     design = pd.read_csv(design_file, sep="\t")
 
