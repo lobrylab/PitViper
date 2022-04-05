@@ -6,6 +6,7 @@ dependencies:
   - altair=4.1.0
   - altair_data_server=0.4.1
   - altair_viewer=0.3.0
+  - awk
   - bioconductor-depmap=1.8.0
   - bioconductor-deseq2
   - bioconductor-experimenthub=2.2.0

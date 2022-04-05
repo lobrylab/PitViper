@@ -117,6 +117,8 @@ def get_pipeline_outputs(wildcards):
             wanted_outputs.append("results/{token}/MAGeCK_RRA/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if config['crisphiermix_activate'] == 'True':
             wanted_outputs.append("results/{token}/CRISPhieRmix/{treatment}_vs_{control}/{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        if config['bed_annotation_file'] != "":
+            wanted_outputs.append("resources/{token}/annotation_ROSE_REGION_TO_GENE.txt".format(token = token))
     return wanted_outputs
 
 

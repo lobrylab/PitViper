@@ -5,17 +5,28 @@
   <title>PitViper GUI</title>
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
   <meta content="utf-8" http-equiv="encoding">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
- <style type=text/css scoped>
-  div#loading {margin: auto;width: 100px;height: 100px;display: none;background: url(/static/Hourglass.gif) no-repeat;cursor: wait;}
- </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0"
+    crossorigin="anonymous"></script>
+  <style type=text/css scoped>
+    div#loading {
+      margin: auto;
+      width: 100px;
+      height: 100px;
+      display: none;
+      background: url(/static/Hourglass.gif) no-repeat;
+      cursor: wait;
+    }
+  </style>
 </head>
 
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-5">
     <a class="navbar-brand" href="https://github.com/PaulArthurM/PitViper">PitViper GUI</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup"
+      aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
@@ -26,155 +37,194 @@
     </div>
   </nav>
 
-<div style="padding-left: 10%; padding-right: 10%;">
-  <div class="paragraphs">
-    <div class="row">
-      <div class="span4 py-5 px-5">
-        <img style="float:left" src="/static/pitviper_remastered.png" width="507" height="175"/>
-      </div
-    </div>
-  </div>
+  <div style="padding-left: 10%; padding-right: 10%;">
+    <div class="paragraphs">
+      <div class="row">
+        <div class="span4 py-5 px-5">
+          <img style="float:left" src="/static/pitviper_remastered.png" width="507" height="175" />
+        </div </div>
+      </div>
 
-  <p class="py-3  px-5">Welcome to the PitViper graphical user-interface.</p>
+      <p class="py-3  px-5">Welcome to the PitViper graphical user-interface.</p>
 
-  <p class="py-3  px-5"> PitViper is a bioinformatics pipeline built with Snakemake. It is intended to facilitate the analysis of functional screening data from various experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).</p>
-<div id="content">
-<form action="/result" method="post" enctype="multipart/form-data">
-  <div class="accordion  px-5" id="accordionExample" >
-    <div class="accordion-item">
-      <h2 class="accordion-header" id="headingOne">
-                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-                    General settings
-                  </button>
-                </h2>
-                <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample" style="padding: 2em;">
-                  <p>This section allow to define some generals settings.</p>
-                  <div class="mb-3 required">
-                    <label for="exampleFormControlInput1" class="form-label">Output directory name:</label>
-                    <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Choose a short informative word or group of words that explain the analysis. Replace spaces by '_' symbol.">Help</a>
-                    <input type="text" name="token" class="form-control" id="token" placeholder="eg. shRNA_analysis" required>
+      <p class="py-3  px-5"> PitViper is a bioinformatics pipeline built with Snakemake. It is intended to facilitate
+        the analysis of functional screening data from various experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).</p>
+      <div id="content">
+        <form action="/result" method="post" enctype="multipart/form-data">
+          <div class="accordion  px-5" id="accordionExample">
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                  General settings
+                </button>
+              </h2>
+              <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne"
+                data-bs-parent="#accordionExample" style="padding: 2em;">
+                <p>This section allow to define some generals settings.</p>
+                <div class="mb-3 required">
+                  <label for="exampleFormControlInput1" class="form-label">Output directory name:</label>
+                  <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus"
+                    title="Help"
+                    data-bs-content="Choose a short informative word or group of words that explain the analysis. Replace spaces by '_' symbol.">Help</a>
+                  <input type="text" name="token" class="form-control" id="token" placeholder="eg. shRNA_analysis"
+                    required>
+                </div>
+                <fieldset class="row mb-3">
+                  <div class="mb-3" style="padding:0em;">
+                    <legend class="col-form-label col-sm-1 ">Screen type:</legend>
+                    <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus"
+                      title="Help" data-bs-content="Did your library contain genes or other elements?">Help</a>
                   </div>
-                  <fieldset class="row mb-3">
-                    <div class="mb-3" style="padding:0em;">
-                      <legend class="col-form-label col-sm-1 ">Screen type:</legend>
-                      <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Did your library contain genes or other elements?">Help</a>
+                  <div class="col-sm-10">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="screen_type" id="is_gene" value="is_gene"
+                        onclick="hideBagel('BAGEL_div')" checked>
+                      <label class="form-check-label" for="is_gene">
+                        Genes
+                      </label>
                     </div>
-                     <div class="col-sm-10">
-                       <div class="form-check">
-                         <input class="form-check-input" type="radio" name="screen_type" id="is_gene" value="is_gene" onclick="hideBagel('BAGEL_div')" checked>
-                         <label class="form-check-label" for="is_gene">
-                           Genes
-                         </label>
-                       </div>
-                       <div class="form-check">
-                         <input class="form-check-input" type="radio" name="screen_type" id="not_gene" value="not_gene" onclick="hideBagel('BAGEL_div')">
-                         <label class="form-check-label" for="not_gene">
-                           Not genes
-                         </label>
-                       </div>
-                     </div>
-                   </fieldset>
-                    <fieldset class="row mb-3">
-                       <legend class="col-form-label col-sm-2 pt-0">Start analysis from:</legend>
-                       <div class="col-sm-10">
-                         <div class="form-check">
-                           <input class="form-check-input" type="radio" name="start_from" id="fastq" value="fastq" onclick="hideCountTableField('count_table_div')" checked>
-                           <label class="form-check-label" for="fastq">
-                             FASTQ files
-                           </label>
-                         </div>
-                         <div class="form-check">
-                           <input class="form-check-input" type="radio" name="start_from" id="bam" value="bam" onclick="hideCountTableField('count_table_div')">
-                           <label class="form-check-label" for="bam">
-                             aligned BAM files
-                           </label>
-                         </div>
-                         <div class="form-check">
-                           <input class="form-check-input" type="radio" name="start_from" id="count" value="count" onclick="hideCountTableField('count_table_div')">
-                           <label class="form-check-label" for="count">
-                             Count tables
-                           </label>
-                         </div>
-                       </div>
-                     </fieldset>
-                     <fieldset class="row mb-3">
-                       <legend class="col-form-label col-sm-2 pt-2">Jobs to run in parallel:</legend>
-                       <div class=" pb-3">
-                         <input class="form-select" type="number" id="replyNumber" min="1" data-bind="value:replyNumber" value=1 name='jobs' />
-                       </div>
-                   </fieldset>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="screen_type" id="not_gene" value="not_gene"
+                        onclick="hideBagel('BAGEL_div')">
+                      <label class="form-check-label" for="not_gene">
+                        Not genes
+                      </label>
+                    </div>
+                  </div>
+                </fieldset>
+                <fieldset class="row mb-3">
+                  <legend class="col-form-label col-sm-2 pt-0">Start analysis from:</legend>
+                  <div class="col-sm-10">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="start_from" id="fastq" value="fastq"
+                        onclick="hideCountTableField('count_table_div')" checked>
+                      <label class="form-check-label" for="fastq">
+                        FASTQ files
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="start_from" id="bam" value="bam"
+                        onclick="hideCountTableField('count_table_div')">
+                      <label class="form-check-label" for="bam">
+                        aligned BAM files
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="start_from" id="count" value="count"
+                        onclick="hideCountTableField('count_table_div')">
+                      <label class="form-check-label" for="count">
+                        Count tables
+                      </label>
+                    </div>
+                  </div>
+                </fieldset>
+                <fieldset class="row mb-3">
+                  <legend class="col-form-label col-sm-2 pt-2">Jobs to run in parallel:</legend>
+                  <div class=" pb-3">
+                    <input class="form-select" type="number" id="replyNumber" min="1" data-bind="value:replyNumber"
+                      value=1 name='jobs' />
+                  </div>
+                </fieldset>
 
-                </div>
               </div>
+            </div>
 
 
 
-              <div class="accordion-item">
-                <h2 class="accordion-header" id="headingTwo">
-                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                    Inputs
-                  </button>
-                </h2>
-                <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample" style="padding: 2em;">
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingTwo">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                  Inputs
+                </button>
+              </h2>
+              <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo"
+                data-bs-parent="#accordionExample" style="padding: 2em;">
+                <fieldset class="row mb-3">
+                  <div class="col-sm-10">
+                    <div id="count_table_div" style="display: none;">
+                      <div class="mb-3">
+                        <label for="formFileSm" class="form-label">Count table</label>
+                        <input class="form-control form-control-sm" id="count_table_file" name="count_table_file"
+                          type="file">
+                      </div>
+                    </div>
+                    <div id="library_div" style="display: block;">
+                      <div class="mb-3">
+                        <label for="formFileSm" class="form-label">Library (optional if starting from count
+                          file)</label>
+                        <input class="form-control form-control-sm" id="library_file" name="library_file" type="file">
+                      </div>
+                    </div>
+                    <div id="tsv_div" style="display: block;">
+                      <div class="mb-3">
+                        <label for="formFileSm" class="form-label">Design file</label>
+                        <input class="form-control form-control-sm" id="tsv_file" name="tsv_file" type="file">
+                      </div>
+                    </div>
+                    <div id="controls_div" style="display: block;">
+                      <div class="mb-3">
+                        <label for="formFileSm" class="form-label">Controls guides (optional, but more than 100 guides
+                          recommanded if selected)</label>
+                        <input class="form-control form-control-sm" id="controls_file" name="controls_file" type="file">
+                      </div>
+                    </div>
+                    <div id="bed_anno_div" style="display: none">
+                      <div class="mb-3">
+                        <label for="formFileSm" class="form-label">Elements coordinates (BED file)</label>
+                        <input class="form-control form-control-sm" id="bed_anno_file" name="bed_anno_file" type="file">
+                        <div style="padding-left: 5%;">
+                          <legend class="col-form-label col-sm-2 pt-2">Genome version:</legend>
+                          <div class=" pb-3">
+                            <select class="form-select" label="genome_version_rose" name="genome_version_rose">
+                              <option value="HG38" selected>HG38</option>
+                              <option value="HG18">HG18</option>
+                              <option value="HG19">HG19</option>
+                              <option value="MM10">MM10</option>
+                              <option value="MM9">MM9</option>
+                              <option value="MM8">MM8</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                </fieldset>
+              </div>
+            </div>
+
+
+
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                  Tools
+                </button>
+              </h2>
+              <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree"
+                data-bs-parent="#accordionExample" style="padding: 2em;">
+
+                <div id="bowtie">
                   <fieldset class="row mb-3">
-                     <div class="col-sm-10">
-                       <div id="count_table_div" style="display: none;">
-                         <div class="mb-3">
-                           <label for="formFileSm" class="form-label">Count table</label>
-                           <input class="form-control form-control-sm" id="count_table_file" name="count_table_file" type="file">
-                         </div>
-                       </div>
-                       <div id="library_div" style="display: block;">
-                         <div class="mb-3">
-                           <label for="formFileSm" class="form-label">Library (optional if starting from count file)</label>
-                           <input class="form-control form-control-sm" id="library_file" name="library_file" type="file">
-                         </div>
-                     </div>
-                       <div id="tsv_div" style="display: block;">
-                         <div class="mb-3">
-                           <label for="formFileSm" class="form-label">Design file</label>
-                           <input class="form-control form-control-sm" id="tsv_file" name="tsv_file" type="file">
-                         </div>
-                       </div>
-                       <div id="controls_div" style="display: block;">
-                         <div class="mb-3">
-                           <label for="formFileSm" class="form-label">Controls guides (optional, but more than 100 guides recommanded if selected)</label>
-                           <input class="form-control form-control-sm" id="controls_file" name="controls_file" type="file">
-                         </div>
-                     </div>
-                   </fieldset>
-                </div>
-              </div>
-
-
-
-              <div class="accordion-item">
-                <h2 class="accordion-header" id="headingThree">
-                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                    Tools
-                  </button>
-                </h2>
-                <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample" style="padding: 2em;">
-
-                  <div id="bowtie">
-                    <fieldset class="row mb-3">
-                      <legend class="col-form-label col-sm-2 pt-0 text-primary">Bowtie2</legend>
-                      <div class="col-sm-10">
-                        <div class="form-check form-switch">
-                          <input type='checkbox' value='True' name='bowtie_activate' class="form-check-input">
-                          <input type='hidden' value='False' name='bowtie_activate' class="form-check-input">
-                          <label class="form-check-label" for="bowtie_activate">Activate</label>
-                        </div>
-                        <legend class="col-form-label col-sm-2 pt-2">Length of 5' adapter:</legend>
-                        <div class=" pb-3">
-                          <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber" value=20 name='length_5_adapter' />
-                        </div>
-                        <legend class="col-form-label col-sm-2 pt-2">Length of 3' adapter:</legend>
-                        <div class=" pb-3">
-                          <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber" value=10 name='length_3_adapter' />
-                        </div>
-                        <legend class="col-form-label col-sm-2 pt-2">Normalization method:</legend>
-                        <div class=" pb-3">
+                    <legend class="col-form-label col-sm-2 pt-0 text-primary">Bowtie2</legend>
+                    <div class="col-sm-10">
+                      <div class="form-check form-switch">
+                        <input type='checkbox' value='True' name='bowtie_activate' class="form-check-input">
+                        <input type='hidden' value='False' name='bowtie_activate' class="form-check-input">
+                        <label class="form-check-label" for="bowtie_activate">Activate</label>
+                      </div>
+                      <legend class="col-form-label col-sm-2 pt-2">Length of 5' adapter:</legend>
+                      <div class=" pb-3">
+                        <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber"
+                          value=20 name='length_5_adapter' />
+                      </div>
+                      <legend class="col-form-label col-sm-2 pt-2">Length of 3' adapter:</legend>
+                      <div class=" pb-3">
+                        <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber"
+                          value=10 name='length_3_adapter' />
+                      </div>
+                      <legend class="col-form-label col-sm-2 pt-2">Normalization method:</legend>
+                      <div class=" pb-3">
                         <select class="form-select" label="Bowtie2 mapping method" name="bowtie_mapping_method">
                           <option selected>Open this select menu</option>
                           <option value="--sensitive" selected>sensitive</option>
@@ -182,211 +232,253 @@
                           <option value="--very-fast">very-fast</option>
                           <option value="--very-sensitive">very-sensitive</option>
                         </select>
-                        <p style="padding: 1em;"> Reference: <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3322381/" class="link-primary text-dark">Bowtie2 article</a></p>
-                       </div>
-                    </fieldset>
-                  </div>
-
-                  <div id="MAGeCK_count">
-                  <fieldset class="row mb-3">
-                     <legend class="col-form-label col-sm-2 pt-0 text-primary">MAGeCK count</legend>
-                     <div class="col-sm-10">
-                       <div class="form-check form-switch">
-                         <input type='checkbox' value='True' name='mageck_count_activate' class="form-check-input">
-                         <input type='hidden' value='False' name='mageck_count_activate' class="form-check-input">
-                         <label class="form-check-label" for="mageck_count_activate">Activate</label>
-                       </div>
-                       <legend class="col-form-label col-sm-2 pt-2">Normalization method:</legend>
-                       <div class=" pb-3">
-                       <select class="form-select" label="Normalization method" name="mageck_count_normalization">
-                         <option selected>Open this select menu</option>
-                         <option value="total" selected>total</option>
-                         <option value="median">median</option>
-                         <option value="control">control</option>
-                         <option value="none">none</option>
-                       </select>
+                        <p style="padding: 1em;"> Reference: <a
+                            href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3322381/"
+                            class="link-primary text-dark">Bowtie2 article</a></p>
                       </div>
+                  </fieldset>
+                </div>
 
-                       <legend class="col-form-label col-sm-2 pt-2">Length of the sgRNA:</legend>
-                       <div class=" pb-3">
-                         <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber" value=20 name='mageck_count_length' />
-                       </div>
-                       <!-- --count-pair -->
-                       <legend class="col-form-label col-sm-2 pt-2">Report all valid alignments per read or pair?</legend>
-                       <div class="form-check form-switch pb-3">
-                         <label class="form-check-label" for="count_pair">Activate</label>
-                         <input type='checkbox' value='True' name='mageck_count_all_align' class="form-check-input">
-                         <input type='hidden' value='False' name='mageck_count_all_align' class="form-check-input">
-                       </div>
-                       <!-- --count-n -->
-                       <legend class="col-form-label col-sm-2 pt-2">Count sgRNAs with Ns?</legend>
-                       <div class="form-check form-switch pb-3" style="display:flex; align-items: center">
-                         <input type='checkbox' value='True' name='mageck_count_N' class="form-check-input" style="margin-right: 1em;">
-                         <input type='hidden' value='False' name='mageck_count_N' class="form-check-input" style="margin-right: 1em;">
-                         <label class="form-check-label" for="mageck_count_N"> Activate</label>
-                         <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="By default, sgRNAs containing N
-                        will be discarded.">Help</a>
-                       </div>
-
-                       <!-- --reverse-complement -->
-                       <legend class="col-form-label col-sm-2 pt-2">Reverse complement the sequences in library for read
-                        mapping?</legend>
-                       <div class="form-check form-switch pb-3" style="display:flex; align-items: center">
-                         <input type='checkbox' value='True' name='mageck_count_rev_comp' class="form-check-input" style="margin-right: 1em;">
-                         <input type='hidden' value='False' name='mageck_count_rev_comp' class="form-check-input" style="margin-right: 1em;">
-                         <label class="form-check-label" for="mageck_count_rev_comp"> Activate</label>
-                       </div>
-
-                       <!-- pdf-report -->
-                       <legend class="col-form-label col-sm-2 pt-2">Generate pdf report of the fastq files?</legend>
-                       <div class="form-check form-switch pb-3" style="display:flex; align-items: center">
-                         <input type='checkbox' value='True' name='mageck_count_pdf' class="form-check-input" style="margin-right: 1em;">
-                         <input type='hidden' value='False' name='mageck_count_pdf' class="form-check-input" style="margin-right: 1em;">
-                         <label class="form-check-label" for="mageck_count_pdf"> Activate</label>
-                       </div>
-                       <p style="padding: 1em;"> Reference: <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-015-0843-6" class="link-primary text-dark">MAGeCK article</a></p>
-                     </div>
-                   </fieldset>
-                 </div>
-
-
-                  <!-- MLE -->
-                   <fieldset class="row mb-3">
-                      <legend class="col-form-label col-sm-2 pt-0 text-primary">MAGeCK MLE</legend>
-                      <div class="col-sm-10">
-                        <div class="form-check form-switch">
-                          <input type='checkbox' value='True' name='mageck_mle_activate' class="form-check-input">
-                          <input type='hidden' value='False' name='mageck_mle_activate' class="form-check-input">
-                          <label class="form-check-label" for="mageck_mle_activate">Activate</label>
-                        </div>
-
-                        <legend class="col-form-label col-sm-2 pt-3">Normalization method</legend>
-                        <select class="form-select" label="Normalization method" name="mageck_mle_normalization">
+                <div id="MAGeCK_count">
+                  <fieldset class="row mb-3">
+                    <legend class="col-form-label col-sm-2 pt-0 text-primary">MAGeCK count</legend>
+                    <div class="col-sm-10">
+                      <div class="form-check form-switch">
+                        <input type='checkbox' value='True' name='mageck_count_activate' class="form-check-input">
+                        <input type='hidden' value='False' name='mageck_count_activate' class="form-check-input">
+                        <label class="form-check-label" for="mageck_count_activate">Activate</label>
+                      </div>
+                      <legend class="col-form-label col-sm-2 pt-2">Normalization method:</legend>
+                      <div class=" pb-3">
+                        <select class="form-select" label="Normalization method" name="mageck_count_normalization">
                           <option selected>Open this select menu</option>
                           <option value="total" selected>total</option>
                           <option value="median">median</option>
                           <option value="control">control</option>
                           <option value="none">none</option>
                         </select>
+                      </div>
 
-                        <legend class="col-form-label col-sm-10 pt-3">The number of genes for mean-variance modeling:</legend>
-                        <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber" value=0 name="mageck_mle_mean_var"/>
+                      <legend class="col-form-label col-sm-2 pt-2">Length of the sgRNA:</legend>
+                      <div class=" pb-3">
+                        <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber"
+                          value=20 name='mageck_count_length' />
+                      </div>
+                      <!-- --count-pair -->
+                      <legend class="col-form-label col-sm-2 pt-2">Report all valid alignments per read or pair?
+                      </legend>
+                      <div class="form-check form-switch pb-3">
+                        <label class="form-check-label" for="count_pair">Activate</label>
+                        <input type='checkbox' value='True' name='mageck_count_all_align' class="form-check-input">
+                        <input type='hidden' value='False' name='mageck_count_all_align' class="form-check-input">
+                      </div>
+                      <!-- --count-n -->
+                      <legend class="col-form-label col-sm-2 pt-2">Count sgRNAs with Ns?</legend>
+                      <div class="form-check form-switch pb-3" style="display:flex; align-items: center">
+                        <input type='checkbox' value='True' name='mageck_count_N' class="form-check-input"
+                          style="margin-right: 1em;">
+                        <input type='hidden' value='False' name='mageck_count_N' class="form-check-input"
+                          style="margin-right: 1em;">
+                        <label class="form-check-label" for="mageck_count_N"> Activate</label>
+                        <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
+                          data-bs-trigger="focus" title="Help" data-bs-content="By default, sgRNAs containing N
+                        will be discarded.">Help</a>
+                      </div>
+
+                      <!-- --reverse-complement -->
+                      <legend class="col-form-label col-sm-2 pt-2">Reverse complement the sequences in library for read
+                        mapping?</legend>
+                      <div class="form-check form-switch pb-3" style="display:flex; align-items: center">
+                        <input type='checkbox' value='True' name='mageck_count_rev_comp' class="form-check-input"
+                          style="margin-right: 1em;">
+                        <input type='hidden' value='False' name='mageck_count_rev_comp' class="form-check-input"
+                          style="margin-right: 1em;">
+                        <label class="form-check-label" for="mageck_count_rev_comp"> Activate</label>
+                      </div>
+
+                      <!-- pdf-report -->
+                      <legend class="col-form-label col-sm-2 pt-2">Generate pdf report of the fastq files?</legend>
+                      <div class="form-check form-switch pb-3" style="display:flex; align-items: center">
+                        <input type='checkbox' value='True' name='mageck_count_pdf' class="form-check-input"
+                          style="margin-right: 1em;">
+                        <input type='hidden' value='False' name='mageck_count_pdf' class="form-check-input"
+                          style="margin-right: 1em;">
+                        <label class="form-check-label" for="mageck_count_pdf"> Activate</label>
+                      </div>
+                      <p style="padding: 1em;"> Reference: <a
+                          href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-015-0843-6"
+                          class="link-primary text-dark">MAGeCK article</a></p>
+                    </div>
+                  </fieldset>
+                </div>
 
 
-                        <!-- permutation-round -->
-                        <legend class="col-form-label col-sm-4 pt-3">The rounds for permutation. <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="The permutation
+                <!-- MLE -->
+                <fieldset class="row mb-3">
+                  <legend class="col-form-label col-sm-2 pt-0 text-primary">MAGeCK MLE</legend>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch">
+                      <input type='checkbox' value='True' name='mageck_mle_activate' class="form-check-input">
+                      <input type='hidden' value='False' name='mageck_mle_activate' class="form-check-input">
+                      <label class="form-check-label" for="mageck_mle_activate">Activate</label>
+                    </div>
+
+                    <legend class="col-form-label col-sm-2 pt-3">Normalization method</legend>
+                    <select class="form-select" label="Normalization method" name="mageck_mle_normalization">
+                      <option selected>Open this select menu</option>
+                      <option value="total" selected>total</option>
+                      <option value="median">median</option>
+                      <option value="control">control</option>
+                      <option value="none">none</option>
+                    </select>
+
+                    <legend class="col-form-label col-sm-10 pt-3">The number of genes for mean-variance modeling:
+                    </legend>
+                    <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber"
+                      value=0 name="mageck_mle_mean_var" />
+
+
+                    <!-- permutation-round -->
+                    <legend class="col-form-label col-sm-4 pt-3">The rounds for permutation. <a tabindex="0"
+                        class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help"
+                        data-bs-content="The permutation
                         time is (# genes)*x for x rounds of permutation.
                         Suggested value: 10 (may take longer time). Default 2.">Help</a></legend>
-                        <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber" value=2 name="mageck_mle_perm_N"/>
+                    <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber"
+                      value=2 name="mageck_mle_perm_N" />
 
 
-                        <!-- --no-permutation-by-group -->
-                        <legend class="col-form-label col-sm-2 pt-3">Perform permutation on all genes together?</legend>
-                        <div class="form-check form-switch" style="display:flex; align-items: center">
-                          <input type='checkbox' value='True' name='mageck_mle_perm_all' class="form-check-input" style="margin-right: 1em;">
-                          <input type='hidden' value='False' name='mageck_mle_perm_all' class="form-check-input" style="margin-right: 1em;">
-                          <label class="form-check-label" for="mageck_mle_perm_all"> Activate</label>
-                          <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="By default, gene permutation is performed separately,
+                    <!-- --no-permutation-by-group -->
+                    <legend class="col-form-label col-sm-2 pt-3">Perform permutation on all genes together?</legend>
+                    <div class="form-check form-switch" style="display:flex; align-items: center">
+                      <input type='checkbox' value='True' name='mageck_mle_perm_all' class="form-check-input"
+                        style="margin-right: 1em;">
+                      <input type='hidden' value='False' name='mageck_mle_perm_all' class="form-check-input"
+                        style="margin-right: 1em;">
+                      <label class="form-check-label" for="mageck_mle_perm_all"> Activate</label>
+                      <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
+                        data-bs-trigger="focus" title="Help" data-bs-content="By default, gene permutation is performed separately,
                         by their number of sgRNAs. Turning this option will
                         perform permutation on all genes together. This makes
                         the program faster, but the p value estimation is
                         accurate only if the number of sgRNAs per gene is
                         approximately the same.">Help</a>
-                        </div>
+                    </div>
 
-                        <!-- --remove-outliers -->
-                        <legend class="col-form-label col-sm-2 pt-3">Try to remove outliers?</legend>
-                        <div class="form-check form-switch" style="display:flex; align-items: center">
-                          <input type='checkbox' value='True' name='mageck_mle_outliers' class="form-check-input" style="margin-right: 1em;">
-                          <input type='hidden' value='False' name='mageck_mle_outliers' class="form-check-input" style="margin-right: 1em;">
-                          <label class="form-check-label" for="mageck_mle_outliers"> Activate</label>
-                          <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Try to remove outliers. Turning this option on will
+                    <!-- --remove-outliers -->
+                    <legend class="col-form-label col-sm-2 pt-3">Try to remove outliers?</legend>
+                    <div class="form-check form-switch" style="display:flex; align-items: center">
+                      <input type='checkbox' value='True' name='mageck_mle_outliers' class="form-check-input"
+                        style="margin-right: 1em;">
+                      <input type='hidden' value='False' name='mageck_mle_outliers' class="form-check-input"
+                        style="margin-right: 1em;">
+                      <label class="form-check-label" for="mageck_mle_outliers"> Activate</label>
+                      <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
+                        data-bs-trigger="focus" title="Help" data-bs-content="Try to remove outliers. Turning this option on will
                         slow the algorithm.">Help</a>
-                        </div>
+                    </div>
 
-                        <!-- adjust-method -->
-                        <legend class="col-form-label col-sm-5 pt-3">Method for sgrna-level p-value adjustment: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Method for sgrna-level p-value adjustment, including
+                    <!-- adjust-method -->
+                    <legend class="col-form-label col-sm-5 pt-3">Method for sgrna-level p-value adjustment: <a
+                        tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus"
+                        title="Help" data-bs-content="Method for sgrna-level p-value adjustment, including
                           false discovery rate (fdr), holm's method (holm), or
                           pounds's method (pounds).">Help
-                        </a></legend>
-                        <select class="form-select" label="sgrna-level p-value ajustement" name="mageck_mle_adj">
-                          <option selected>Open this select menu</option>
-                          <option value="fdr" selected>FDR</option>
-                          <option value="holm">Holm</option>
-                          <option value="pounds">Pounds</option>
-                        </select>
-                        <p style="padding: 1em;"> Reference: <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-015-0843-6" class="link-primary text-dark">MAGeCK MLE article</a></p>
-                      </div>
-                    </fieldset>
-                    <!-- MLE -->
+                      </a></legend>
+                    <select class="form-select" label="sgrna-level p-value ajustement" name="mageck_mle_adj">
+                      <option selected>Open this select menu</option>
+                      <option value="fdr" selected>FDR</option>
+                      <option value="holm">Holm</option>
+                      <option value="pounds">Pounds</option>
+                    </select>
+                    <p style="padding: 1em;"> Reference: <a
+                        href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-015-0843-6"
+                        class="link-primary text-dark">MAGeCK MLE article</a></p>
+                  </div>
+                </fieldset>
+                <!-- MLE -->
 
 
 
-                    <!-- RRA -->
-                   <fieldset class="row mb-3">
-                      <legend class="col-form-label col-sm-2 pt-0 text-primary">MAGeCK RRA</legend>
-                      <div class="col-sm-10">
-                        <div class="form-check form-switch">
-                          <input class="form-check-input" type="checkbox" id="mageck_rra_activate" name="mageck_rra_activate" value="True">
-                          <input class="form-check-input" type="hidden" id="mageck_rra_activate" name="mageck_rra_activate" value="False">
-                          <label class="form-check-label" for="mageck_rra_activate">Activate</label>
-                      </div>
+                <!-- RRA -->
+                <fieldset class="row mb-3">
+                  <legend class="col-form-label col-sm-2 pt-0 text-primary">MAGeCK RRA</legend>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="mageck_rra_activate"
+                        name="mageck_rra_activate" value="True">
+                      <input class="form-check-input" type="hidden" id="mageck_rra_activate" name="mageck_rra_activate"
+                        value="False">
+                      <label class="form-check-label" for="mageck_rra_activate">Activate</label>
+                    </div>
 
-                      <!-- adjust-method -->
-                      <legend class="col-form-label col-sm-5 pt-3">Method for sgrna-level p-value adjustment: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Method for sgrna-level p-value adjustment, including
+                    <!-- adjust-method -->
+                    <legend class="col-form-label col-sm-5 pt-3">Method for sgrna-level p-value adjustment: <a
+                        tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus"
+                        title="Help" data-bs-content="Method for sgrna-level p-value adjustment, including
                         false discovery rate (fdr), holm's method (holm), or
                         pounds's method (pounds).">Help
                       </a></legend>
-                      <select class="form-select" label="sgrna-level p-value ajustement" name="mageck_rra_adj">
-                        <option selected>Open this select menu</option>
-                        <option value="fdr" selected>FDR</option>
-                        <option value="holm">Holm</option>
-                        <option value="pounds">Pounds</option>
-                      </select>
+                    <select class="form-select" label="sgrna-level p-value ajustement" name="mageck_rra_adj">
+                      <option selected>Open this select menu</option>
+                      <option value="fdr" selected>FDR</option>
+                      <option value="holm">Holm</option>
+                      <option value="pounds">Pounds</option>
+                    </select>
 
-                      <!-- --gene-test-fdr-threshold -->
-                      <legend class="col-form-label col-sm-4 pt-3">P-value threshold: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="p value threshold to determine the alpha value of RRA
+                    <!-- --gene-test-fdr-threshold -->
+                    <legend class="col-form-label col-sm-4 pt-3">P-value threshold: <a tabindex="0" class="btn btn-link"
+                        role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="p value threshold to determine the alpha value of RRA
                         in gene test (-p option in RRA), default 0.25.">Help</a></legend>
-                      <div style="display:flex; align-items: center">
-                      <input class="form-select" type="number" id="replyNumber" min="0" max="1" step="0.01" data-bind="value:replyNumber" value=0.25 name="mageck_rra_pthreshold" />
+                    <div style="display:flex; align-items: center">
+                      <input class="form-select" type="number" id="replyNumber" min="0" max="1" step="0.01"
+                        data-bind="value:replyNumber" value=0.25 name="mageck_rra_pthreshold" />
                     </div>
 
-                  <!-- sort-criteria -->
-                  <legend class="col-form-label col-sm-5 pt-3">Sorting criteria: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Sorting criteria, either by negative selection (neg)
+                    <!-- sort-criteria -->
+                    <legend class="col-form-label col-sm-5 pt-3">Sorting criteria: <a tabindex="0" class="btn btn-link"
+                        role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Sorting criteria, either by negative selection (neg)
                         or positive selection (pos). Default negative
                         selection.">Help
-                  </a></legend>
-                  <select class="form-select" label="mageck_rra_criteria" name="mageck_rra_criteria">
-                    <option selected>Open this select menu</option>
-                    <option value="neg" selected>Negative</option>
-                    <option value="pos">Positive</option>
-                  </select>
+                      </a></legend>
+                    <select class="form-select" label="mageck_rra_criteria" name="mageck_rra_criteria">
+                      <option selected>Open this select menu</option>
+                      <option value="neg" selected>Negative</option>
+                      <option value="pos">Positive</option>
+                    </select>
 
-                  <!-- --remove-zero -->
-                  <legend class="col-form-label col-sm-5 pt-3">Remove sgRNAs whose mean value is zero in control or/and treatment: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Remove sgRNAs whose mean value is zero in control,
+                    <!-- --remove-zero -->
+                    <legend class="col-form-label col-sm-5 pt-3">Remove sgRNAs whose mean value is zero in control
+                      or/and treatment: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
+                        data-bs-trigger="focus" title="Help" data-bs-content="Remove sgRNAs whose mean value is zero in control,
                         treatment, both control/treatment, or any
                         control/treatment sample. Default: both (remove those
                         sgRNAs that are zero in both control and treatment
                         samples).">Help
-                  </a></legend>
-                <select class="form-select" label="mageck_rra_remove" name="mageck_rra_remove">
-                    <option selected>Open this select menu</option>
-                    <option value="both" selected>Both</option>
-                    <option value="control">Control</option>
-                    <option value="treatment">Treatment</option>
-                    <option value="any">Any</option>
-                    <option value="none">None</option>
-                  </select>
+                      </a></legend>
+                    <select class="form-select" label="mageck_rra_remove" name="mageck_rra_remove">
+                      <option selected>Open this select menu</option>
+                      <option value="both" selected>Both</option>
+                      <option value="control">Control</option>
+                      <option value="treatment">Treatment</option>
+                      <option value="any">Any</option>
+                      <option value="none">None</option>
+                    </select>
 
-                  <!-- --remove-zero-threshold -->
-                  <legend class="col-form-label col-sm-4 pt-3">sgRNA normalized count threshold to be considered removed: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="sgRNA normalized count threshold to be considered
+                    <!-- --remove-zero-threshold -->
+                    <legend class="col-form-label col-sm-4 pt-3">sgRNA normalized count threshold to be considered
+                      removed: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
+                        data-bs-trigger="focus" title="Help" data-bs-content="sgRNA normalized count threshold to be considered
                         removed in the --remove-zero option. Default 0.">Help</a></legend>
-                  <div style="display:flex; align-items: center">
-                  <input class="form-select" type="number" id="replyNumber" min="0" step="1" data-bind="value:replyNumber" value=0 name="mageck_rra_count_min"/>
-                </div>
+                    <div style="display:flex; align-items: center">
+                      <input class="form-select" type="number" id="replyNumber" min="0" step="1"
+                        data-bind="value:replyNumber" value=0 name="mageck_rra_count_min" />
+                    </div>
 
-                <!-- --gene-lfc-method -->
-                <legend class="col-form-label col-sm-5 pt-3">Method to calculate gene log fold changes (LFC) from sgRNA LFCs. <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Method to calculate gene log fold changes (LFC) from
+                    <!-- --gene-lfc-method -->
+                    <legend class="col-form-label col-sm-5 pt-3">Method to calculate gene log fold changes (LFC) from
+                      sgRNA LFCs. <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
+                        data-bs-trigger="focus" title="Help" data-bs-content="Method to calculate gene log fold changes (LFC) from
                         sgRNA LFCs. Available methods include the median/mean
                         of all sgRNAs (median/mean), or the median/mean sgRNAs
                         that are ranked in front of the alpha cutoff in RRA
@@ -396,182 +488,207 @@
                         correspond to the 'goodsgrna' column in the output,
                         and the gene LFC will be set to 0 if no sgRNA is in
                         front of the alpha cutoff. Default median.">Help
-                </a></legend>
-              <select class="form-select" label="mageck_rra_LFC" name="mageck_rra_LFC">
-                  <option selected>Open this select menu</option>
-                  <option value="median" selected>Median</option>
-                  <option value="alphamedian">Alpha median</option>
-                  <option value="mean">Mean</option>
-                  <option value="alphamean">Alpha mean</option>
-                  <option value="secondbest">Second best</option>
-                </select>
-                <p style="padding: 1em;"> Reference: <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0554-4" class="link-primary text-dark">MAGeCK RRA article</a></p>
+                      </a></legend>
+                    <select class="form-select" label="mageck_rra_LFC" name="mageck_rra_LFC">
+                      <option selected>Open this select menu</option>
+                      <option value="median" selected>Median</option>
+                      <option value="alphamedian">Alpha median</option>
+                      <option value="mean">Mean</option>
+                      <option value="alphamean">Alpha mean</option>
+                      <option value="secondbest">Second best</option>
+                    </select>
+                    <p style="padding: 1em;"> Reference: <a
+                        href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0554-4"
+                        class="link-primary text-dark">MAGeCK RRA article</a></p>
+                  </div>
+                </fieldset>
+
+
+                <fieldset class="row mb-3">
+                  <legend class="col-form-label col-sm-2 pt-0 text-primary">CRISPhieRmix</legend>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="crisphiermix_activate" ,
+                        name="crisphiermix_activate" value="True">
+                      <input class="form-check-input" type="hidden" id="crisphiermix_activate" ,
+                        name="crisphiermix_activate" value="False">
+                      <label class="form-check-label" for="crisphiermix_activate">Activate</label>
+                    </div>
+                    <p style="padding: 1em;"> Reference: <a
+                        href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1538-6"
+                        class="link-primary text-dark">CRISPhieRmix article</a></p>
+                  </div>
+                </fieldset>
+                <div id="BAGEL_div">
+                  <fieldset class="row mb-3">
+                    <legend class="col-form-label col-sm-2 pt-0 text-primary">BAGEL</legend>
+                    <div class="col-sm-10">
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="bagel_activate" , name="bagel_activate"
+                          value=True onclick="hideBagelOptions('bagel_options')">
+                        <input class="form-check-input" type="hidden" id="bagel_activate" , name="bagel_activate"
+                          value=False>
+                        <label class="form-check-label" for="bagel_activate">Activate</label>
+                      </div>
+                      <div id="bagel_options" style="display: none;">
+                        <div class="mb-3">
+                          <label for="formFileSm" class="form-label">Essential genes</label>
+                          <input class="form-control form-control-sm" id="essentials" name="essentials" type="file">
+                        </div>
+                        <div class="mb-3">
+                          <label for="formFileSm" class="form-label">Nonessential genes</label>
+                          <input class="form-control form-control-sm" id="nonessentials" name="nonessentials"
+                            type="file">
+                        </div>
+                      </div>
+                      <p style="padding: 1em;"> Reference: <a
+                          href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-016-1015-8"
+                          class="link-primary text-dark">BAGEL article</a></p>
+                    </div>
+                  </fieldset>
                 </div>
-              </fieldset>
 
+                <fieldset class="row mb-3">
+                  <legend class="col-form-label col-sm-2 pt-0 text-primary">Filtering method</legend>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="crisphiermix_activate" ,
+                        name="filtering_activate" value="True">
+                      <input class="form-check-input" type="hidden" id="crisphiermix_activate" ,
+                        name="filtering_activate" value="False">
+                      <label class="form-check-label" for="filtering_activate">Activate</label>
+                    </div>
 
-                   <fieldset class="row mb-3">
-                      <legend class="col-form-label col-sm-2 pt-0 text-primary">CRISPhieRmix</legend>
-                      <div class="col-sm-10">
-                        <div class="form-check form-switch">
-                          <input class="form-check-input" type="checkbox" id="crisphiermix_activate", name="crisphiermix_activate" value="True">
-                          <input class="form-check-input" type="hidden" id="crisphiermix_activate", name="crisphiermix_activate" value="False">
-                          <label class="form-check-label" for="crisphiermix_activate">Activate</label>
-                        </div>
-                        <p style="padding: 1em;"> Reference: <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1538-6" class="link-primary text-dark">CRISPhieRmix article</a></p>
-                      </div>
-                    </fieldset>
-                    <div id="BAGEL_div">
-                    <fieldset class="row mb-3">
-                       <legend class="col-form-label col-sm-2 pt-0 text-primary">BAGEL</legend>
-                       <div class="col-sm-10">
-                         <div class="form-check form-switch">
-                           <input class="form-check-input" type="checkbox" id="bagel_activate", name="bagel_activate" value=True onclick="hideBagelOptions('bagel_options')">
-                           <input class="form-check-input" type="hidden" id="bagel_activate", name="bagel_activate" value=False>
-                           <!--  onclick="hideBagelOptions('bagel_options')" -->
-                           <label class="form-check-label" for="bagel_activate">Activate</label>
-                         </div>
-                         <div id="bagel_options"  style="display: none;">
-                         <div class="mb-3">
-                           <label for="formFileSm" class="form-label">Essential genes</label>
-                           <input class="form-control form-control-sm" id="essentials" name="essentials" type="file">
-                         </div>
-                         <div class="mb-3">
-                           <label for="formFileSm" class="form-label">Nonessential genes</label>
-                           <input class="form-control form-control-sm" id="nonessentials" name="nonessentials" type="file">
-                         </div>
-                      </div>
-                      <p style="padding: 1em;"> Reference: <a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-016-1015-8" class="link-primary text-dark">BAGEL article</a></p>
-                       </div>
-                     </fieldset>
-                   </div>
-
-                   <fieldset class="row mb-3">
-                      <legend class="col-form-label col-sm-2 pt-0 text-primary">Filtering method</legend>
-                      <div class="col-sm-10">
-                        <div class="form-check form-switch">
-                          <input class="form-check-input" type="checkbox" id="crisphiermix_activate", name="filtering_activate" value="True">
-                          <input class="form-check-input" type="hidden" id="crisphiermix_activate", name="filtering_activate" value="False">
-                          <label class="form-check-label" for="filtering_activate">Activate</label>
-                        </div>
-
-                        <!-- guide-fdr-threshold -->
-                      <legend class="col-form-label col-sm-4 pt-3">FDR threshold: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Keep guides with FDR value below this threshold (default 0.25).">Help</a></legend>
-                      <div style="display:flex; align-items: center">
-                        <input class="form-select" type="number" id="replyNumber" min="0" max="1" step="0.01" data-bind="value:replyNumber" value=0.25 name="inhouse_fdr_threshold" />
-                      </div>
+                    <!-- guide-fdr-threshold -->
+                    <legend class="col-form-label col-sm-4 pt-3">FDR threshold: <a tabindex="0" class="btn btn-link"
+                        role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help"
+                        data-bs-content="Keep guides with FDR value below this threshold (default 0.25).">Help</a>
+                    </legend>
+                    <div style="display:flex; align-items: center">
+                      <input class="form-select" type="number" id="replyNumber" min="0" max="1" step="0.01"
+                        data-bind="value:replyNumber" value=0.25 name="inhouse_fdr_threshold" />
+                    </div>
 
                     <!-- guide-log2-threshold -->
-                    <legend class="col-form-label col-sm-4 pt-3">Absolute log2 fold-change threshold: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Keep guides with absolute log2 value above this threshold (default 1).">Help</a></legend>
+                    <legend class="col-form-label col-sm-4 pt-3">Absolute log2 fold-change threshold: <a tabindex="0"
+                        class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help"
+                        data-bs-content="Keep guides with absolute log2 value above this threshold (default 1).">Help</a>
+                    </legend>
                     <div style="display:flex; align-items: center">
-                      <input class="form-select" type="number" id="replyNumber" min="0" step="0.01" data-bind="value:replyNumber" value=1 name="inhouse_log2_threshold" />
+                      <input class="form-select" type="number" id="replyNumber" min="0" step="0.01"
+                        data-bind="value:replyNumber" value=1 name="inhouse_log2_threshold" />
                     </div>
 
                     <!-- guides-threshold -->
-                    <legend class="col-form-label col-sm-4 pt-3">Guides threshold: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Minimum number of guides moving in the same direction to keep targeted element.">Help</a></legend>
+                    <legend class="col-form-label col-sm-4 pt-3">Guides threshold: <a tabindex="0" class="btn btn-link"
+                        role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help"
+                        data-bs-content="Minimum number of guides moving in the same direction to keep targeted element.">Help</a>
+                    </legend>
                     <div style="display:flex; align-items: center">
-                      <input class="form-select" type="number" id="replyNumber" min="1" step="1" data-bind="value:replyNumber" value=2 name="inhouse_guides_threshold" />
+                      <input class="form-select" type="number" id="replyNumber" min="1" step="1"
+                        data-bind="value:replyNumber" value=2 name="inhouse_guides_threshold" />
                     </div>
 
 
-                      </div>
-                    </fieldset>
+                  </div>
+                </fieldset>
 
 
-                    <fieldset class="row mb-3">
-                       <legend class="col-form-label col-sm-2 pt-0 text-primary">GSEA-like method</legend>
-                       <div class="col-sm-10">
-                         <div class="form-check form-switch">
-                           <input class="form-check-input" type="checkbox" id="crisphiermix_activate", name="gsea_activate" value="True">
-                           <input class="form-check-input" type="hidden" id="crisphiermix_activate", name="gsea_activate" value="False">
-                           <label class="form-check-label" for="gsea_activate">Activate</label>
-                         </div>
-                         <legend class="col-form-label col-sm-5 pt-3">Ranking method: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Signal-to-Noise ratio can be used only if there is at least three replicates by sample.">Help
-                         </a></legend>
-                         <select class="form-select" label="gsea_ranking_method" name="gsea_ranking_method">
-                             <option selected>Open this select menu</option>
-                             <option value="signal_to_noise" selected>Signal-to-Noise</option>
-                             <option value="fold_change">Fold-change</option>
-                        </select>
-                         <p style="padding: 1em;"> Reference: <a href="https://www.pnas.org/content/102/43/15545" class="link-primary text-dark">Original GSEA article</a> and <a href="https://www.biorxiv.org/content/10.1101/060012v3" class="link-primary text-dark">fGSEA preprint</a></p>
-                       </div>
-                     </fieldset>
-                <dum/div>
+                <fieldset class="row mb-3">
+                  <legend class="col-form-label col-sm-2 pt-0 text-primary">GSEA-like method</legend>
+                  <div class="col-sm-10">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="crisphiermix_activate" , name="gsea_activate"
+                        value="True">
+                      <input class="form-check-input" type="hidden" id="crisphiermix_activate" , name="gsea_activate"
+                        value="False">
+                      <label class="form-check-label" for="gsea_activate">Activate</label>
+                    </div>
+                    <legend class="col-form-label col-sm-5 pt-3">Ranking method: <a tabindex="0" class="btn btn-link"
+                        role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help"
+                        data-bs-content="Signal-to-Noise ratio can be used only if there is at least three replicates by sample.">Help
+                      </a></legend>
+                    <select class="form-select" label="gsea_ranking_method" name="gsea_ranking_method">
+                      <option selected>Open this select menu</option>
+                      <option value="signal_to_noise" selected>Signal-to-Noise</option>
+                      <option value="fold_change">Fold-change</option>
+                    </select>
+                    <p style="padding: 1em;"> Reference: <a href="https://www.pnas.org/content/102/43/15545"
+                        class="link-primary text-dark">Original GSEA article</a> and <a
+                        href="https://www.biorxiv.org/content/10.1101/060012v3" class="link-primary text-dark">fGSEA
+                        preprint</a></p>
+                  </div>
+                </fieldset>
+                <dum /div>
               </div>
             </div>
 
-    <input class="btn btn-success  mx-5" type="submit" value="Run PitViper", style="margin: 1em;" onclick="loading();"></input>
-</form>
-</div>
-</div>
-<div id="loading"></div>
-<script>
-  function hideBagel (box) {
-    // Hide or show Bagel options if elements are genes.
-    var chbox = document.getElementById("is_gene");
-    var vis = "block";
-    var bool = true;
-    if(!chbox.checked){
-      vis = "none";
-      bool = false;
-    }
-    document.getElementById(box).style.display = vis;
-    document.getElementById("bagel_activate").required = bool;
-    document.getElementById("essentials").required = bool;
-    document.getElementById("nonessentials").required = bool;
-    document.getElementById("bagel_activate").checked = false;
-  }
+            <input class="btn btn-success  mx-5" type="submit" value="Run PitViper" , style="margin: 1em;"
+              onclick="loading();"></input>
+        </form>
+      </div>
+    </div>
+    <div id="loading"></div>
+    <script>
+      function hideBagel(box) {
+        // Hide or show Bagel options if elements are genes.
+        var chbox = document.getElementById("is_gene");
+        var vis = "block";
+        var bool = true;
+        bed_anno_required = false;
+        bed_anno_required = "none";
+        if (!chbox.checked) {
+          vis = "none";
+          bool = false;
+          bed_anno_required = true;
+          bed_anno_display = "block";
+        }
+        document.getElementById(box).style.display = vis;
+        document.getElementById("bagel_activate").required = bool;
+        document.getElementById("essentials").required = bool;
+        document.getElementById("nonessentials").required = bool;
+        document.getElementById("bagel_activate").checked = false;
+        document.getElementById("bed_anno_div").style.display = bed_anno_display;
+        document.getElementById("bed_anno_file").required = bed_anno_required;
+      }
 
 
-  function hideBagelOptions ( box ) {
-    // Hide Bagel options if not activated.
-    var chbox = document.getElementById("bagel_activate");
-    var vis = "none";
-    var bool = false;
-    if(chbox.checked){
-      vis = "block";
-      bool = true;
-    }
-    document.getElementById(box).style.display = vis;
-    document.getElementById("essential").required = bool;
-    document.getElementById("nonessential").required = bool;
-  }
+      function hideBagelOptions(box) {
+        // Hide Bagel options if not activated.
+        var chbox = document.getElementById("bagel_activate");
+        var vis = "none";
+        var bool = false;
+        if (chbox.checked) {
+          vis = "block";
+          bool = true;
+        }
+        document.getElementById(box).style.display = vis;
+        document.getElementById("essential").required = bool;
+        document.getElementById("nonessential").required = bool;
+      }
 
-  // function showCountTableField ( box ) {
-  //   var radio = document.getElementById("count");
-  //   var count_table_vis = "none";
-  //   var vis_lib = "block";
-  //   if(radio.checked){
-  //     count_table_vis = "block";
-  //     vis_lib = "none";
-  //   }
-  //   document.getElementById(box).style.display = count_table_vis;
-  //   document.getElementById('library_div').style.display = vis_lib;
-  //   document.getElementById('count_table').required = true;
-  //   document.getElementById('library').required = false;
-  // }
 
-  function hideCountTableField ( box ) {
-    var radio = document.getElementById("count");
-    var count_table_vis = "none";
-	  var mageck_count_display = "block";
-    var ct = false;
-    if(radio.checked){
-      count_table_vis = "block";
-      mageck_count_display = "none";
-      ct = true;
-    }
-    document.getElementById(box).style.display = count_table_vis;
-    document.getElementById('count_table_div').required = ct;
-    document.getElementById('MAGeCK_count').style.display = mageck_count_display;
-    document.getElementById('bowtie').style.display = mageck_count_display;
-  }
+      function hideCountTableField(box) {
+        var radio = document.getElementById("count");
+        var count_table_vis = "none";
+        var mageck_count_display = "block";
+        var is_required = false;
+        if (radio.checked) {
+          count_table_vis = "block";
+          display_value = "none";
+          is_required = true;
+        }
+        document.getElementById(box).style.display = count_table_vis;
+        document.getElementById('count_table_div').required = is_required;
+        document.getElementById('MAGeCK_count').style.display = display_value;
+        document.getElementById('bowtie').style.display = display_value;
+      }
 
-  function loading(){
-     document.getElementById('loading').style.display = "block";
-     document.getElementById('content').style.display = "none";
-   }
-</script>
+      function loading() {
+        document.getElementById('loading').style.display = "block";
+        document.getElementById('content').style.display = "none";
+      }
+    </script>
 </body>
 
 <script type="text/javascript">

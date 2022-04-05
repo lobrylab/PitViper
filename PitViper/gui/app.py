@@ -52,6 +52,10 @@ def result():
             controls_file = request.files.get("controls_file")
         except KeyError:
             controls_file = False
+        try:
+            bed_anno_file = request.files.get("bed_anno_file")
+        except KeyError:
+            bed_anno_file = False
 
         tsv_file = request.files.get("tsv_file")
         count_table_file = request.files.get("count_table_file")
@@ -76,6 +80,13 @@ def result():
     else:
         controls_filename = ""
     result_dict["controls_file"] = controls_filename
+
+    if bed_anno_file:
+        bed_anno_filename = "resources/" + result_dict["token"] + "/annotation.bed"
+        bed_anno_file.save(bed_anno_filename)
+    else:
+        bed_anno_filename = ""
+    result_dict["bed_annotation_file"] = bed_anno_filename
 
     tsv_filename = "resources/" + result_dict["token"] + "/" + tsv_file.filename
     tsv_file.save(tsv_filename)
