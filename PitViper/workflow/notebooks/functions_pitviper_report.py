@@ -149,6 +149,28 @@ def download_normalized_counts(token):
     )
 
 
+def download_design(token):
+    config_name = "./config/%s.yaml" % token
+    config = open_yaml(config_name)
+    design_name = config["tsv_file"]
+    design_content = pd.read_table(design_name).to_string()
+    download_file(
+        content=design_content,
+        filename=design_name,
+        label=f"Download design file!",
+    )
+
+
+def download_config(token):
+    config_name = "./config/%s.yaml" % token
+    config = open_yaml(config_name)
+    download_file(
+        content=config,
+        filename=config_name,
+        label=f"Download config file!",
+    )
+
+
 def import_results(token: str):
     """Load PitViper results inside token sub-directory.
 
@@ -1532,6 +1554,45 @@ def show_sgRNA_counts_lines(token):
     button.on_click(on_button_clicked)
 
 
+def regions2genes(token, se):
+    annotation_file = f"resources/{token}/annotation_ROSE_REGION_TO_GENE.txt"
+    if os.path.exists(annotation_file):
+        annotation_table = pd.read_table(
+            annotation_file, sep="\t", skiprows=1, header=None
+        )
+        annotation_table.columns = [
+            "Name",
+            "Chromosome",
+            "Start",
+            "End",
+            "none1",
+            "OVERLAP_GENES",
+            "PROXIMAL_GENES",
+            "CLOSEST_GENE",
+            "L",
+            "none2",
+        ]
+        annotation_table = annotation_table.loc[annotation_table.Name.isin(se)]
+        annotation_table["OVERLAP_GENES"] = annotation_table["OVERLAP_GENES"].fillna(0)
+        annotation_table["PROXIMAL_GENES"] = annotation_table["PROXIMAL_GENES"].fillna(
+            0
+        )
+        annotation_table["CLOSEST_GENE"] = annotation_table["CLOSEST_GENE"].fillna(0)
+        overlap = [x for x in annotation_table["OVERLAP_GENES"].values if x != 0]
+        proximal = [x for x in annotation_table["PROXIMAL_GENES"].values if x != 0]
+        closest = [x for x in annotation_table["CLOSEST_GENE"].values if x != 0]
+        s2g = []
+        for genes_set in [overlap, proximal, closest]:
+            for i in range(len(genes_set)):
+                genes = genes_set[i].split(",")
+                for gene in genes:
+                    if not gene in s2g:
+                        s2g.append(gene)
+    else:
+        s2g = se
+    return s2g
+
+
 def tool_results_by_element(results_directory, tools_available, token):
     def get_controls(results_directory, tools_available, tool):
         comparisons_list = os.listdir(os.path.join(results_directory, tool))
@@ -1607,10 +1668,6 @@ def tool_results_by_element(results_directory, tools_available, token):
             elements_list = list(set(result.Gene))
         return elements_list
 
-    # def update_control(update):
-    #    ctrs = get_controls(results_directory, tools_available)
-    #    control.options = ctrs
-
     def update_genes_list(update):
         tools = tools_available.keys()
         for tool in tools:
@@ -1681,8 +1738,7 @@ def tool_results_by_element(results_directory, tools_available, token):
 
     config = "config/%s.yaml" % token
     content = open_yaml(config)
-    cts_file = "results/%s/normalized.filtered.counts.txt" % token
-    # cts = pd.read_csv(cts_file, sep="\t")
+    # cts_file = "results/%s/normalized.filtered.counts.txt" % token
     design_file = content["tsv_file"]
     design = pd.read_csv(design_file, sep="\t")
 
@@ -2707,8 +2763,8 @@ def disable_widgets(token):
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
     disabled = False
-    if content["screen_type"] == "not_gene":
-        disabled = True
+    if content["screen_type"] == "not_gene" and content["annotation"]:
+        disabled = False
     return disabled
 
 
@@ -3067,6 +3123,7 @@ def multiple_tools_results(tools_available, token):
                 occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
             )
             genes_list = df.loc[df.union == True].index
+        genes_list = regions2genes(token, genes_list)
         display(
             HTML(
                 """<p style="color:white;font-weight: bold;background-color: blue;padding: 0.5em;">Genemania link - %s</p>"""
@@ -3119,6 +3176,7 @@ def multiple_tools_results(tools_available, token):
                 occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
             )
             genes_list = df.loc[df.union == True].index
+        genes_list = regions2genes(token, genes_list)
         BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
         bases = widgets.SelectMultiple(options=BASES, description="Gene sets:", rows=10)
         col_2 = widgets.ColorPicker(
@@ -3393,6 +3451,7 @@ def multiple_tools_results(tools_available, token):
                         columns=["union"],
                     )
                     genes_list = df.loc[df.union == True].index
+                genes_list = regions2genes(token, genes_list)
                 if data_types_widget.value == "mutations":
                     columns = [
                         "gene_name",
