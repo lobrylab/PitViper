@@ -2763,8 +2763,8 @@ def disable_widgets(token):
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
     disabled = False
-    if content["screen_type"] == "not_gene" and content["annotation"]:
-        disabled = False
+    if content["screen_type"] == "not_gene" and content["bed_annotation_file"] == "":
+        disabled = True
     return disabled
 
 
