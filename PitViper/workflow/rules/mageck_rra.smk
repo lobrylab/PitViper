@@ -7,7 +7,7 @@ rule mageck_rra:
         output: genes and sgrnas summaries
         params: user must choose a normalization method"""
     input:
-        count_table=rules.counts_filtering.output.normalized_filtered_counts#config['normalized_count_table']
+        count_table=rules.counts_filtering.output.raw_filtered_counts
     output:
         gene_summary = "results/{token}/MAGeCK_RRA/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt",
     params:
@@ -16,6 +16,7 @@ rule mageck_rra:
         control = getControlIds,
         lfc_method_opt = config['mageck_rra_LFC'],
         ajd_method_opt = config['mageck_rra_adj'],
+        method_opt = config['mageck_rra_normalization'],
         rm_zero_threshold_opt = config['mageck_rra_count_min'],
         sorting_criteria_opt = config['mageck_rra_criteria'],
         test_threshold_opt = config['mageck_rra_pthreshold'],
@@ -35,4 +36,5 @@ rule mageck_rra:
             --sort-criteria {params.sorting_criteria_opt} \
             --gene-test-fdr-threshold {params.test_threshold_opt} \
             --remove-zero {params.remove_from_opt} \
+            --norm-method {params.method_opt} \
             {params.control_sgrna_opt} &> {log}"

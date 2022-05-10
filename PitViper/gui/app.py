@@ -60,9 +60,11 @@ def result():
         tsv_file = request.files.get("tsv_file")
         count_table_file = request.files.get("count_table_file")
 
+    # Check if resources/ directory exist, if not, create it.
     if not os.path.exists("resources/" + result_dict["token"] + "/"):
         os.makedirs("resources/" + result_dict["token"] + "/")
 
+    # If a library file was uploaded, save it in resources/ directory.
     if library_file:
         library_filename = (
             "resources/" + result_dict["token"] + "/" + library_file.filename
@@ -72,6 +74,7 @@ def result():
         library_filename = ""
     result_dict["library_file"] = library_filename
 
+    # If a control guides file was uploaded, save it in resources/ directory.
     if controls_file:
         controls_filename = (
             "resources/" + result_dict["token"] + "/" + controls_file.filename
@@ -81,6 +84,7 @@ def result():
         controls_filename = ""
     result_dict["controls_file"] = controls_filename
 
+    # If an annotation file was uploaded, save it in resources/ directory.
     if bed_anno_file:
         bed_anno_filename = "resources/" + result_dict["token"] + "/annotation.bed"
         bed_anno_file.save(bed_anno_filename)
@@ -88,11 +92,12 @@ def result():
         bed_anno_filename = ""
     result_dict["bed_annotation_file"] = bed_anno_filename
 
+    # Save design file in resources/ directory
     tsv_filename = "resources/" + result_dict["token"] + "/" + tsv_file.filename
+    result_dict["tsv_file"] = tsv_filename
     tsv_file.save(tsv_filename)
 
-    result_dict["tsv_file"] = tsv_filename
-
+    # Check if a count table was uploaded, if yes, save it in resources/ directory.
     if count_table_file.filename != "":
         count_table_filename = (
             "resources/" + result_dict["token"] + "/" + count_table_file.filename
@@ -110,6 +115,7 @@ def result():
             "resources/" + result_dict["token"] + "/screen.count_normalized.txt"
         )
 
+    # Check if BAGEL is activated, if not, create empty fields, otherwise save them in resources/ directory.
     if result_dict["bagel_activate"] == "False":
         result_dict["nonessentials"] = ""
         result_dict["essentials"] = ""
@@ -125,6 +131,13 @@ def result():
         result_dict["nonessentials"] = noness_filename
         result_dict["essentials"] = ess_filename
 
+    # Init MAGeCK activation based on Bowtie2 value
+    if result_dict["bowtie_activate"] == "True":
+        result_dict["mageck_count_activate"] = "False"
+    else:
+        result_dict["mageck_count_activate"] = "True"
+
+    # Write configuration YAML configuration file.
     yaml_file_name = "config/" + result["token"] + ".yaml"
     with open(yaml_file_name, "w") as file:
         documents = yaml.dump(result_dict, file)
