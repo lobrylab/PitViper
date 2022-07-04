@@ -4,7 +4,7 @@
 
 ## Introduction
 
-PitViper is intended to facilitate analysis of functional screening data from various experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).
+PitViper is intended to facilitate the analysis of functional screening data from various functionnal screening experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).
 
 The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/stable/), a workflow management system to create reproducible and scalable data analysis, [`Flask`](https://flask.palletsprojects.com/en/2.0.x/), a lightweight web framework and [`Jupyter`](https://jupyter.org/), a web application for creating and sharing computational documents.
 
@@ -24,9 +24,9 @@ The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/sta
 
 ### Prerequisites
 
-To install and run PitViper, [`Conda`](https://docs.conda.io/en/latest/) and [`Git`](https://git-scm.com/) need to be available from commande-line.
+[`Conda`](https://docs.conda.io/en/latest/) and [`Git`](https://git-scm.com/) are required to install PitViper.
 
-Once Conda is installed and in order to speed-up installation process, [`Mamba`](https://github.com/mamba-org/mamba) is needed:
+[`Mamba`] (https://github.com/mamba-org/mamba) is needed to speed up the installation process:
 
 ```bash
 $ conda install -c conda-forge mamba
@@ -42,15 +42,15 @@ $ cd PitViper/PitViper  # Change working directory to PitViper root directory
 
 ### Installation
 
-Now, install PitViper dependancies. To facilitate dependancy management, a Conda YAML file containing all dependancies have been created and can be used along with `Mamba` to automatically install all dependencies: `pitviper_env.yaml`.
+Now install the PitViper dependencies. To make dependency management easier, a Conda YAML file containing all the dependencies has been created and can be used with `Mamba` to automatically install all the dependencies: `pitviper_env.yaml`.
 
-Furthermore, `install_PitViper_env.sh` is a bash script created to perform this step in one command:
+In addition, `install_PitViper_env.sh` is a bash script created to perform this step in one command:
 
 ```bash
 $ ./install_PitViper_env.sh
 ```
 
-`./install_PitViper_env.sh` first create a Conda environment call `pitviper_env` that should be visible once installation is over, as follow:
+`./install_PitViper_env.sh` first create a Conda environment called `pitviper_env` which should be visible after the installation is complete, as follows:
 
 ```bash
 $ conda env list
@@ -60,7 +60,7 @@ $ conda env list
   pitviper_env             /home/paularthur/miniconda3/envs/pitviper_env
 ```
 
-Once `pitviper_env` is created, you can run `run.sh` script from command-line, it should run a server with `Flask` in background and open PitViper GUI in your default web browser:
+Once `pitviper_env` is created, you can run the `run.sh` script from the command line, it should launch a server using `Flask` in the background and open the PitViper GUI in your default web browser:
 
 ```bash
 $ ./run.sh
@@ -72,9 +72,9 @@ $ ./run.sh
 
 ### Inputs
 
-Prior to use PitViper, we need to introduce it's input files.
+Before using PitViper, we will introduce its input files.
 
-PitViper allow to start an analysis from raw data files such as FASTQ, already aligned BAM file or a count matrix. Depending of that, input files will be different.
+PitViper allows you to start an analysis from raw data files such as FASTQ, an already aligned BAM file or a count matrix. Depending on this, the input files will be different.
 
 #### Starting from raw FASTQ files
 
