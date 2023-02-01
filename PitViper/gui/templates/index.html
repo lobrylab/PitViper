@@ -74,7 +74,7 @@
                   <div class="mb-3" style="padding:0em;">
                     <legend class="col-form-label col-sm-1 ">Screen type:</legend>
                     <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus"
-                      title="Help" data-bs-content="Did your library contain genes or other elements?">Help</a>
+                      title="Help" data-bs-content="Does your library contain gene symbols?">Help</a>
                   </div>
                   <div class="col-sm-10">
                     <div class="form-check">
@@ -126,7 +126,13 @@
                       value=1 name='jobs' />
                   </div>
                 </fieldset>
-
+                <fieldset class="row mb-3">
+                  <legend class="col-form-label col-sm-2 pt-2">Minimum median counts value by sgRNA:</legend>
+                  <div class=" pb-3">
+                    <input class="form-select" type="number" id="replyNumber" min="1" data-bind="value:replyNumber"
+                      value=0 name='counts_threshold' />
+                  </div>
+                </fieldset>
               </div>
             </div>
 

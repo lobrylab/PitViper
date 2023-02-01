@@ -1430,11 +1430,6 @@ def show_sgRNA_counts(token):
                     lambda x: zscore(x, ddof=1)
                 )
                 gene_cts["z-score"] = z_scores
-                sum_by_group = (
-                    gene_cts.groupby(["sgRNA"]).agg({"value": "sum"}).reset_index()
-                )
-                sgRNA_to_keep = sum_by_group[sum_by_group.value > 50].sgRNA.values
-                gene_cts = gene_cts[gene_cts.sgRNA.isin(sgRNA_to_keep)]
                 chart = (
                     alt.Chart(
                         gene_cts, title="%s normalized read counts heatmap" % gene
