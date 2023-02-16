@@ -21,16 +21,13 @@ import rpy2.ipython.html
 import rpy2.robjects as ro
 import yaml
 from IPython.core.display import HTML, display
-from ipywidgets import interact
 from rpy2.rinterface import RRuntimeWarning
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
-from rpy2.robjects.lib.dplyr import DataFrame
 from rpy2.robjects.packages import importr
 from scipy import stats
-from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.stats import zscore
-from sklearn import datasets, decomposition
+from sklearn import decomposition
 
 buf = []
 
@@ -51,7 +48,7 @@ depmap = importr("depmap")
 experimentHub = importr("ExperimentHub")
 utils = importr("utils")
 
-## Remove Altair max rows
+# Remove Altair max rows
 alt.data_transformers.disable_max_rows()
 
 pd.options.mode.chained_assignment = None

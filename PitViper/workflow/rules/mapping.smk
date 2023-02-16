@@ -27,7 +27,6 @@ rule bowtie_build:
     shell:
         "bowtie2-build {input} {params} > {log}"
 
-
 def index(wildcards):
     full_name = config['library_file']
     m = re.match("(^.+)\.\w+$", full_name)
