@@ -50,7 +50,7 @@
       <p class="py-3  px-5"> PitViper is a bioinformatics pipeline built with Snakemake. It is intended to facilitate
         the analysis of functional screening data from various experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).</p>
       <div id="content">
-        <form action="/result" method="post" enctype="multipart/form-data">
+        <form action="/result" method="post" enctype="multipart/form-data" id="myForm">
           <div class="accordion  px-5" id="accordionExample">
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingOne">
@@ -63,7 +63,7 @@
                 data-bs-parent="#accordionExample" style="padding: 2em;">
                 <p>This section allow to define some generals settings.</p>
                 <div class="mb-3 required">
-                  <label for="exampleFormControlInput1" class="form-label">Name of the analysis:</label>
+                  <label for="token" class="form-label">Name of the analysis:</label>
                   <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus"
                     title="Help"
                     data-bs-content="Choose a short informative word or group of words that explain the analysis. Replace spaces by '_' symbol.">Help</a>
@@ -79,14 +79,14 @@
                   <div class="col-sm-10">
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="screen_type" id="is_gene" value="is_gene"
-                        onclick="hideShowOptions('BAGEL_div')" checked>
+                        onclick="updateOptionsVisibility()" checked>
                       <label class="form-check-label" for="is_gene">
                         Genes
                       </label>
                     </div>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="screen_type" id="not_gene" value="not_gene"
-                        onclick="hideShowOptions('BAGEL_div')">
+                        onclick="updateOptionsVisibility()">
                       <label class="form-check-label" for="not_gene">
                         Not genes
                       </label>
@@ -102,21 +102,21 @@
                   <div class="col-sm-10">
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="start_from" id="fastq" value="fastq"
-                        onclick="hideCountTableField('count_table_div')" checked>
+                        onclick="toggleCountTableField()" checked>
                       <label class="form-check-label" for="fastq">
                         FASTQ files
                       </label>
                     </div>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="start_from" id="bam" value="bam"
-                        onclick="hideCountTableField('count_table_div')">
+                        onclick="toggleCountTableField()">
                       <label class="form-check-label" for="bam">
                         aligned BAM files
                       </label>
                     </div>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="start_from" id="count" value="count"
-                        onclick="hideCountTableField('count_table_div')">
+                        onclick="toggleCountTableField()">
                       <label class="form-check-label" for="count">
                         Count tables
                       </label>
@@ -134,7 +134,7 @@
                   <legend class="col-form-label col-sm-2 pt-2">Remove sgRNA with all conditions with a median count
                     value below threshold:</legend>
                   <div class=" pb-3">
-                    <input class="form-select" type="number" id="replyNumber" min="1" data-bind="value:replyNumber"
+                    <input class="form-select" type="number" id="replyNumber" min="0" data-bind="value:replyNumber"
                       value=0 name='counts_threshold' />
                   </div>
                 </fieldset>
@@ -161,17 +161,17 @@
                           type="file">
                       </div>
                     </div>
+                    <div id="tsv_div" style="display: block;">
+                      <div class="mb-3">
+                        <label for="formFileSm" class="form-label">Design file</label>
+                        <input class="form-control form-control-sm" id="tsv_file" name="tsv_file" type="file" required>
+                      </div>
+                    </div>
                     <div id="library_div" style="display: block;">
                       <div class="mb-3">
                         <label for="formFileSm" class="form-label">Library (optional if starting from count
                           file)</label>
                         <input class="form-control form-control-sm" id="library_file" name="library_file" type="file">
-                      </div>
-                    </div>
-                    <div id="tsv_div" style="display: block;">
-                      <div class="mb-3">
-                        <label for="formFileSm" class="form-label">Design file</label>
-                        <input class="form-control form-control-sm" id="tsv_file" name="tsv_file" type="file">
                       </div>
                     </div>
                     <div id="controls_div" style="display: block;">
@@ -221,9 +221,9 @@
                     <div class="col-sm-10">
                       <div class="form-check form-switch">
                         <input type='checkbox' value='True' id='bowtie_activate' name='bowtie_activate'
-                          class="form-check-input" onclick="hideDiv('bowtie2_options', 'bowtie_activate')">
+                          class="form-check-input" onclick="toggleDivVisibility('bowtie2_options', 'bowtie_activate')">
                         <input type='hidden' value='False' id='bowtie_activate' name='bowtie_activate'
-                          class="form-check-input" onclick="hideDiv('bowtie2_options', 'bowtie_activate')">
+                          class="form-check-input" onclick="toggleDivVisibility('bowtie2_options', 'bowtie_activate')">
                         <label class="form-check-label" for="bowtie_activate">Activate (use Bowtie2 for reads alignment
                           prior to MAGeCK count)</label>
                       </div>
@@ -321,9 +321,11 @@
                   <div class="col-sm-10">
                     <div class="form-check form-switch">
                       <input type='checkbox' value='True' name='mageck_mle_activate' id='mageck_mle_activate'
-                        class="form-check-input" onclick="hideDiv('mageck_mle_options', 'mageck_mle_activate')">
+                        class="form-check-input"
+                        onclick="toggleDivVisibility('mageck_mle_options', 'mageck_mle_activate')">
                       <input type='hidden' value='False' name='mageck_mle_activate' id='mageck_mle_activate'
-                        class="form-check-input" onclick="hideDiv('mageck_mle_options', 'mageck_mle_activate')">
+                        class="form-check-input"
+                        onclick="toggleDivVisibility('mageck_mle_options', 'mageck_mle_activate')">
                       <label class="form-check-label" for="mageck_mle_activate">Activate</label>
                     </div>
                     <div id="mageck_mle_options" style="display: none;">
@@ -405,9 +407,9 @@
                     <div class="form-check form-switch">
                       <input class="form-check-input" type="checkbox" id="mageck_rra_activate"
                         name="mageck_rra_activate" value="True"
-                        onclick="hideDiv('mageck_rra_options', 'mageck_rra_activate')">
+                        onclick="toggleDivVisibility('mageck_rra_options', 'mageck_rra_activate')">
                       <input class="form-check-input" type="hidden" id="mageck_rra_activate" name="mageck_rra_activate"
-                        value="False" onclick="hideDiv('mageck_rra_options', 'mageck_rra_activate')">
+                        value="False" onclick="toggleDivVisibility('mageck_rra_options', 'mageck_rra_activate')">
                       <label class="form-check-label" for="mageck_rra_activate">Activate</label>
                     </div>
                     <div id="mageck_rra_options" style="display: none;">
@@ -535,18 +537,18 @@
                     <div class="col-sm-10">
                       <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="bagel_activate" , name="bagel_activate"
-                          value=True onclick="hideShowOptionsOptions('bagel_options')">
+                          value=True onclick="toggleBagelOptions()">
                         <input class="form-check-input" type="hidden" id="bagel_activate" , name="bagel_activate"
-                          value=False>
+                          value=False onclick="toggleBagelOptions()">
                         <label class="form-check-label" for="bagel_activate">Activate</label>
                       </div>
                       <div id="bagel_options" style="display: none;">
                         <div class="mb-3">
-                          <label for="formFileSm" class="form-label">Essential genes</label>
+                          <label for="essentials" class="form-label">Essential genes</label>
                           <input class="form-control form-control-sm" id="essentials" name="essentials" type="file">
                         </div>
                         <div class="mb-3">
-                          <label for="formFileSm" class="form-label">Nonessential genes</label>
+                          <label for="nonessentials" class="form-label">Nonessential genes</label>
                           <input class="form-control form-control-sm" id="nonessentials" name="nonessentials"
                             type="file">
                         </div>
@@ -564,9 +566,9 @@
                     <div class="form-check form-switch">
                       <input class="form-check-input" type="checkbox" id="filtering_activate" ,
                         name="filtering_activate" value="True"
-                        onclick="hideDiv('filtering_options', 'filtering_activate')">
+                        onclick="toggleDivVisibility('filtering_options', 'filtering_activate')">
                       <input class="form-check-input" type="hidden" id="filtering_activate" , name="filtering_activate"
-                        value="False" onclick="hideDiv('filtering_options', 'filtering_activate')">
+                        value="False" onclick="toggleDivVisibility('filtering_options', 'filtering_activate')">
                       <label class="form-check-label" for="filtering_activate">Activate</label>
                     </div>
                     <div id="filtering_options" style="display: none;">
@@ -609,9 +611,9 @@
                   <div class="col-sm-10">
                     <div class="form-check form-switch">
                       <input class="form-check-input" type="checkbox" id="gsea_activate" , name="gsea_activate"
-                        value="True" onclick="hideDiv('gsea_options', 'gsea_activate')">
+                        value="True" onclick="toggleDivVisibility('gsea_options', 'gsea_activate')">
                       <input class="form-check-input" type="hidden" id="gsea_activate" , name="gsea_activate"
-                        value="False" onclick="hideDiv('gsea_options', 'gsea_activate')">
+                        value="False" onclick="toggleDivVisibility('gsea_options', 'gsea_activate')">
                       <label class="form-check-label" for="gsea_activate">Activate</label>
                     </div>
                     <div id="gsea_options" style="display: none;">
@@ -635,91 +637,106 @@
             </div>
 
             <input class="btn btn-success  mx-5" type="submit" value="Run PitViper" , style="margin: 1em;"
-              onclick="loading();"></input>
+              onclick="showLoading();"></input>
         </form>
       </div>
     </div>
     <div id="loading"></div>
     <script>
-      function hideShowOptions(box) {
-        // Hide or show Bagel options if elements are genes.
-        var chbox = document.getElementById("is_gene");
-        var vis = "block";
-        var bool = true;
-        bed_anno_required = false;
-        bed_anno_required = "none";
-        if (!chbox.checked) {
-          vis = "none";
-          bool = false;
-          bed_anno_required = true;
-          bed_anno_display = "block";
-        }
-        document.getElementById(box).style.display = vis;
-        document.getElementById("bagel_activate").required = bool;
-        document.getElementById("essentials").required = bool;
-        document.getElementById("nonessentials").required = bool;
-        document.getElementById("bagel_activate").checked = false;
-        document.getElementById("bed_anno_div").style.display = bed_anno_display;
-      }
+      function updateOptionsVisibility() {
+        /* Show or hide the options for the selected method */
 
+        // Get the checkbox
+        const isGeneCheckbox = document.getElementById("is_gene");
+        const isGene = isGeneCheckbox.checked;
 
-      function hideDiv(div_id, button_id) {
-        var button = document.getElementById(button_id)
-        if (button.checked) {
-          document.getElementById(div_id).style.display = "block"
+        // Get display style for the div based on the checkbox value (true or false)
+        const displayStyle = isGene ? "block" : "none";
+
+        // Set the display style for the div, based on the checkbox value, to show or hide it (block or none)
+        document.getElementById('BAGEL_div').style.display = displayStyle;
+
+        // If the checkbox is not checked, show the div for the BED file
+        if (!isGene) {
+          document.getElementById("bed_anno_div").style.display = "block";
+          document.getElementById("bagel_activate").checked = false;
+          document.getElementById("essentials").required = false;
+          document.getElementById("nonessentials").required = false;
         } else {
-          document.getElementById(div_id).style.display = "none"
+          document.getElementById("bed_anno_div").style.display = "none";
         }
       }
 
-      function hideShowOptionsOptions(box) {
-        // Hide Bagel options if not activated.
-        var chbox = document.getElementById("bagel_activate");
-        var vis = "none";
-        var bool = false;
-        if (chbox.checked) {
-          vis = "block";
-          bool = true;
-        }
-        document.getElementById(box).style.display = vis;
-        document.getElementById("essential").required = bool;
-        document.getElementById("nonessential").required = bool;
+
+      function toggleDivVisibility(divId, buttonId) {
+        const button = document.getElementById(buttonId);
+        const div = document.getElementById(divId);
+        const displayStyle = button.checked ? "block" : "none";
+        div.style.display = displayStyle;
       }
 
 
-      function hideCountTableField(box) {
-        // Count radio button
-        var count_radio = document.getElementById("count");
-        var bam_radio = document.getElementById("bam");
-        var count_table_display = "none";
-        var mageck_count_display = "block";
-        var is_required = false;
-        var bowtie2_active = document.getElementById("bowtie_activate")
-        // If count radio button checked, do
-        if (count_radio.checked) {
-          // Show count table input field
-          count_table_display = "block";
-          // Hide bowtie2 and MAGeCK count fields
-          display_value = "none";
-          // Count table is now required to run PitViper
-          is_required = true;
+      function toggleBagelOptions() {
+        const bagelActivateCheckbox = document.getElementById("bagel_activate");
+        const showOptions = bagelActivateCheckbox.checked;
+
+        const displayStyle = showOptions ? "block" : "none";
+        const required = showOptions;
+
+        document.getElementById("bagel_options").style.display = displayStyle;
+        document.getElementById("essentials").required = required;
+        document.getElementById("nonessentials").required = required;
+      }
+
+
+      function toggleCountTableField() {
+        const countRadio = document.getElementById("count");
+        const bamRadio = document.getElementById("bam");
+        const bowtieActivateCheckbox = document.getElementById("bowtie_activate");
+
+        let countTableDisplayStyle = "none";
+        let mageckCountDisplayStyle = "block";
+        let isCountTableRequired = false;
+
+        if (countRadio.checked) {
+          countTableDisplayStyle = "block";
+          mageckCountDisplayStyle = "none";
+          isCountTableRequired = true;
         }
-        if (bam_radio.checked) {
-          bowtie2_active.disabled = true;
+
+        if (bamRadio.checked) {
+          bowtieActivateCheckbox.disabled = true;
         } else {
-          bowtie2_active.disabled = false;
+          bowtieActivateCheckbox.disabled = false;
         }
-        document.getElementById(box).style.display = count_table_display;
-        document.getElementById('count_table_div').required = is_required;
-        document.getElementById('MAGeCK_count').style.display = display_value;
-        document.getElementById('bowtie').style.display = display_value;
+
+        document.getElementById("count_table_div").style.display = countTableDisplayStyle;
+        document.getElementById("count_table_file").required = isCountTableRequired;
+        document.getElementById("MAGeCK_count").style.display = mageckCountDisplayStyle;
+        document.getElementById("bowtie").style.display = mageckCountDisplayStyle;
       }
 
-      function loading() {
-        document.getElementById('loading').style.display = "block";
-        document.getElementById('content').style.display = "none";
+
+      function showLoading() {
+
+        const form = document.querySelector('#myForm');
+
+        form.addEventListener('submit', (event) => {
+          // Use the Bootstrap validation API to check the form's validity
+          if (!form.checkValidity()) {
+            event.preventDefault(); // Prevent the form from submitting if it is invalid
+            event.stopPropagation(); // Stop the event from propagating up the DOM tree
+            return;
+          }
+
+          // If validation passes, submit the form
+          form.submit();
+          document.getElementById("loading").style.display = "block";
+          document.getElementById("content").style.display = "none";
+        });
       }
     </script>
+
 </body>
 
 <script type="text/javascript">

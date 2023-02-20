@@ -54,7 +54,6 @@ def run_pitviper(token):
         print("PitViper failed with error code: ", error.returncode)
 
 
-
 @app.route("/result", methods=["POST", "GET"])
 def result():
     """A Flask route that handles POST and GET requests and saves uploaded
@@ -85,7 +84,8 @@ def result():
         os.makedirs(f"resources/{token}/")
 
     # Create logs directory if it does not exist
-    os.makedirs(f"logs/{token}/")
+    if not os.path.exists(f"logs/{token}/"):
+        os.makedirs(f"logs/{token}/")
 
     # Get uploaded files from POST request
     if request.method == "POST":
@@ -139,7 +139,7 @@ def result():
     else:
         result_dict["essentials"] = ""
         result_dict["nonessentials"] = ""
-        
+
     # Set mageck_count_activate based on bowtie_activate
     result_dict["mageck_count_activate"] = str(result_dict["bowtie_activate"] != "True")
 
