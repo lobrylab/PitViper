@@ -79,14 +79,14 @@
                   <div class="col-sm-10">
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="screen_type" id="is_gene" value="is_gene"
-                        onclick="hideBagel('BAGEL_div')" checked>
+                        onclick="hideShowOptions('BAGEL_div')" checked>
                       <label class="form-check-label" for="is_gene">
                         Genes
                       </label>
                     </div>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="screen_type" id="not_gene" value="not_gene"
-                        onclick="hideBagel('BAGEL_div')">
+                        onclick="hideShowOptions('BAGEL_div')">
                       <label class="form-check-label" for="not_gene">
                         Not genes
                       </label>
@@ -528,7 +528,7 @@
                     <div class="col-sm-10">
                       <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="bagel_activate" , name="bagel_activate"
-                          value=True onclick="hideBagelOptions('bagel_options')">
+                          value=True onclick="hideShowOptionsOptions('bagel_options')">
                         <input class="form-check-input" type="hidden" id="bagel_activate" , name="bagel_activate"
                           value=False>
                         <label class="form-check-label" for="bagel_activate">Activate</label>
@@ -634,7 +634,7 @@
     </div>
     <div id="loading"></div>
     <script>
-      function hideBagel(box) {
+      function hideShowOptions(box) {
         // Hide or show Bagel options if elements are genes.
         var chbox = document.getElementById("is_gene");
         var vis = "block";
@@ -653,7 +653,6 @@
         document.getElementById("nonessentials").required = bool;
         document.getElementById("bagel_activate").checked = false;
         document.getElementById("bed_anno_div").style.display = bed_anno_display;
-        document.getElementById("bed_anno_file").required = bed_anno_required;
       }
 
 
@@ -666,7 +665,7 @@
         }
       }
 
-      function hideBagelOptions(box) {
+      function hideShowOptionsOptions(box) {
         // Hide Bagel options if not activated.
         var chbox = document.getElementById("bagel_activate");
         var vis = "none";
