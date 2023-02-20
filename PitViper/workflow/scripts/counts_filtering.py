@@ -1,58 +1,46 @@
 import pandas as pd
 
+def main(threshold=0):
+    """
+    Main counts filtering function.
+    Filter sgRNA with all conditions having a median count value below threshold.
+    """
+    # Read design table.
+    design = pd.read_csv(snakemake.params[0], sep="\t")
+    # Read count table.
+    cts = pd.read_csv(snakemake.input[0], sep='\t', header=0)
+    # Unpivot the dataframe from wide to long format.
+    cts = pd.melt(cts, id_vars=['sgRNA', 'Gene'],
+                  value_vars=cts.columns.values[2:])
+    # Merge design and count table
+    cts = pd.merge(cts, design,
+                   left_on='variable',
+                   right_on='replicate')[["sgRNA",
+                                          "Gene",
+                                          "value",
+                                          "condition",
+                                          "replicate"]]
+    # Compute median count value by sgRNA for each condition.
+    cts = cts.groupby(['sgRNA', 'Gene', 'condition']).median().reset_index()
+    # Mark sgRNA with median counts value below threshold.
+    cts['to_remove'] = cts['value'] < threshold
+    # Pivot dataframe to create a boolean dataframe
+    cts = pd.pivot_table(cts, values='to_remove',
+                         index=['sgRNA', 'Gene'],
+                         columns=['condition']).reset_index()
+    # Filter sgRNA with all conditions having a median count value below threshold.
+    cts = cts[~cts.all(axis='columns', bool_only=bool)]
+    # Get name of guides to keep.
+    guides_to_keep = cts.sgRNA.values
 
-def get_all_pairwise_comparisons(design):
-    design_dict = {}
-    comparisons = []
-    for (k, v) in zip(design.order, design.condition):
-        if not k in design_dict.keys():
-            design_dict[k] = []
-        if not v in design_dict[k]:
-            design_dict[k].append(v)
-    for i in range(len(design_dict) - 1):
-        for control in design_dict[i]:
-            for k in range(i + 1, len(design_dict)):
-                for treatment in design_dict[k]:
-                    comparisons.append({"treatment": treatment, "control": control})
-    return comparisons
+    cts_normlized = pd.read_csv(snakemake.input[0], sep='\t', header=0)
+    cts_normlized = cts_normlized.loc[cts_normlized.sgRNA.isin(guides_to_keep)]
+    cts_normlized.to_csv(snakemake.output[0], sep="\t", index=False)
+
+    cts_raw = pd.read_csv(snakemake.input[1], sep='\t', header=0)
+    cts_raw = cts_raw.loc[cts_raw.sgRNA.isin(guides_to_keep)]
+    cts_raw.to_csv(snakemake.output[1], sep="\t", index=False)    
 
 
-def read_cts(cts_path):
-    return pd.read_csv(cts_path, sep="\t", header=0)
-
-
-def read_design(design_path):
-    return pd.read_csv(design_path, sep="\t")
-
-
-design = read_design(snakemake.params[0])
-pairwise_comparisons = get_all_pairwise_comparisons(design)
-cts = read_cts(snakemake.input[0])
-cts = pd.melt(cts, id_vars=["sgRNA", "Gene"], value_vars=cts.columns.values[2:])
-
-cts = pd.merge(cts, design, left_on="variable", right_on="replicate")[
-    ["sgRNA", "Gene", "value", "condition", "replicate"]
-]
-
-cts = cts.groupby(["sgRNA", "Gene", "condition"]).median().reset_index()
-
-
-for comparison in pairwise_comparisons:
-    label = comparison["treatment"] + "_vs_" + comparison["control"]
-    cts["below_threshold"] = cts["value"] < 100
-
-
-matrix = pd.pivot_table(
-    cts, values="below_threshold", index=["sgRNA", "Gene"], columns=["condition"]
-).reset_index()
-matrix["keep"] = ~matrix.all(axis="columns", bool_only=bool)
-
-guides_to_keep = matrix.loc[matrix["keep"] == True].sgRNA.values
-
-cts_normlized = read_cts(snakemake.input[0])
-cts_normlized = cts_normlized.loc[cts_normlized.sgRNA.isin(guides_to_keep)]
-cts_normlized.to_csv(snakemake.output[0], sep="\t", index=False)
-
-cts_raw = read_cts(snakemake.input[1])
-cts_raw = cts_raw.loc[cts_raw.sgRNA.isin(guides_to_keep)]
-cts_raw.to_csv(snakemake.output[1], sep="\t", index=False)
+if __name__ == '__main__':
+    main(threshold=int(snakemake.params[1]))
