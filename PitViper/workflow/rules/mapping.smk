@@ -54,4 +54,4 @@ rule bowtie_mapping:
             -5 {params.adap5} \
             -3 {params.adap3} \
             {params.bowtie_mapping_method} \
-            --norc | samtools view -bS - > {output.bam}"
+            --norc 2> {log} | samtools view -bS - > {output.bam}"
