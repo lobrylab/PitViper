@@ -63,7 +63,7 @@
                 data-bs-parent="#accordionExample" style="padding: 2em;">
                 <p>This section allow to define some generals settings.</p>
                 <div class="mb-3 required">
-                  <label for="exampleFormControlInput1" class="form-label">Output directory name:</label>
+                  <label for="exampleFormControlInput1" class="form-label">Name of the analysis:</label>
                   <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus"
                     title="Help"
                     data-bs-content="Choose a short informative word or group of words that explain the analysis. Replace spaces by '_' symbol.">Help</a>
@@ -72,7 +72,7 @@
                 </div>
                 <fieldset class="row mb-3">
                   <div class="mb-3" style="padding:0em;">
-                    <legend class="col-form-label col-sm-1 ">Screen type:</legend>
+                    <legend class="col-form-label col-sm-2 ">Screen type:</legend>
                     <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus"
                       title="Help" data-bs-content="Did your library contain genes or other elements?">Help</a>
                   </div>
@@ -94,7 +94,11 @@
                   </div>
                 </fieldset>
                 <fieldset class="row mb-3">
-                  <legend class="col-form-label col-sm-2 pt-0">Start analysis from:</legend>
+                  <div class="mb-3" style="padding:0em;">
+                    <legend class="col-form-label col-sm-2 pt-0">Starting file format:</legend>
+                    <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus"
+                      title="Help" data-bs-content="What is the starting data format?">Help</a>
+                  </div>
                   <div class="col-sm-10">
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="start_from" id="fastq" value="fastq"

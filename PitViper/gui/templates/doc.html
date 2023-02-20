@@ -37,6 +37,29 @@
 
             <p class="py-3  px-5">Welcome to the PitViper graphical user-interface documentation.</p>
 
-            <p class="py-3  px-5"> Doc.</p>
+            <p class="py-3  px-5">PitViper is intended to facilitate the analysis of functional screening data from
+                various functionnal screening experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).
+            </p>
+
+            <h3>Name of the analysis</h3>
+            <p class="py-3 px-5">The first step is to define the name of the analysis. This name is used to identify the
+                results after the analysis is complete. Several directories are created during the analysis, the first
+                one is located in the 'results/' directory and contains all the results from the analysis. The second
+                one is located in the 'resources/' directory and contains all files necessary to run the analysis or
+                reproduce the results. Finally, a configuration file is created and named after the analysis name,
+                inside the 'config' directory. Therefore, we recommend using a informative name that characterize the
+                analysis. </p>
+
+            <h3>Screen type</h3>
+            <p class="py-3 px-5">The screen type parameter specifies which options are available in the pipeline.
+                Choosing the 'Not genes' screen type will disable and hide options incompatible with this setting. For
+                example, when 'Not genes' is selected BAGEL is disabled from the tool panel but a file upload field is
+                created in the Inputs panel to let users select BED annotation file in order to map genes to the
+                elements of the screen.</p>
+
+            <h3>Starting file format</h3>
+            <p class="py-3 px-5">The starting file format parameter specifies the file format of the input file(s). If
+                starting from FASTQ files, several fields will appear in the 'Inputs' and 'Tools' panels. Those fields
+                are necessary to run the pipeline from this file format.</p>
 
 </html>
