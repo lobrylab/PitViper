@@ -1,0 +1,41 @@
+ * Serving Flask app '/media/paularthur/data/Projets/Screens/PitViper/PitViper/gui/app.py' (lazy loading)
+ * Environment: production
+   WARNING: This is a development server. Do not use it in a production deployment.
+   Use a production WSGI server instead.
+ * Debug mode: off
+Traceback (most recent call last):
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/bin/flask", line 10, in <module>
+    sys.exit(main())
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/flask/cli.py", line 994, in main
+    cli.main(args=sys.argv[1:])
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/flask/cli.py", line 600, in main
+    return super().main(*args, **kwargs)
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/click/core.py", line 1053, in main
+    rv = self.invoke(ctx)
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/click/core.py", line 1659, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/click/core.py", line 1395, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/click/core.py", line 754, in invoke
+    return __callback(*args, **kwargs)
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/click/decorators.py", line 84, in new_func
+    return ctx.invoke(f, obj, *args, **kwargs)
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/click/core.py", line 754, in invoke
+    return __callback(*args, **kwargs)
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/flask/cli.py", line 853, in run_command
+    run_simple(
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/werkzeug/serving.py", line 1017, in run_simple
+    inner()
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/werkzeug/serving.py", line 957, in inner
+    srv = make_server(
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/werkzeug/serving.py", line 789, in make_server
+    return ThreadedWSGIServer(
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/site-packages/werkzeug/serving.py", line 693, in __init__
+    super().__init__(server_address, handler)  # type: ignore
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/socketserver.py", line 452, in __init__
+    self.server_bind()
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/http/server.py", line 138, in server_bind
+    socketserver.TCPServer.server_bind(self)
+  File "/home/paularthur/miniconda3/envs/pitviper_env2/lib/python3.8/socketserver.py", line 466, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use

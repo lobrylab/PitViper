@@ -130,9 +130,9 @@ rule MAGeCK_counts_normalize:
     params:
         name = "resources/" + config['token'] + "/screen",
     log:
-        "logs/normalization/MAGeCK_counts_normalize.log"
+        "logs/" + config['token'] + "/MAGeCK_counts_normalize.log"
     shell:
         "mageck count \
             -k {input} \
             -n {params.name} \
-            --norm-method total > {log}"
+            --norm-method total > {log} 2>&1"

@@ -1,6 +1,5 @@
 import pandas as pd
 
-
 def main(threshold=0):
     """
     Main counts filtering function.
