@@ -4,8 +4,7 @@ import webbrowser
 from threading import Timer
 
 import yaml
-from flask import Flask, redirect, render_template, request, url_for
-from werkzeug.utils import secure_filename
+from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
@@ -28,19 +27,18 @@ def shutdown_server():
 
 
 def run_pitviper(token):
-    configfile = "config/{token}.yaml".format(token=token)
+    configfile = f"config/{token}.yaml"
     with open(configfile, "r") as stream:
         content = yaml.safe_load(stream)
     print(content)
-    cmd = "python3 pitviper.py --configfile {conf} --jobs {n}".format(
-        conf=configfile, n=content["jobs"]
-    )
+    cmd = f"python3 pitviper.py --configfile {configfile} --jobs {content['jobs']}"
     print(cmd)
     os.system(cmd)
 
 
 @app.route("/result", methods=["POST", "GET"])
 def result():
+    print("PitViper is running from GUI.")
     result = request.form
     result_dict = dict(result)
     if request.method == "POST":
@@ -142,7 +140,11 @@ def result():
     with open(yaml_file_name, "w") as file:
         documents = yaml.dump(result_dict, file)
     run_pitviper(token=result_dict["token"])
+    # if success:
+    #    Report file created
     shutdown_server()
+    #  else:
+    #     display failed page
     return "You can close this page and start using the Jupyter Notebook report."
 
 
