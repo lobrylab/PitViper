@@ -23,4 +23,4 @@ echo $FLASK_APP
 ### Run PitViper application with Flask.
 flask run --host=0.0.0.0
 
-jupyter notebook --allow-root --no-browser --ip=0.0.0.0 results/
+#jupyter notebook --allow-root --no-browser --ip=0.0.0.0 results/
