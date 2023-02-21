@@ -716,14 +716,37 @@
         document.getElementById("bowtie").style.display = mageckCountDisplayStyle;
       }
 
+      // function that return true if atleast one checkbox is checked
+      function atleastOneChecked() {
+        var checked = false;
+        const checkboxes = [];
+        checkboxes.push(
+          document.getElementById('gsea_activate'),
+          document.getElementById('mageck_mle_activate'),
+          document.getElementById('mageck_rra_activate'),
+          document.getElementById('bagel_activate'),
+          document.getElementById('crisphiermix_activate'),
+          document.getElementById('filtering_activate'));
+        for (var i = 0; i < checkboxes.length; i++) {
+          if (checkboxes[i].checked) {
+            checked = true;
+            break;
+          }
+        }
+        return checked;
+      }
+
 
       function showLoading() {
-
         const form = document.querySelector('#myForm');
 
         form.addEventListener('submit', (event) => {
+          var checked = atleastOneChecked();
+          if (!checked) {
+            window.alert("Choose at least one analysis method.");
+          }
           // Use the Bootstrap validation API to check the form's validity
-          if (!form.checkValidity()) {
+          if (!form.checkValidity() || !checked) {
             event.preventDefault(); // Prevent the form from submitting if it is invalid
             event.stopPropagation(); // Stop the event from propagating up the DOM tree
             return;
