@@ -153,7 +153,7 @@ def result():
         run_pitviper(token=result_dict["token"])
         shutdown_server()
         if os.path.exists(f"results/{token}/Report.ipynb"):
-            subprocess.check_call(f"jupyter notebook results/{token}", shell=True)
+            subprocess.check_call(f"jupyter notebook results/{token} --allow-root --ip=0.0.0.0", shell=True)
             return "You can close this window now."
         else:
             with open(
