@@ -10,6 +10,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0"
         crossorigin="anonymous"></script>
+    <style ype=text/css scoped>
+        h2 {
+            margin-top: 1em;
+            margin-bottom: 1em;
+        }
+    </style>
 </head>
 
 <body>
@@ -21,8 +27,8 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
             <div class="navbar-nav">
-                <a class="nav-item nav-link active" href="/">Home</a>
-                <a class="nav-item nav-link" href="/documentation">Documentation</a>
+                <a class="nav-item nav-link" href="/">Home</a>
+                <a class="nav-item nav-link active" href="/documentation">Documentation</a>
             </div>
         </div>
     </nav>
@@ -40,6 +46,10 @@
             <p class="py-3  px-5">PitViper is intended to facilitate the analysis of functional screening data from
                 various functionnal screening experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).
             </p>
+
+            <h1>How to use the PitViper GUI?</h1>
+
+            <h2>General settings</h2>
 
             <h3>Name of the analysis</h3>
             <p class="py-3 px-5">The first step is to define the name of the analysis. This name is used to identify the
@@ -61,5 +71,57 @@
             <p class="py-3 px-5">The starting file format parameter specifies the file format of the input file(s). If
                 starting from FASTQ files, several fields will appear in the 'Inputs' and 'Tools' panels. Those fields
                 are necessary to run the pipeline from this file format.</p>
+
+            <h3>Jobs</h3>
+            <p class="py-3 px-5">The jobs parameter specifies the number of jobs to run in parallel. This parameter is
+                used to run the pipeline in parallel. The number of jobs is limited to the number of cores available on
+                the machine running the pipeline. The default value is 1.</p>
+
+            <h3>sgRNA filtering</h3>
+            <p class="py-3 px-5">The sgRNA filtering parameter specifies the minimal median coverage of sgRNAs to keep
+                in the analysis. The default value is 0. This parameter is used to filter sgRNAs with a low coverage in
+                all conditions.</p>
+
+            <h2>Inputs</h2>
+
+            <h3>Design file</h3>
+            <p class="py-3 px-5"> The design file is a tab-separated file containing the information about the
+                experimental design. The first column contains the conditions names. The second column contains the
+                replicates names and the third column contains the orderings of the conditions. The fourth column is
+                mandatory only if the analysis begin with FASTQ files. It contains the path to the FASTQ file for each
+                of the replicates. Order column should contain the order of the conditions in the analysis (e.g. 0, 1,
+                2, etc.). All conditions will be used as a reference condition for essentiality analysis against all
+                conditions with a higher order. For exemple, if the order column contains 0, 1, 2, all '0' conditions
+                will be used as a reference condition for essentiality analysis against all '1' and '2' conditions.
+                Then, '1' conditions will be used as a reference condition for essentiality analysis against all '2'
+                conditions, but not against '0'.</p>
+
+            <h3>Counts file</h3>
+            <p class="py-3 px-5">The counts file is a tab-separated file containing the raw counts of sgRNAs in each
+                condition. The first column contains the sgRNAs names. The second column contains the gene name. The
+                third column contains the counts of the sgRNAs in the first condition. The fourth column contains the
+                counts of the sgRNAs in the second condition, etc. The number of columns should be equal to the number
+                of conditions in the design file plus two (sgRNA and gene columns). Columns names should match the
+                replicates names in the design file.</p>
+
+            <h3>Library file</h3>
+            <p class="py-3 px-5">The library file is a tab-separated file containing the information about the
+                sgRNAs. The first column contains the sgRNAs names. The second column contains the gene name. The third
+                column contains the sgRNAs sequences. This file is mandatory if the analysis begin with FASTQ or BAM
+                files.</p>
+
+            <h3>Control guides file</h3>
+            <p class="py-3 px-5">The control guides file contains the information about the control sgRNAs. More than
+                100 guides is recommanded.</p>
+
+            <h3>Elements coordinates</h3>
+            <p class="py-3 px-5">The elements coordinates file contains the coordinates of the elements of the screen.
+                This file is optional if the analysis type is 'Not genes' and useless if the analysis type is 'Genes'.
+                This annotation file is used to map genes to the elements of the screen. For example, if the screen is a
+                CRISPRi screen targeting enhancers, the elements coordinates file will contain the coordinates of the
+                enhancers in the genome of reference. Then, the 'ROSE gene mapper' script is used to annotate each
+                enhancers with proximal genes. Several genome versions are available: HG38, HG19 and HG18 for human,
+                MM10, MM9 and MM8 for mouse.
+            </p>
 
 </html>
