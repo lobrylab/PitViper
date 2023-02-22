@@ -46,7 +46,7 @@ def run_pitviper(token):
         content = yaml.safe_load(stream)
     jobs = content.get("jobs", 1)
     print(f"Running PitViper with {jobs} jobs from the CLI...")
-    cmd = f"python3 pitviper.py --configfile {configfile} --jobs {jobs} > logs/{token}/PitViper_snakemake.log 2>&1"
+    cmd = f"python3 pitviper.py --configfile {configfile} --jobs {jobs} 2>&1 | tee logs/{token}/PitViper_snakemake.log"
     print("Running command: ", cmd)
     try:
         subprocess.check_call(cmd, shell=True)
