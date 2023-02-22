@@ -12,12 +12,12 @@ if config['bowtie_activate'] == 'True':
 if "fastq" in tsv.columns or "bam" in tsv.columns:
     include: "rules/mageck_count.smk"
 include: "rules/annotation.smk"
-include: "rules/filtering.smk"
+include: "rules/directional_scoring_method.smk"
 include: "rules/mageck_mle.smk"
 include: "rules/differential_analysis.smk"
 include: "rules/mageck_rra.smk"
 include: "rules/bagel.smk"
-include: "rules/gsea_like_analysis.smk"
+include: "rules/ssrea.smk"
 include: "rules/crisphiermix.smk"
 include: "rules/integration.smk"
 

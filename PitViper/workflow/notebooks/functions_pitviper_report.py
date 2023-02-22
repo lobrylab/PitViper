@@ -192,10 +192,10 @@ def import_results(token: str):
         tools.append("BAGEL")
     if content["crisphiermix_activate"] == "True":
         tools.append("CRISPhieRmix")
-    if content["filtering_activate"] == "True":
-        tools.append("in_house_method")
-    if content["gsea_activate"] == "True":
-        tools.append("GSEA-like")
+    if content["directional_scoring_method_activate"] == "True":
+        tools.append("directional_scoring_method")
+    if content["ssrea_activate"] == "True":
+        tools.append("SSREA")
 
     results_directory = "results/%s/" % token
     print("Results directory: %s \n" % results_directory)
@@ -267,13 +267,11 @@ def add_columns(tools_available: dict):
                         table["%s|log10(invFDR)" % direction] = -np.log10(
                             table["%s|fdr_nozero" % direction]
                         )
-    if "GSEA-like" in tools_available:
-        for condition in tools_available["GSEA-like"]:
+    if "SSREA" in tools_available:
+        for condition in tools_available["SSREA"]:
             treatment = condition.split("_vs_")[0]
-            for file_suffixe in ["%s_all-elements_GSEA-like.txt"]:
-                table = tools_available["GSEA-like"][condition][
-                    file_suffixe % condition
-                ]
+            for file_suffixe in ["%s_all-elements_SSREA.txt"]:
+                table = tools_available["SSREA"][condition][file_suffixe % condition]
                 if (not "log10(invPadj)" in list(table.columns)) and (
                     "padj" in list(table.columns)
                 ):
@@ -623,16 +621,16 @@ def enrichmentCirclePlot(source, n, description, col_1, col_2, base):
     return chart
 
 
-def GSEA_like_data(
+def SSREA_like_data(
     comparison="", control="", tool="", results_directory="", tools_available=""
 ):
-    """Return GSEA-like results as pandas dataframe."""
+    """Return SSREA results as pandas dataframe."""
     tables_list = []
     for _comparison in os.listdir(os.path.join(results_directory, tool)):
         if _comparison.split("_vs_")[-1] == control:
             keys_list = list(tools_available[tool][_comparison].keys())
             for key in keys_list:
-                if key.endswith("_all-elements_GSEA-like.txt"):
+                if key.endswith("_all-elements_SSREA.txt"):
                     break
             data = tools_available[tool][_comparison][key]
             trt = _comparison.split("_vs_")[0]
@@ -640,23 +638,23 @@ def GSEA_like_data(
             tables_list.append(data)
         if _comparison == comparison:
             data = tools_available[tool][_comparison][
-                "%s_all-elements_GSEA-like.txt" % comparison
+                "%s_all-elements_SSREA.txt" % comparison
             ]
             tables_list.append(data)
     result = pd.concat(tables_list)
     return result
 
 
-def in_house_method_data(
+def directional_scoring_method_data(
     comparison="", control="", tool="", results_directory="", tools_available=""
 ):
-    """Return in-house method results as pandas dataframe."""
+    """Return Directional Scoring Method results as pandas dataframe."""
     tables_list = []
     for _comparison in os.listdir(os.path.join(results_directory, tool)):
         if _comparison.split("_vs_")[-1] == control:
             keys_list = list(tools_available[tool][_comparison].keys())
             for key in keys_list:
-                if key.endswith("_all-elements_in-house.txt"):
+                if key.endswith("_all-elements_directional_scoring_method.txt"):
                     break
             data = tools_available[tool][_comparison][key]
             trt = _comparison.split("_vs_")[0]
@@ -664,7 +662,7 @@ def in_house_method_data(
             tables_list.append(data)
         if _comparison == comparison:
             data = tools_available[tool][_comparison][
-                "%s_all-elements_in-house.txt" % comparison
+                "%s_all-elements_directional_scoring_method.txt" % comparison
             ]
             tables_list.append(data)
     result = pd.concat(tables_list)
@@ -1072,7 +1070,7 @@ def tool_results(results_directory, tools_available, token):
         chart = chart + line + text
         display(chart)
 
-    def _in_house_snake_plot(
+    def _directional_scoring_method_snake_plot(
         comparison,
         fdr_cutoff,
         non_sig,
@@ -1081,12 +1079,12 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
-        tool = "in_house_method"
+        tool = "directional_scoring_method"
         significant_label = "Filter: pass"
         non_significant_label = "Filter: don't pass"
         highlight_label = "Gene(s) of interest"
         treatment, control = comparison.split("_vs_")
-        source = in_house_method_data(
+        source = directional_scoring_method_data(
             comparison=comparison,
             control="",
             tool=tool,
@@ -1104,7 +1102,7 @@ def tool_results(results_directory, tools_available, token):
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
         chart = (
-            alt.Chart(source, title="In-house method (%s)" % comparison)
+            alt.Chart(source, title="Directional Scoring Method (%s)" % comparison)
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
@@ -1139,7 +1137,7 @@ def tool_results(results_directory, tools_available, token):
         chart = chart + line + text
         display(chart)
 
-    def _GSEA_like_snake_plot(
+    def _SSREA_like_snake_plot(
         comparison,
         fdr_cutoff,
         non_sig,
@@ -1148,12 +1146,12 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
-        tool = "GSEA-like"
+        tool = "SSREA"
         significant_label = "FDR < %s" % fdr_cutoff
         non_significant_label = "FDR ≥ %s" % fdr_cutoff
         highlight_label = "Gene(s) of interest"
         treatment, control = comparison.split("_vs_")
-        source = GSEA_like_data(
+        source = SSREA_like_data(
             comparison=comparison,
             control="",
             tool=tool,
@@ -1170,7 +1168,7 @@ def tool_results(results_directory, tools_available, token):
         range_ = [sig, non_sig, "blue"]
 
         chart = (
-            alt.Chart(source, title="GSEA-like method (%s)" % comparison)
+            alt.Chart(source, title="SSREA method (%s)" % comparison)
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
@@ -1311,8 +1309,8 @@ def tool_results(results_directory, tools_available, token):
                 treatment=treatment,
                 control=control,
             )
-        if "in_house_method" in tool:
-            _in_house_snake_plot(
+        if "directional_scoring_method" in tool:
+            _directional_scoring_method_snake_plot(
                 comparison,
                 fdr_cutoff,
                 non_sig,
@@ -1323,12 +1321,12 @@ def tool_results(results_directory, tools_available, token):
             )
             download(
                 tools_available,
-                tool="in_house_method",
+                tool="directional_scoring_method",
                 treatment=treatment,
                 control=control,
             )
-        if "GSEA-like" in tool:
-            _GSEA_like_snake_plot(
+        if "SSREA" in tool:
+            _SSREA_like_snake_plot(
                 comparison,
                 fdr_cutoff,
                 non_sig,
@@ -1338,7 +1336,7 @@ def tool_results(results_directory, tools_available, token):
                 elements,
             )
             download(
-                tools_available, tool="GSEA-like", treatment=treatment, control=control
+                tools_available, tool="SSREA", treatment=treatment, control=control
             )
         if "BAGEL" in tool:
             _BAGEL_snake_plot(
@@ -1618,16 +1616,16 @@ def tool_results_by_element(results_directory, tools_available, token):
                 results_directory=results_directory,
                 tools_available=tools_available,
             )
-        elif tool == "GSEA-like":
-            result = GSEA_like_data(
+        elif tool == "SSREA":
+            result = SSREA_like_data(
                 comparison="",
                 control=control.value,
                 tool=tool,
                 results_directory=results_directory,
                 tools_available=tools_available,
             )
-        elif tool == "in_house_method":
-            result = in_house_method_data(
+        elif tool == "directional_scoring_method":
+            result = directional_scoring_method_data(
                 comparison="",
                 control=control.value,
                 tool=tool,
@@ -1654,9 +1652,9 @@ def tool_results_by_element(results_directory, tools_available, token):
             elements_list = list(set(result.id))
         elif tool == "BAGEL":
             elements_list = list(set(result.GENE))
-        elif tool == "GSEA-like":
+        elif tool == "SSREA":
             elements_list = list(set(result.pathway))
-        elif tool == "in_house_method":
+        elif tool == "directional_scoring_method":
             elements_list = list(set(result.Gene))
         return elements_list
 
@@ -1703,8 +1701,8 @@ def tool_results_by_element(results_directory, tools_available, token):
                 )
                 gene_var = "GENE"
                 break
-            if tool == "GSEA-like":
-                result = GSEA_like_data(
+            if tool == "SSREA":
+                result = SSREA_like_data(
                     comparison="",
                     control=control.value,
                     tool=tool,
@@ -1713,8 +1711,8 @@ def tool_results_by_element(results_directory, tools_available, token):
                 )
                 gene_var = "pathway"
                 break
-            if tool == "in_house_method":
-                result = in_house_method_data(
+            if tool == "directional_scoring_method":
+                result = directional_scoring_method_data(
                     comparison="",
                     control=control.value,
                     tool=tool,
@@ -1883,7 +1881,7 @@ def tool_results_by_element(results_directory, tools_available, token):
         )
         return plot
 
-    def GSEA_like_results(result, fdr_cutoff, control, gene, sort_cols):
+    def SSREA_like_results(result, fdr_cutoff, control, gene, sort_cols):
         significant_label = "Yes"
         non_significant_label = "No"
         result.loc[result["padj"] < fdr_cutoff, "significant"] = significant_label
@@ -1919,7 +1917,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 ),
                 tooltip=["pathway", "condition", "significant", "pval", "padj", "NES"],
             )
-            .properties(title=gene + " (GSEA-like method)", width=100)
+            .properties(title=gene + " (SSREA method)", width=100)
         )
         return plot
 
@@ -1959,7 +1957,9 @@ def tool_results_by_element(results_directory, tools_available, token):
         )
         return plot
 
-    def inhouse_method_results(result, fdr_cutoff, control, gene, sort_cols):
+    def directional_scoring_method_results(
+        result, fdr_cutoff, control, gene, sort_cols
+    ):
         significant_label = "Yes"
         non_significant_label = "No"
         result.loc[
@@ -2007,7 +2007,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                     "significant",
                 ],
             )
-            .properties(title=gene + " (Filtering method)", width=100)
+            .properties(title=gene + " (Directional Scoring Method)", width=100)
         )
         return plot
 
@@ -2033,16 +2033,16 @@ def tool_results_by_element(results_directory, tools_available, token):
                         element,
                         conditions.value,
                     )
-                elif tool == "GSEA-like":
-                    plot = GSEA_like_results(
+                elif tool == "SSREA":
+                    plot = SSREA_like_results(
                         result,
                         fdr_cutoff.value,
                         control.value,
                         element,
                         conditions.value,
                     )
-                elif tool == "in_house_method":
-                    plot = inhouse_method_results(
+                elif tool == "directional_scoring_method":
+                    plot = directional_scoring_method_results(
                         result,
                         fdr_cutoff.value,
                         control.value,
@@ -2164,9 +2164,9 @@ def enrichr_plots(token, pitviper_res):
                 info = info.loc[info["BF"] > score_cutoff.value]
                 genes = info["GENE"]
 
-            if tool.value == "in_house_method":
+            if tool.value == "directional_scoring_method":
                 info = tool_res[conditions.value][
-                    conditions.value + "_all-elements_in-house.txt"
+                    conditions.value + "_all-elements_directional_scoring_method.txt"
                 ]
                 if score_cutoff.value > 0:
                     info = info.loc[info["score"] > score_cutoff.value]
@@ -2174,9 +2174,9 @@ def enrichr_plots(token, pitviper_res):
                     info = info.loc[info["score"] < score_cutoff.value]
                 genes = info["Gene"]
 
-            if tool.value == "GSEA-like":
+            if tool.value == "SSREA":
                 info = tool_res[conditions.value][
-                    conditions.value + "_all-elements_GSEA-like.txt"
+                    conditions.value + "_all-elements_SSREA.txt"
                 ]
                 if score_cutoff.value > 0:
                     info = info.loc[info["NES"] > score_cutoff.value]
@@ -2269,9 +2269,9 @@ def genemania_link_results(token, tools_available):
             info = info.loc[info["BF"] > float(score_cutoff.value)]
             genes = info["GENE"]
 
-        if tool.value == "in_house_method":
+        if tool.value == "directional_scoring_method":
             info = tool_res[conditions.value][
-                conditions.value + "_all-elements_in-house.txt"
+                conditions.value + "_all-elements_directional_scoring_method.txt"
             ]
             if score_cutoff.value > 0:
                 info = info.loc[info["score"] > score_cutoff.value]
@@ -2279,9 +2279,9 @@ def genemania_link_results(token, tools_available):
                 info = info.loc[info["score"] < score_cutoff.value]
             genes = info["Gene"]
 
-        if tool.value == "GSEA-like":
+        if tool.value == "SSREA":
             info = tool_res[conditions.value][
-                conditions.value + "_all-elements_GSEA-like.txt"
+                conditions.value + "_all-elements_SSREA.txt"
             ]
             if float(score_cutoff.value) > 0:
                 info = info.loc[info["NES"] > float(score_cutoff.value)]
@@ -2405,40 +2405,48 @@ def ranking(treatment, control, token, tools_available, params):
         tool_results["BAGEL"] = bagel_genes
         tool_genes.append(bagel_genes)
 
-    if params["in_house_method"]["on"]:
-        in_house = tools_available["in_house_method"][comparison][
-            comparison + "_all-elements_in-house.txt"
-        ]
-        if params["in_house_method"]["direction"] == "Negative":
-            in_house = in_house.loc[in_house.category == "down"]
-        elif params["in_house_method"]["direction"] == "Positive":
-            in_house = in_house.loc[in_house.category == "up"]
-        in_house["default_rank"] = in_house["score"].rank(method="first").copy()
-        in_house = in_house[["Gene", "default_rank"]].rename(
-            columns={"Gene": "id", "default_rank": "in_house_rank"}
+    if params["directional_scoring_method"]["on"]:
+        directional_scoring_method = tools_available["directional_scoring_method"][
+            comparison
+        ][comparison + "_all-elements_directional_scoring_method.txt"]
+        if params["directional_scoring_method"]["direction"] == "Negative":
+            directional_scoring_method = directional_scoring_method.loc[
+                directional_scoring_method.category == "down"
+            ]
+        elif params["directional_scoring_method"]["direction"] == "Positive":
+            directional_scoring_method = directional_scoring_method.loc[
+                directional_scoring_method.category == "up"
+            ]
+        directional_scoring_method["default_rank"] = (
+            directional_scoring_method["score"].rank(method="first").copy()
         )
-        in_house_genes = list(in_house.id)
-        tool_results["In-house"] = in_house_genes
-        tool_genes.append(in_house_genes)
+        directional_scoring_method = directional_scoring_method[
+            ["Gene", "default_rank"]
+        ].rename(
+            columns={"Gene": "id", "default_rank": "directional_scoring_method_rank"}
+        )
+        directional_scoring_method_genes = list(directional_scoring_method.id)
+        tool_results["Directional Scoring Method"] = directional_scoring_method_genes
+        tool_genes.append(directional_scoring_method_genes)
 
-    if params["GSEA_like"]["on"]:
-        score = params["GSEA_like"]["score"]
-        fdr = params["GSEA_like"]["fdr"]
-        greater = params["GSEA_like"]["greater"]
-        gsea = tools_available["GSEA-like"][comparison][
-            comparison + "_all-elements_GSEA-like.txt"
+    if params["SSREA_like"]["on"]:
+        score = params["SSREA_like"]["score"]
+        fdr = params["SSREA_like"]["fdr"]
+        greater = params["SSREA_like"]["greater"]
+        ssrea = tools_available["SSREA"][comparison][
+            comparison + "_all-elements_SSREA.txt"
         ]
         if not greater:
-            gsea = gsea[(gsea["NES"] < score) & (gsea["padj"] < fdr)]
+            ssrea = ssrea[(ssrea["NES"] < score) & (ssrea["padj"] < fdr)]
         else:
-            gsea = gsea[(gsea["NES"] > score) & (gsea["padj"] < fdr)]
-        gsea["default_rank"] = gsea["NES"].rank(method="dense").copy()
-        gsea = gsea[["pathway", "default_rank"]].rename(
-            columns={"pathway": "id", "default_rank": "gsea_rank"}
+            ssrea = ssrea[(ssrea["NES"] > score) & (ssrea["padj"] < fdr)]
+        ssrea["default_rank"] = ssrea["NES"].rank(method="dense").copy()
+        ssrea = ssrea[["pathway", "default_rank"]].rename(
+            columns={"pathway": "id", "default_rank": "ssrea_rank"}
         )
-        gsea_genes = list(gsea.id)
-        tool_results["GSEA-like"] = gsea_genes
-        tool_genes.append(gsea_genes)
+        ssrea_genes = list(ssrea.id)
+        tool_results["SSREA"] = ssrea_genes
+        tool_genes.append(ssrea_genes)
 
     if params["CRISPhieRmix"]["on"]:
         score = params["CRISPhieRmix"]["top_3_mean_log2FoldChange"]
@@ -2496,25 +2504,29 @@ def ranking(treatment, control, token, tools_available, params):
         )
         pdList.append(bagel)
 
-    if params["in_house_method"]["on"]:
-        in_house = tools_available["in_house_method"][comparison][
-            comparison + "_all-elements_in-house.txt"
-        ]
-        in_house["default_rank"] = in_house["score"].rank(method="first").copy()
-        in_house = in_house[["Gene", "default_rank"]].rename(
-            columns={"Gene": "id", "default_rank": "in_house_rank"}
+    if params["directional_scoring_method"]["on"]:
+        directional_scoring_method = tools_available["directional_scoring_method"][
+            comparison
+        ][comparison + "_all-elements_directional_scoring_method.txt"]
+        directional_scoring_method["default_rank"] = (
+            directional_scoring_method["score"].rank(method="first").copy()
         )
-        pdList.append(in_house)
+        directional_scoring_method = directional_scoring_method[
+            ["Gene", "default_rank"]
+        ].rename(
+            columns={"Gene": "id", "default_rank": "directional_scoring_method_rank"}
+        )
+        pdList.append(directional_scoring_method)
 
-    if params["GSEA_like"]["on"]:
-        gsea = tools_available["GSEA-like"][comparison][
-            comparison + "_all-elements_GSEA-like.txt"
+    if params["SSREA_like"]["on"]:
+        ssrea = tools_available["SSREA"][comparison][
+            comparison + "_all-elements_SSREA.txt"
         ]
-        gsea["default_rank"] = gsea["NES"].rank(method="dense").copy()
-        gsea = gsea[["pathway", "default_rank"]].rename(
-            columns={"pathway": "id", "default_rank": "gsea_rank"}
+        ssrea["default_rank"] = ssrea["NES"].rank(method="dense").copy()
+        ssrea = ssrea[["pathway", "default_rank"]].rename(
+            columns={"pathway": "id", "default_rank": "ssrea_rank"}
         )
-        pdList.append(gsea)
+        pdList.append(ssrea)
 
     if params["CRISPhieRmix"]["on"]:
         crisphie = tools_available["CRISPhieRmix"][comparison][comparison + ".txt"]
@@ -2576,8 +2588,8 @@ def reset_params():
             "top_3_mean_log2FoldChange": 0,
             "greater": False,
         },
-        "in_house_method": {"on": False, "direction": "Negative"},
-        "GSEA_like": {"on": False, "fdr": 0.25, "score": 0, "greater": False},
+        "directional_scoring_method": {"on": False, "direction": "Negative"},
+        "SSREA_like": {"on": False, "fdr": 0.25, "score": 0, "greater": False},
     }
     return params
 
@@ -2638,22 +2650,22 @@ def display_tools_widgets(tools_selected):
     def CRISPhieRmix_score_update(change):
         params["CRISPhieRmix"]["top_3_mean_log2FoldChange"] = change["new"]
 
-    ### In-house
-    def in_house_method_direction_update(change):
-        params["in_house_method"]["direction"] = change["new"]
+    ### directional_scoring_method
+    def directional_scoring_method_direction_update(change):
+        params["directional_scoring_method"]["direction"] = change["new"]
 
-    ### GSEA-like
-    def GSEA_like_order_update(change):
+    ### SSREA
+    def SSREA_like_order_update(change):
         if change["new"] == "Greater than score":
-            params["GSEA_like"]["greater"] = True
+            params["SSREA_like"]["greater"] = True
         else:
-            params["GSEA_like"]["greater"] = False
+            params["SSREA_like"]["greater"] = False
 
-    def GSEA_like_fdr_update(change):
-        params["GSEA_like"]["fdr"] = change["new"]
+    def SSREA_like_fdr_update(change):
+        params["SSREA_like"]["fdr"] = change["new"]
 
-    def GSEA_like_score_update(change):
-        params["GSEA_like"]["score"] = change["new"]
+    def SSREA_like_score_update(change):
+        params["SSREA_like"]["score"] = change["new"]
 
     if "MAGeCK_MLE" in tools_selected:
         params["MAGeCK_MLE"]["on"] = True
@@ -2723,32 +2735,40 @@ def display_tools_widgets(tools_selected):
         CRISPhieRmix_order.observe(CRISPhieRmix_order_update, "value")
         CRISPhieRmix_score.observe(CRISPhieRmix_score_update, "value")
         CRISPhieRmix_fdr.observe(CRISPhieRmix_fdr_update, "value")
-    if "in_house_method" in tools_selected:
-        params["in_house_method"]["on"] = True
-        in_house_method_direction = widgets.ToggleButtons(
+    if "directional_scoring_method" in tools_selected:
+        params["directional_scoring_method"]["on"] = True
+        directional_scoring_method_direction = widgets.ToggleButtons(
             options=["Negative", "Positive"], description="Direction:"
         )
-        in_house_method_text = widgets.HTML(value="<b>In-house method</b>:")
-        display(in_house_method_text)
-        in_house_method_box = widgets.HBox([in_house_method_direction])
-        display(in_house_method_box)
-        in_house_method_direction.observe(in_house_method_direction_update, "value")
-    if "GSEA-like" in tools_selected:
-        params["GSEA_like"]["on"] = True
-        GSEA_like_fdr = widgets.FloatSlider(
+        directional_scoring_method_text = widgets.HTML(
+            value="<b>Directional Scoring Method</b>:"
+        )
+        display(directional_scoring_method_text)
+        directional_scoring_method_box = widgets.HBox(
+            [directional_scoring_method_direction]
+        )
+        display(directional_scoring_method_box)
+        directional_scoring_method_direction.observe(
+            directional_scoring_method_direction_update, "value"
+        )
+    if "SSREA" in tools_selected:
+        params["SSREA_like"]["on"] = True
+        SSREA_like_fdr = widgets.FloatSlider(
             min=0.0, max=1.0, step=0.01, value=0.25, description="FDR:"
         )
-        GSEA_like_score = widgets.FloatText(value=0, description="Score cut-off:")
-        GSEA_like_text = widgets.HTML(value="<b>GSEA-like</b>:")
-        GSEA_like_order = widgets.ToggleButtons(
+        SSREA_like_score = widgets.FloatText(value=0, description="Score cut-off:")
+        SSREA_like_text = widgets.HTML(value="<b>SSREA</b>:")
+        SSREA_like_order = widgets.ToggleButtons(
             options=["Lower than score", "Greater than score"], description="Selection:"
         )
-        display(GSEA_like_text)
-        GSEA_like_box = widgets.HBox([GSEA_like_fdr, GSEA_like_score, GSEA_like_order])
-        display(GSEA_like_box)
-        GSEA_like_order.observe(GSEA_like_order_update, "value")
-        GSEA_like_score.observe(GSEA_like_score_update, "value")
-        GSEA_like_fdr.observe(GSEA_like_fdr_update, "value")
+        display(SSREA_like_text)
+        SSREA_like_box = widgets.HBox(
+            [SSREA_like_fdr, SSREA_like_score, SSREA_like_order]
+        )
+        display(SSREA_like_box)
+        SSREA_like_order.observe(SSREA_like_order_update, "value")
+        SSREA_like_score.observe(SSREA_like_score_update, "value")
+        SSREA_like_fdr.observe(SSREA_like_fdr_update, "value")
 
 
 def disable_widgets(token):
@@ -3045,22 +3065,22 @@ def multiple_tools_results(tools_available, token):
                     )
                 )
             )
-        if "GSEA-like" in tools_widget.value:
-            if params["GSEA_like"]["greater"]:
+        if "SSREA" in tools_widget.value:
+            if params["SSREA_like"]["greater"]:
                 word = "greater"
             else:
                 word = "less"
             display(
                 HTML(
-                    """<p style="color:black;padding: 0.5em;"><b>GSEA-like (fGSEA)</b>: FDR < %s, NES threshold = %s, keep elements with NES %s than threshold.</p>"""
-                    % (params["GSEA_like"]["fdr"], params["GSEA_like"]["score"], word)
+                    """<p style="color:black;padding: 0.5em;"><b>SSREA (fGSEA)</b>: FDR < %s, NES threshold = %s, keep elements with NES %s than threshold.</p>"""
+                    % (params["SSREA_like"]["fdr"], params["SSREA_like"]["score"], word)
                 )
             )
-        if "in_house_method" in tools_widget.value:
+        if "directional_scoring_method" in tools_widget.value:
             display(
                 HTML(
-                    """<p style="color:black;padding: 0.5em;"><b>Filtering method</b>: %s selection.</p>"""
-                    % (params["in_house_method"]["direction"])
+                    """<p style="color:black;padding: 0.5em;"><b>Directional Scoring Method</b>: %s selection.</p>"""
+                    % (params["directional_scoring_method"]["direction"])
                 )
             )
 

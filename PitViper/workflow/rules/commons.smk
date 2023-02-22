@@ -103,10 +103,10 @@ def get_pipeline_outputs(wildcards):
     token = config['token']
     wanted_outputs.append("results/" + config['token'] + "/Report.ipynb")
     for comparaison in comparaisons:
-        if (config['filtering_activate'] == 'True'):
-            wanted_outputs.append("results/{token}/in_house_method/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_in-house.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
-        if (config['gsea_activate'] == 'True'):
-            wanted_outputs.append("results/{token}/GSEA-like/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_GSEA-like.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        if (config['directional_scoring_method_activate'] == 'True'):
+            wanted_outputs.append("results/{token}/directional_scoring_method/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_directional_scoring_method.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        if (config['ssrea_activate'] == 'True'):
+            wanted_outputs.append("results/{token}/SSREA/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_SSREA.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
             wanted_outputs.append("results/{token}/DESeq2/{treatment}_vs_{control}/{treatment}_vs_{control}_DESeq2_table.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if (config['bagel_activate'] == 'True'):
             wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))

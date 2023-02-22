@@ -20,15 +20,15 @@ rule DESeq2_counts:
 
 
 
-rule filtering_method:
-    """Implementation of a in-house method for screened elements prioritization based on sgRNAs filtering."""
+rule directional_scoring_method_method:
+    """Implementation of directional scoring method for screened elements prioritization based on sgRNAs filtering."""
     input:
         count_table=rules.counts_filtering.output.normalized_filtered_counts,#config['normalized_count_table'],
         deseq2_table=rules.DESeq2_counts.output.deseq2_out
     output:
-        down_elements="results/{token}/in_house_method/{treatment}_vs_{control}/{treatment}_vs_{control}_down-elements_in-house.txt",
-        up_elements="results/{token}/in_house_method/{treatment}_vs_{control}/{treatment}_vs_{control}_up-elements_in-house.txt",
-        all_elements="results/{token}/in_house_method/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_in-house.txt"
+        down_elements="results/{token}/directional_scoring_method/{treatment}_vs_{control}/{treatment}_vs_{control}_down-elements_directional_scoring_method.txt",
+        up_elements="results/{token}/directional_scoring_method/{treatment}_vs_{control}/{treatment}_vs_{control}_up-elements_directional_scoring_method.txt",
+        all_elements="results/{token}/directional_scoring_method/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_directional_scoring_method.txt"
     params:
         treatment="{treatment}",
         control="{control}",
@@ -36,8 +36,8 @@ rule filtering_method:
         inhouse_log2_threshold = config["inhouse_log2_threshold"],
         inhouse_guides_threshold = config["inhouse_guides_threshold"]
     log:
-        "logs/{token}/in_house_method/{treatment}_vs_{control}.log"
+        "logs/{token}/directional_scoring_method/{treatment}_vs_{control}.log"
     benchmark:
-        "benchmarks/{token}/in_house_method/{treatment}_vs_{control}.tsv"
+        "benchmarks/{token}/directional_scoring_method/{treatment}_vs_{control}.tsv"
     script:
-        "../../workflow/scripts/screen_in-house.R"
+        "../../workflow/scripts/directional_scoring_method.R"
