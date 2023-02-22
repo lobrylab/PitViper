@@ -24,7 +24,8 @@ if conda env list | grep -q "$conda_env_name"; then
     conda activate "$conda_env_name"
 else
     echo "Creating conda environment: $conda_env_name"
-    conda env create -f PitViper/environment.yaml -n "$conda_env_name"
+    conda install -c conda-forge mamba
+    mamba env create -f PitViper/environment.yaml -n "$conda_env_name"
     conda_path=$(conda info | grep -i 'base environment' | awk '{print $4}')
     source $conda_path/etc/profile.d/conda.sh
     conda activate "$conda_env_name"
