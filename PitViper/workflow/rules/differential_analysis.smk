@@ -32,9 +32,9 @@ rule directional_scoring_method_method:
     params:
         treatment="{treatment}",
         control="{control}",
-        inhouse_fdr_threshold = config["inhouse_fdr_threshold"],
-        inhouse_log2_threshold = config["inhouse_log2_threshold"],
-        inhouse_guides_threshold = config["inhouse_guides_threshold"]
+        param_1 = config["directional_scoring_method_fdr_threshold"],
+        param_2 = config["directional_scoring_method_log2_threshold"],
+        param_3 = config["directional_scoring_method_guides_threshold"]
     log:
         "logs/{token}/directional_scoring_method/{treatment}_vs_{control}.log"
     benchmark:

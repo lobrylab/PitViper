@@ -5,7 +5,7 @@
 rule ssrea:
     """SSREA method for screened elements prioritization."""
     input:
-        count_table=rules.counts_filtering.output.normalized_filtered_counts,#config['normalized_count_table'],
+        count_table=rules.counts_filtering.output.normalized_filtered_counts,
         deseq2_table=rules.DESeq2_counts.output.deseq2_out,
         design=config["tsv_file"]
     output:

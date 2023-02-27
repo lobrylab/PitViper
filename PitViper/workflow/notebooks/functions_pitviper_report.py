@@ -1781,6 +1781,10 @@ def tool_results_by_element(results_directory, tools_available, token):
         }
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.gene == gene]
+        # filter res to keep 'condition' in sort_cols
+        if control not in sort_cols:
+            sort_cols.append(control)
+        res = res[res["condition"].isin(sort_cols)]
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
         plot = (
@@ -1821,6 +1825,10 @@ def tool_results_by_element(results_directory, tools_available, token):
         }
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.id == gene]
+        # filter res to keep 'condition' in sort_cols
+        if control not in sort_cols:
+            sort_cols.append(control)
+        res = res[res["condition"].isin(sort_cols)]
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
         plot = (
@@ -1858,6 +1866,10 @@ def tool_results_by_element(results_directory, tools_available, token):
         }
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.Gene == gene]
+        # filter res to keep 'condition' in sort_cols
+        if control not in sort_cols:
+            sort_cols.append(control)
+        res = res[res["condition"].isin(sort_cols)]
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
         plot = (
@@ -1898,6 +1910,10 @@ def tool_results_by_element(results_directory, tools_available, token):
         }
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.pathway == gene]
+        # filter res to keep 'condition' in sort_cols
+        if control not in sort_cols:
+            sort_cols.append(control)
+        res = res[res["condition"].isin(sort_cols)]
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
         plot = (
@@ -1934,6 +1950,10 @@ def tool_results_by_element(results_directory, tools_available, token):
         }
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.GENE == gene]
+        # filter res to keep 'condition' in sort_cols
+        if control not in sort_cols:
+            sort_cols.append(control)
+        res = res[res["condition"].isin(sort_cols)]
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
         plot = (
@@ -1980,6 +2000,10 @@ def tool_results_by_element(results_directory, tools_available, token):
         }
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.Gene == gene]
+        # filter res to keep 'condition' in sort_cols
+        if control not in sort_cols:
+            sort_cols.append(control)
+        res = res[res["condition"].isin(sort_cols)]
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
         plot = (
