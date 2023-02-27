@@ -17,7 +17,7 @@ test -e "$app_path" || { echo "Error: $app_path does not exist"; exit 1; }
 app_full_path=$(realpath "$app_path")
 
 # Create a conda environment for the application
-if conda env list | grep -q "$conda_env_name"; then
+if conda env list | grep -qsw "$conda_env_name"; then
     echo "Activating conda environment: $conda_env_name"
     conda_path=$(conda info | grep -i 'base environment' | awk '{print $4}')
     source $conda_path/etc/profile.d/conda.sh
