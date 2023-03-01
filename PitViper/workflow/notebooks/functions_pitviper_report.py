@@ -83,9 +83,6 @@ def working_directory_update(output: str):
             os.system("cd ../")
     print("Working directory: ", os.getcwd())
 
-    with open(output, "w") as out:
-        print("Notebook was runned.", file=out)
-
 
 def open_yaml(yml: str):
     """Open and read content of YAML file yml.
