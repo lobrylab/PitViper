@@ -2,7 +2,7 @@
 
 # This script sets up the environment and runs the PitViper Flask application
 
-echo "Star!"
+echo "Starting PitViper..."
 
 # Exit if any command fails
 set -e
