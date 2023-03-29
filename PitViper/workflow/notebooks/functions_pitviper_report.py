@@ -1782,6 +1782,8 @@ def tool_results_by_element(results_directory, tools_available, token):
         if control not in sort_cols:
             sort_cols.append(control)
         res = res[res["condition"].isin(sort_cols)]
+        # remove duplicated rows
+        res = res.drop_duplicates(subset=["condition"], keep="first")
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
         plot = (
