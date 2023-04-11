@@ -565,17 +565,18 @@
                 </div>
 
                 <fieldset class="row mb-3">
-                  <legend class="col-form-label col-sm-2 pt-0 text-primary">Filtering method</legend>
+                  <legend class="col-form-label col-sm-2 pt-0 text-primary">Directional Scoring Method:</legend>
                   <div class="col-sm-10">
                     <div class="form-check form-switch">
-                      <input class="form-check-input" type="checkbox" id="filtering_activate" ,
-                        name="filtering_activate" value="True"
-                        onclick="toggleDivVisibility('filtering_options', 'filtering_activate')">
-                      <input class="form-check-input" type="hidden" id="filtering_activate" , name="filtering_activate"
-                        value="False" onclick="toggleDivVisibility('filtering_options', 'filtering_activate')">
-                      <label class="form-check-label" for="filtering_activate">Activate</label>
+                      <input class="form-check-input" type="checkbox" id="directional_scoring_method_activate" ,
+                        name="directional_scoring_method_activate" value="True"
+                        onclick="toggleDivVisibility('directional_scoring_method_options', 'directional_scoring_method_activate')">
+                      <input class="form-check-input" type="hidden" id="directional_scoring_method_activate" ,
+                        name="directional_scoring_method_activate" value="False"
+                        onclick="toggleDivVisibility('directional_scoring_method_options', 'directional_scoring_method_activate')">
+                      <label class="form-check-label" for="directional_scoring_method_activate">Activate</label>
                     </div>
-                    <div id="filtering_options" style="display: none;">
+                    <div id="directional_scoring_method_options" style="display: none;">
                       <!-- guide-fdr-threshold -->
                       <legend class="col-form-label col-sm-4 pt-3">FDR threshold: <a tabindex="0" class="btn btn-link"
                           role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help"
@@ -583,7 +584,7 @@
                       </legend>
                       <div style="display:flex; align-items: center">
                         <input class="form-select" type="number" id="replyNumber" min="0" max="1" step="0.01"
-                          data-bind="value:replyNumber" value=0.25 name="inhouse_fdr_threshold" />
+                          data-bind="value:replyNumber" value=0.25 name="directional_scoring_method_fdr_threshold" />
                       </div>
                       <!-- guide-log2-threshold -->
                       <legend class="col-form-label col-sm-4 pt-3">Absolute log2 fold-change threshold: <a tabindex="0"
@@ -593,7 +594,7 @@
                       </legend>
                       <div style="display:flex; align-items: center">
                         <input class="form-select" type="number" id="replyNumber" min="0" step="0.01"
-                          data-bind="value:replyNumber" value=1 name="inhouse_log2_threshold" />
+                          data-bind="value:replyNumber" value=1 name="directional_scoring_method_log2_threshold" />
                       </div>
                       <!-- guides-threshold -->
                       <legend class="col-form-label col-sm-4 pt-3">Guides threshold: <a tabindex="0"
@@ -603,7 +604,7 @@
                       </legend>
                       <div style="display:flex; align-items: center">
                         <input class="form-select" type="number" id="replyNumber" min="1" step="1"
-                          data-bind="value:replyNumber" value=2 name="inhouse_guides_threshold" />
+                          data-bind="value:replyNumber" value=2 name="directional_scoring_method_guides_threshold" />
                       </div>
                     </div>
                   </div>
@@ -611,21 +612,21 @@
 
 
                 <fieldset class="row mb-3">
-                  <legend class="col-form-label col-sm-2 pt-0 text-primary">GSEA-like method</legend>
+                  <legend class="col-form-label col-sm-2 pt-0 text-primary">SSREA</legend>
                   <div class="col-sm-10">
                     <div class="form-check form-switch">
-                      <input class="form-check-input" type="checkbox" id="gsea_activate" , name="gsea_activate"
-                        value="True" onclick="toggleDivVisibility('gsea_options', 'gsea_activate')">
-                      <input class="form-check-input" type="hidden" id="gsea_activate" , name="gsea_activate"
-                        value="False" onclick="toggleDivVisibility('gsea_options', 'gsea_activate')">
-                      <label class="form-check-label" for="gsea_activate">Activate</label>
+                      <input class="form-check-input" type="checkbox" id="ssrea_activate" , name="ssrea_activate"
+                        value="True" onclick="toggleDivVisibility('ssrea_options', 'ssrea_activate')">
+                      <input class="form-check-input" type="hidden" id="ssrea_activate" , name="ssrea_activate"
+                        value="False" onclick="toggleDivVisibility('ssrea_options', 'ssrea_activate')">
+                      <label class="form-check-label" for="ssrea_activate">Activate</label>
                     </div>
-                    <div id="gsea_options" style="display: none;">
+                    <div id="ssrea_options" style="display: none;">
                       <legend class="col-form-label col-sm-5 pt-3">Ranking method: <a tabindex="0" class="btn btn-link"
                           role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help"
                           data-bs-content="Signal-to-Noise ratio can be used only if there is at least three replicates by sample.">Help
                         </a></legend>
-                      <select class="form-select" label="gsea_ranking_method" name="gsea_ranking_method">
+                      <select class="form-select" label="ssrea_ranking_method" name="ssrea_ranking_method">
                         <option selected>Open this select menu</option>
                         <option value="signal_to_noise" selected>Signal-to-Noise</option>
                         <option value="fold_change">Fold-change</option>
@@ -725,12 +726,12 @@
         var checked = false;
         const checkboxes = [];
         checkboxes.push(
-          document.getElementById('gsea_activate'),
+          document.getElementById('ssrea_activate'),
           document.getElementById('mageck_mle_activate'),
           document.getElementById('mageck_rra_activate'),
           document.getElementById('bagel_activate'),
           document.getElementById('crisphiermix_activate'),
-          document.getElementById('filtering_activate'));
+          document.getElementById('directional_scoring_method_activate'));
         for (var i = 0; i < checkboxes.length; i++) {
           if (checkboxes[i].checked) {
             checked = true;

@@ -3,6 +3,7 @@
 > **A pipeline to analyze functional screening data from shRNA, CRISPR/Cas9 and CRISPR/dCas9 experiments.**
 
 ## Introduction
+Processing, InTerpretation and VIsualization of PoolEd screening Results
 
 PitViper is intended to facilitate the analysis of functional screening data from various functionnal screening experiments (shRNA, CRISPR/Cas9 or CRISPR/dCas9).
 

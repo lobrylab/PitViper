@@ -46,7 +46,7 @@ def run_pitviper(token):
         content = yaml.safe_load(stream)
     jobs = content.get("jobs", 1)
     print(f"Running PitViper with {jobs} jobs from the CLI...")
-    cmd = f"python3 pitviper.py --configfile {configfile} --jobs {jobs} > logs/{token}/PitViper_snakemake.log 2>&1"
+    cmd = f"python3 pitviper.py --configfile {configfile} --jobs {jobs} 2>&1 | tee logs/{token}/PitViper_snakemake.log"
     print("Running command: ", cmd)
     try:
         subprocess.check_call(cmd, shell=True)
@@ -153,7 +153,7 @@ def result():
         run_pitviper(token=result_dict["token"])
         shutdown_server()
         if os.path.exists(f"results/{token}/Report.ipynb"):
-            subprocess.check_call(f"jupyter notebook results/{token}", shell=True)
+            subprocess.check_call(f"jupyter notebook results/{token} --allow-root --ip=0.0.0.0", shell=True)
             return "You can close this window now."
         else:
             with open(
