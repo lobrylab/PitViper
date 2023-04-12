@@ -1484,28 +1484,52 @@ def show_sgRNA_counts_lines(token):
     display(button)
 
     def show_plot(source, sort_cols, gene):
+        
+        display(source)
+        
+        # selection = alt.selection_multi(fields=["sgRNA"], bind="legend")
+        # base = (
+        #     alt.Chart(source, title=f"{gene} replicates normalized read counts")
+        #     .transform_fold(sort_cols)
+        #     .encode(
+        #         x=alt.X("key:N", sort=sort_cols, axis=alt.Axis(title="Condition")),
+        #         y=alt.Y("mean(value):Q", axis=alt.Axis(title="Condition")),
+        #         color="sgRNA:N",
+        #         tooltip=["sgRNA", "value:Q"],
+        #     )
+        # )
+        # points = (
+        #     base.mark_circle()
+        #     .encode(opacity=alt.condition(selection, alt.value(1), alt.value(0.0)))
+        #     .add_selection(selection)
+        #     .properties(width=600)
+        # )
+        # lines = base.mark_line().encode(
+        #     opacity=alt.condition(selection, alt.value(1), alt.value(0.0))
+        # )
+        # chart = points + lines
+             
         selection = alt.selection_multi(fields=["sgRNA"], bind="legend")
-        base = (
-            alt.Chart(source, title="%s replicates normalized read counts" % gene)
-            .transform_fold(sort_cols)
-            .encode(
-                x=alt.X("key:N", sort=sort_cols, axis=alt.Axis(title="Condition")),
-                y=alt.Y("value:Q", axis=alt.Axis(title="Condition")),
-                color="sgRNA:N",
-                detail="replicate_group:N",
-                tooltip=["sgRNA", "value:Q", "replicate_group"],
-            )
+                
+        line = alt.Chart(source).mark_line().encode(
+            x=alt.X('condition:O', sort=sort_cols),
+            y='mean_value:Q',
+            color=alt.Color('sgRNA:N'),
+            opacity=alt.condition(selection, alt.value(1), alt.value(0.0)),
+            tooltip=["sgRNA:N", "mean_value:Q"],
+        ).transform_aggregate(
+            mean_value='mean(value)',
+            groupby=["condition", "sgRNA"]
+            ).add_selection(selection).properties(width=600)
+
+        band = alt.Chart(source).mark_errorband(extent='ci').encode(
+            x=alt.X('condition:O', sort=sort_cols),
+            y='value:Q',
+            color=alt.Color('sgRNA:N'),
+            opacity=alt.condition(selection, alt.value(0.5), alt.value(0.0)),
         )
-        points = (
-            base.mark_circle()
-            .encode(opacity=alt.condition(selection, alt.value(1), alt.value(0.0)))
-            .add_selection(selection)
-            .properties(width=600)
-        )
-        lines = base.mark_line().encode(
-            opacity=alt.condition(selection, alt.value(1), alt.value(0.0))
-        )
-        chart = points + lines
+
+        chart = line + band
         display(chart.interactive())
 
     def on_button_clicked(b):
@@ -1526,15 +1550,15 @@ def show_sgRNA_counts_lines(token):
                 )
                 boolean_series = source.condition.isin(sort_cols)
                 source = source[boolean_series]
-                source["replicate_group"] = source["replicate"].str.extract(
-                    r"([1-9]+)$"
-                )
-                source = pd.pivot_table(
-                    source,
-                    values="value",
-                    index=["sgRNA", "replicate_group"],
-                    columns=["condition"],
-                )
+                # source["replicate_group"] = source["replicate"].str.extract(
+                #     r"([1-9]+)$"
+                # )
+                # source = pd.pivot_table(
+                #     source,
+                #     values="value",
+                #     index=["sgRNA", "replicate"],
+                #     columns=["condition"],
+                # )
                 source = source.reset_index()
                 show_plot(source, sort_cols, gene)
 
@@ -1720,7 +1744,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 break
 
         elements_list = result[gene_var].to_list()
-        gene.options = elements_list
+        gene.options = list(set(elements_list))
         gene.value = elements_list[0]
 
     config = "config/%s.yaml" % token
@@ -1782,8 +1806,6 @@ def tool_results_by_element(results_directory, tools_available, token):
         if control not in sort_cols:
             sort_cols.append(control)
         res = res[res["condition"].isin(sort_cols)]
-        # remove duplicated rows
-        res = res.drop_duplicates(subset=["condition"], keep="first")
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
         plot = (
@@ -1821,6 +1843,7 @@ def tool_results_by_element(results_directory, tools_available, token):
             "significant": "Baseline",
             "neg|fdr": 1,
             "neg|lfc": 0,
+            "neg|score": 1,
         }
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.id == gene]
@@ -1838,14 +1861,14 @@ def tool_results_by_element(results_directory, tools_available, token):
                 size=100,
             )
             .encode(
-                y=alt.Y("neg|lfc", axis=alt.Axis(title="FDR")),
+                y=alt.Y("neg|score", axis=alt.Axis(title="Score")),
                 x=alt.X("condition:N", sort=sort_cols),
                 color=alt.Color(
                     "significant",
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Significativity:"),
                 ),
-                tooltip=["id", "neg|lfc", "significant", "neg|fdr", "condition"],
+                tooltip=["id", "neg|score", "neg|lfc", "significant", "neg|fdr", "condition"],
             )
             .properties(title=gene + " (MAGeCK RRA)", width=100)
         )
