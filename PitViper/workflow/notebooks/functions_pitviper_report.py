@@ -1475,58 +1475,39 @@ def show_sgRNA_counts_lines(token):
     conditions = widgets.TagsInput(
         value=conditions_list, allowed_tags=conditions_list, allow_duplicates=False
     )
-
-    display(element)
-    display(conditions)
-
     button = widgets.Button(description="Show!")
 
     display(button)
 
     def show_plot(source, sort_cols, gene):
-        
-        display(source)
-        
-        # selection = alt.selection_multi(fields=["sgRNA"], bind="legend")
-        # base = (
-        #     alt.Chart(source, title=f"{gene} replicates normalized read counts")
-        #     .transform_fold(sort_cols)
-        #     .encode(
-        #         x=alt.X("key:N", sort=sort_cols, axis=alt.Axis(title="Condition")),
-        #         y=alt.Y("mean(value):Q", axis=alt.Axis(title="Condition")),
-        #         color="sgRNA:N",
-        #         tooltip=["sgRNA", "value:Q"],
-        #     )
-        # )
-        # points = (
-        #     base.mark_circle()
-        #     .encode(opacity=alt.condition(selection, alt.value(1), alt.value(0.0)))
-        #     .add_selection(selection)
-        #     .properties(width=600)
-        # )
-        # lines = base.mark_line().encode(
-        #     opacity=alt.condition(selection, alt.value(1), alt.value(0.0))
-        # )
-        # chart = points + lines
-             
         selection = alt.selection_multi(fields=["sgRNA"], bind="legend")
-                
-        line = alt.Chart(source).mark_line().encode(
-            x=alt.X('condition:O', sort=sort_cols),
-            y='mean_value:Q',
-            color=alt.Color('sgRNA:N'),
-            opacity=alt.condition(selection, alt.value(1), alt.value(0.0)),
-            tooltip=["sgRNA:N", "mean_value:Q"],
-        ).transform_aggregate(
-            mean_value='mean(value)',
-            groupby=["condition", "sgRNA"]
-            ).add_selection(selection).properties(width=600)
 
-        band = alt.Chart(source).mark_errorband(extent='ci').encode(
-            x=alt.X('condition:O', sort=sort_cols),
-            y='value:Q',
-            color=alt.Color('sgRNA:N'),
-            opacity=alt.condition(selection, alt.value(0.5), alt.value(0.0)),
+        line = (
+            alt.Chart(source)
+            .mark_line()
+            .encode(
+                x=alt.X("condition:O", sort=sort_cols),
+                y="mean_value:Q",
+                color=alt.Color("sgRNA:N"),
+                opacity=alt.condition(selection, alt.value(1), alt.value(0.0)),
+                tooltip=["sgRNA:N", "mean_value:Q"],
+            )
+            .transform_aggregate(
+                mean_value="mean(value)", groupby=["condition", "sgRNA"]
+            )
+            .add_selection(selection)
+            .properties(width=600)
+        )
+
+        band = (
+            alt.Chart(source)
+            .mark_errorband(extent="ci")
+            .encode(
+                x=alt.X("condition:O", sort=sort_cols),
+                y="value:Q",
+                color=alt.Color("sgRNA:N"),
+                opacity=alt.condition(selection, alt.value(0.5), alt.value(0.0)),
+            )
         )
 
         chart = line + band
@@ -1868,7 +1849,14 @@ def tool_results_by_element(results_directory, tools_available, token):
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Significativity:"),
                 ),
-                tooltip=["id", "neg|score", "neg|lfc", "significant", "neg|fdr", "condition"],
+                tooltip=[
+                    "id",
+                    "neg|score",
+                    "neg|lfc",
+                    "significant",
+                    "neg|fdr",
+                    "condition",
+                ],
             )
             .properties(title=gene + " (MAGeCK RRA)", width=100)
         )
