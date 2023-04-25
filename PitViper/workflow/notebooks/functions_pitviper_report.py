@@ -1477,6 +1477,8 @@ def show_sgRNA_counts_lines(token):
     )
     button = widgets.Button(description="Show!")
 
+    display(element)
+    display(conditions)
     display(button)
 
     def show_plot(source, sort_cols, gene):
@@ -1501,7 +1503,7 @@ def show_sgRNA_counts_lines(token):
 
         band = (
             alt.Chart(source)
-            .mark_errorband(extent="ci")
+            .mark_errorband(extent="stdev")
             .encode(
                 x=alt.X("condition:O", sort=sort_cols),
                 y="value:Q",
@@ -2108,7 +2110,6 @@ def tool_results_by_element(results_directory, tools_available, token):
 
 
 def enrichr_plots(token, pitviper_res):
-
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
     if content["screen_type"] == "not_gene":
@@ -2261,7 +2262,6 @@ def run_rra(ranks):
 
 
 def genemania_link_results(token, tools_available):
-
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
     if content["screen_type"] == "not_gene":
