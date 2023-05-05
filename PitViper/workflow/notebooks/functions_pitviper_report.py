@@ -1873,20 +1873,40 @@ def tool_results_by_element(results_directory, tools_available, token):
     def MAGeCK_RRA_results(result, fdr_cutoff, control, gene, sort_cols):
         significant_label = "Yes"
         non_significant_label = "No"
-        result.loc[result["neg|fdr"] < fdr_cutoff, "significant"] = significant_label
+
+        # Use numpy.where to conditionally assign the FDR based on the sign of LFC
+        result["selected_fdr"] = np.where(
+            result["neg|lfc"] < 0, result["neg|fdr"], result["pos|fdr"]
+        )
+
         result.loc[
-            result["neg|fdr"] >= fdr_cutoff, "significant"
+            result["selected_fdr"] < fdr_cutoff, "significant"
+        ] = significant_label
+        result.loc[
+            result["selected_fdr"] < fdr_cutoff, "significant"
+        ] = significant_label
+        result.loc[
+            result["selected_fdr"] >= fdr_cutoff, "significant"
         ] = non_significant_label
+
         new_row = {
             "id": gene,
             "condition": control,
             "significant": "Baseline",
             "neg|fdr": 1,
             "neg|lfc": 0,
+            "pos|fdr": 1,
+            "pos|lfc": 0,
             "neg|score": 1,
+            "pos|score": 1,
         }
+
         result = result.append(new_row, ignore_index=True)
+
         res = result.loc[result.id == gene]
+
+        res["score"] = np.where(res["neg|lfc"] < 0, res["neg|score"], res["pos|score"])
+
         # filter res to keep 'condition' in sort_cols
         if control not in sort_cols:
             sort_cols.append(control)
@@ -1901,7 +1921,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 size=100,
             )
             .encode(
-                y=alt.Y("neg|score", axis=alt.Axis(title="Score")),
+                y=alt.Y(f"score", axis=alt.Axis(title="RRA Score")),
                 x=alt.X("condition:N", sort=sort_cols),
                 color=alt.Color(
                     "significant",
@@ -1912,8 +1932,12 @@ def tool_results_by_element(results_directory, tools_available, token):
                     "id",
                     "neg|score",
                     "neg|lfc",
-                    "significant",
                     "neg|fdr",
+                    "pos|lfc",
+                    "pos|fdr",
+                    "pos|score",
+                    "score",
+                    "significant",
                     "condition",
                 ],
             )
