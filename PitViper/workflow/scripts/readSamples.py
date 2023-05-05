@@ -1,9 +1,57 @@
+"""
+This script is used to create a design matrix for DESeq2.
+"""
 import pandas as pd
 import numpy as np
 import click
 
 
 class Design:
+    """
+    This class is used to create a design matrix for DESeq2.
+
+    Parameters
+    ----------
+    file : str
+        Path to the samples file.
+    control : str
+        Name of the control condition.
+    pairwise : list, optional
+        List of pairwise comparaisons, by default False
+
+    Attributes
+    ----------
+    file : str
+        Path to the samples file.
+    sample_sheet : pandas.DataFrame
+        Samples file as a pandas DataFrame.
+    control_name : str
+        Name of the control condition.
+    conditions : list
+        List of all the conditions.
+    samples_dict : dict
+        Dictionary containing the information about the samples.
+    replicates : list
+        List of all the replicates.
+    design_matrix : pandas.DataFrame
+        Design matrix for DESeq2.
+
+    Methods
+    -------
+    createSamplesSummary()
+        Create a dictionary containing the information about the samples.
+    getAllReplicates()
+        Get all the replicates.
+    fillConditions()
+        Fill the design matrix with the conditions.
+    fillNan()
+        Fill the NaN values with 0.
+    get_empty_design_matrix()
+        Create an empty design matrix.
+    create_design_matrix()
+        Create the design matrix.
+    """
+
     def __init__(self, file, control, pairwise=False):
         self.file = file
         self.sample_sheet = pd.read_csv(file, sep="\t")
@@ -13,7 +61,7 @@ class Design:
         self.replicates = []
         self.design_matrix = None
 
-        if pairwise != False:
+        if pairwise is not False:
             self.conditions = pairwise
 
     def createSamplesSummary(self):

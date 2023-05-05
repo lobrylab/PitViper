@@ -6,6 +6,7 @@ library(dplyr)
 library(stringr)
 library(readr)
 
+# Set seed for reproducibility.
 set.seed(123)
 
 # Handle arguments.

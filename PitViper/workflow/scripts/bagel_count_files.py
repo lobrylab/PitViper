@@ -1,9 +1,13 @@
-import pandas as pd
 from functools import reduce
+
+import pandas as pd
 import click
 
 
-def getControl(table, samples_table, control):
+def get_control(table, samples_table, control):
+    """
+    Get the control counts from the samples table and merge them into a single column.
+    """
     header = ["sgRNA", "Gene"]
     replicates = samples_table.loc[samples_table.condition == control][
         "replicate"
@@ -14,7 +18,10 @@ def getControl(table, samples_table, control):
     return replicates_counts[["sgRNA", "Gene", str(control)]]
 
 
-def getTreatment(table, samples_table, treatment):
+def get_treatment(table, samples_table, treatment):
+    """
+    Get the treatment counts from the samples table and merge them into a single column.
+    """
     header = ["sgRNA", "Gene"]
     replicates = samples_table.loc[samples_table.condition == treatment][
         "replicate"
@@ -34,11 +41,14 @@ def getTreatment(table, samples_table, treatment):
 @click.option("--treatment", default=1, help="Treatment name.", required=True, type=str)
 @click.option("--dryrun", default=False, help="Dry run.", type=bool)
 def main(file, counts, control, treatment, directory, dryrun):
+    """
+    Merge the counts from the control and treatment samples into a single file.
+    """
     table = pd.read_csv(counts, sep="\t")
     samples_table = pd.read_csv(file, sep="\t")
 
-    cont = getControl(table, samples_table, control)
-    trea = getTreatment(table, samples_table, treatment)
+    cont = get_control(table, samples_table, control)
+    trea = get_treatment(table, samples_table, treatment)
 
     data_frames = [cont, trea]
 
@@ -47,9 +57,7 @@ def main(file, counts, control, treatment, directory, dryrun):
         data_frames,
     )
 
-    file_name = directory + "{treatment}_vs_{control}_count_matrix.txt".format(
-        control=control, treatment=treatment
-    )
+    file_name = directory + f"{treatment}_vs_{control}_count_matrix.txt"
 
     if not dryrun:
         df_merged.to_csv(file_name, index=False, sep="\t")

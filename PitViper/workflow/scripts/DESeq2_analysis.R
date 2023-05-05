@@ -1,4 +1,4 @@
- log <- file(snakemake@log[[1]], open="wt")
+log <- file(snakemake@log[[1]], open="wt")
 sink(log, append=TRUE)
 sink(log, append=TRUE, type="message")
 
@@ -14,6 +14,7 @@ treatment <- snakemake@params[1]
 baseline <- snakemake@params[2]
 design_file <- snakemake@params[[3]]
 
+# Set seed for reproducibility.
 set.seed(123)
 
 # Process counts file (must be tab delimited and have a 'sgRNA' column).
@@ -27,13 +28,13 @@ baseline.name <- design %>% filter(condition == baseline) %>% pull(replicate) %>
 cts <- cbind(select(cts, baseline.name), select(cts, treatment.name))
 n.treatment <- ncol(select(cts, all_of(treatment.name)))
 n.baseline <- ncol(select(cts, all_of(baseline.name)))
-#print(cts)
 
 # Create metadata dataframe.
 baseline_rep <- unlist(replicate(n = n.baseline, expr = baseline))
 treatment_rep <- unlist(replicate(n = n.treatment, expr = treatment))
 conditions <- c(baseline_rep, treatment_rep)
 
+# Reorder columns to match metadata.
 cts.names <- colnames(cts)
 coldata <- data.frame(row.names = cts.names, condition = conditions)
 cts <- cts[, rownames(coldata)]
@@ -47,9 +48,9 @@ dds <- DESeqDataSetFromMatrix(countData = cts,
                               colData = coldata,
                               design = ~ condition)
 
+# Run DESeq2.
 dds$condition <- factor(dds$condition, levels = c(baseline, treatment))
 dds <- DESeq(dds)
-print(resultsNames(dds))
 res <- results(dds, name=name_res)
 res <- data.frame(res)
 res <- tibble::rownames_to_column(res, "sgRNA")
