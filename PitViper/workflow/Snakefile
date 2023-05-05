@@ -1,10 +1,13 @@
 import pandas as pd
 
+# Check that the Snakemake version is up to date.
 from snakemake.utils import min_version
 min_version("5.24.0")
 
+# Load the config file.
 tsv = pd.read_csv(config['tsv_file'], sep="\t")
 
+# Load the workflow rules.
 include: "rules/commons.smk"
 if config['bowtie_activate'] == 'True':
     if ("fastq" in tsv.columns) and (not "bam" in tsv.columns):
@@ -12,15 +15,16 @@ if config['bowtie_activate'] == 'True':
 if "fastq" in tsv.columns or "bam" in tsv.columns:
     include: "rules/mageck_count.smk"
 include: "rules/annotation.smk"
-include: "rules/directional_scoring_method.smk"
+include: "rules/filtering.smk"
 include: "rules/mageck_mle.smk"
-include: "rules/differential_analysis.smk"
+include: "rules/directional_scoring_method.smk"
 include: "rules/mageck_rra.smk"
 include: "rules/bagel.smk"
 include: "rules/ssrea.smk"
 include: "rules/crisphiermix.smk"
 include: "rules/integration.smk"
 
+# Define the workflow.
 rule all:
     input:
         get_pipeline_outputs  # see workflow/rules/commons.smk
