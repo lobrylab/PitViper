@@ -29,6 +29,8 @@ from scipy import stats
 from scipy.stats import zscore
 from sklearn import decomposition
 
+from IPython.display import Markdown as md
+
 buf = []
 
 
@@ -81,7 +83,6 @@ def working_directory_update(output: str):
             os.system("cd ../../")
         else:
             os.system("cd ../")
-    print("Working directory: ", os.getcwd())
 
 
 def open_yaml(yml: str):
@@ -887,6 +888,15 @@ def tool_results(results_directory, tools_available, token):
         source.loc[source.Gene.isin(elements), "significant"] = highlight_label
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
+
+        source["significant"] = pd.Categorical(
+            source["significant"],
+            categories=[non_significant_label, significant_label, highlight_label],
+            ordered=True,
+        )
+        # Order rows by label 'significant' to have the highlighted genes on top
+        source = source.sort_values(by="significant", ascending=True)
+
         chart = (
             alt.Chart(source, title="MAGeCK MLE (%s)" % comparison)
             .mark_circle(size=60)
@@ -908,7 +918,6 @@ def tool_results(results_directory, tools_available, token):
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Significativity:"),
                 ),
-                order=alt.Order("significant:N"),
             )
             .properties(width=800, height=400)
             .interactive()
@@ -947,14 +956,33 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
+        # Use numpy.where to conditionally assign the LFC based on the sign of beta
         source["default_rank"] = source["neg|lfc"].rank(ascending=True)
-        source.loc[source["neg|fdr"] < fdr_cutoff, "significant"] = significant_label
+
+        # Use numpy.where to conditionally assign the FDR based on the sign of LFC
+        source["selected_fdr"] = np.where(
+            source["neg|lfc"] < 0, source["neg|fdr"], source["pos|fdr"]
+        )
+
         source.loc[
-            source["neg|fdr"] >= fdr_cutoff, "significant"
+            source["selected_fdr"] < fdr_cutoff, "significant"
+        ] = significant_label
+        source.loc[
+            source["selected_fdr"] >= fdr_cutoff, "significant"
         ] = non_significant_label
         source.loc[source.id.isin(elements), "significant"] = highlight_label
+
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
+
+        source["significant"] = pd.Categorical(
+            source["significant"],
+            categories=[non_significant_label, significant_label, highlight_label],
+            ordered=True,
+        )
+        # Order rows by label 'significant' to have the highlighted genes on top
+        source = source.sort_values(by="significant", ascending=True)
+
         chart = (
             alt.Chart(source, title="MAGeCK RRA (%s)" % comparison)
             .mark_circle(size=60)
@@ -967,7 +995,7 @@ def tool_results(results_directory, tools_available, token):
                     "id",
                     "num",
                     "neg|lfc",
-                    "neg|fdr",
+                    "selected_fdr",
                     "significant",
                     "neg|rank",
                     "default_rank",
@@ -977,7 +1005,6 @@ def tool_results(results_directory, tools_available, token):
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Significativity:"),
                 ),
-                order=alt.Order("significant:N"),
             )
             .properties(width=800, height=400)
             .interactive()
@@ -1025,6 +1052,15 @@ def tool_results(results_directory, tools_available, token):
         source.loc[source.gene.isin(elements), "significant"] = highlight_label
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
+
+        source["significant"] = pd.Categorical(
+            source["significant"],
+            categories=[non_significant_label, significant_label, highlight_label],
+            ordered=True,
+        )
+        # Order rows by label 'significant' to have the highlighted genes on top
+        source = source.sort_values(by="significant", ascending=True)
+
         chart = (
             alt.Chart(source, title="CRISPhieRmix (%s)" % comparison)
             .mark_circle(size=60)
@@ -1049,7 +1085,6 @@ def tool_results(results_directory, tools_available, token):
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Significativity:"),
                 ),
-                order=alt.Order("significant:N"),
             )
             .properties(width=800, height=400)
             .interactive()
@@ -1098,6 +1133,15 @@ def tool_results(results_directory, tools_available, token):
         source.loc[source.Gene.isin(elements), "significant"] = highlight_label
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
+
+        source["significant"] = pd.Categorical(
+            source["significant"],
+            categories=[non_significant_label, significant_label, highlight_label],
+            ordered=True,
+        )
+        # Order rows by label 'significant' to have the highlighted genes on top
+        source = source.sort_values(by="significant", ascending=True)
+
         chart = (
             alt.Chart(source, title="Directional Scoring Method (%s)" % comparison)
             .mark_circle(size=60)
@@ -1118,7 +1162,6 @@ def tool_results(results_directory, tools_available, token):
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Guides threshold:"),
                 ),
-                order=alt.Order("significant:N"),
             )
             .properties(width=800, height=400)
             .interactive()
@@ -1164,6 +1207,14 @@ def tool_results(results_directory, tools_available, token):
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        source["significant"] = pd.Categorical(
+            source["significant"],
+            categories=[non_significant_label, significant_label, highlight_label],
+            ordered=True,
+        )
+        # Order rows by label 'significant' to have the highlighted genes on top
+        source = source.sort_values(by="significant", ascending=True)
+
         chart = (
             alt.Chart(source, title="SSREA method (%s)" % comparison)
             .mark_circle(size=60)
@@ -1185,7 +1236,6 @@ def tool_results(results_directory, tools_available, token):
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Significativity:"),
                 ),
-                order=alt.Order("significant:N"),
             )
             .properties(width=800, height=400)
             .interactive()
@@ -1229,6 +1279,14 @@ def tool_results(results_directory, tools_available, token):
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        source["significant"] = pd.Categorical(
+            source["significant"],
+            categories=[non_significant_label, significant_label, highlight_label],
+            ordered=True,
+        )
+        # Order rows by label 'significant' to have the highlighted genes on top
+        source = source.sort_values(by="significant", ascending=True)
+
         chart = (
             alt.Chart(source, title="BAGEL (%s)" % comparison)
             .mark_circle(size=60)
@@ -1241,7 +1299,6 @@ def tool_results(results_directory, tools_available, token):
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Significativity:"),
                 ),
-                order=alt.Order("significant:N"),
             )
             .properties(width=800, height=400)
             .interactive()
