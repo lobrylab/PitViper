@@ -1,6 +1,3 @@
-
-
-
 rule mageck_rra:
     """MAGeCK RRA implementation for gene essentiality analysis.
         input: count table and design matrix
@@ -24,6 +21,8 @@ rule mageck_rra:
         control_sgrna_opt = lambda x: "--control-sgrna {controls_file}".format(controls_file=config['controls_file']) if config['controls_file'] != '' else ''
     log:
         "logs/{token}/MAGeCK/RRA/{treatment}_vs_{control}.log"
+    message:
+        "Running MAGeCK RRA for {wildcards.treatment} vs {wildcards.control}. From {input.count_table} to {output.gene_summary}"
     shell:
         "mageck test \
             -k {input.count_table} \

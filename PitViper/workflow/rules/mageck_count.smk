@@ -37,6 +37,8 @@ rule mageck_count_fastq:
         count_N_opt = lambda x: "--count-n" if config['mageck_count_N'] == 'True' else ''
     log:
         "logs/" + config['token'] + "/mapping/MAGeCK_counts_fastq.log"
+    message:
+        "MAGeCK counts fastq from {input.library} to {output.file} and {output.normalized}. Using {params.name} as name."
     shell:
         "mageck count -l {input.library} \
             -n {params.name} \
@@ -67,6 +69,8 @@ rule mageck_count_bam:
         count_N_opt = lambda x: "--count-n" if config['mageck_count_N'] == 'True' else ''
     log:
         "logs/" + config['token'] + "/mapping/MAGeCK_counts_bam.log"
+    message:
+        "MAGeCK counts bam from {input.library} to {output.file} and {output.normalized}. Using {params.name} as name."
     shell:
         "mageck count -l {input.library} \
             -n {params.name} \

@@ -1,7 +1,3 @@
-
-
-
-
 rule bagel_generate_count_matrix:
     """ Generate count matrix between two conditions for BAGEL. """
     input:
@@ -12,6 +8,9 @@ rule bagel_generate_count_matrix:
 
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_count_matrix.log"
+    message:
+        "Generating count matrix for BAGEL: {wildcards.treatment} vs {wildcards.control} \
+        on files {input.samples} and {input.counts}. Output file: {output.matrix}"
     shell:
         "python3 workflow/scripts/bagel_count_files.py \
             --file {input.samples} \
@@ -34,6 +33,9 @@ rule bagel_foldchange:
         "../envs/bagel.yaml"
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_foldchange.log"
+    message:
+        "Running BAGEL's foldchange calculation for {wildcards.treatment} vs {wildcards.control} \
+        on file {input.count_table}. Output file: {output.foldchange}"
     shell:
         "python workflow/scripts/bagel-for-knockout-screens-code/BAGEL-calc_foldchange.py \
             -i {input.count_table} \
@@ -62,6 +64,9 @@ rule bagel_bf:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_bf.log"
     conda:
         "../envs/bagel.yaml"
+    message:
+        "Running BAGEL's foldchange calculation for {wildcards.treatment} vs {wildcards.control} \
+        on file {input.foldchange}. Output file: {output.bf}"
     shell:
         "python workflow/scripts/bagel-for-knockout-screens-code/BAGEL.py \
             -i {input.foldchange} \
@@ -77,6 +82,9 @@ rule bagel_essentials_genes:
         rules.bagel_bf.output.bf
     output:
         "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_essentials_genes.txt"
+    message:
+        "Getting essential genes estimated by BAGEL for {wildcards.treatment} vs {wildcards.control} \
+        on file {input.bf}. Output file: {output}"
     shell:
         "gawk '(NR==1) {{print $0}} ($2 > 0 && NR!=1) {{print $0}}' {input} > {output}"
 
@@ -87,5 +95,8 @@ rule bagel_nonessentials_genes:
         rules.bagel_bf.output.bf
     output:
         "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_nonessentials_genes.txt"
+    message:
+        "Getting nonessential genes estimated by BAGEL for {wildcards.treatment} vs {wildcards.control} \
+        on file {input.bf}. Output file: {output}"
     shell:
         "gawk '(NR==1) {{print $0}} ($2 < 0 && NR!=1) {{print $0}}' {input} > {output}"

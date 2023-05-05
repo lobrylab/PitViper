@@ -1,7 +1,3 @@
-
-
-
-
 rule ssrea:
     """SSREA method for screened elements prioritization."""
     input:
@@ -18,5 +14,7 @@ rule ssrea:
         "logs/{token}/SSREA/{treatment}_vs_{control}.log"
     benchmark:
         "benchmarks/{token}/SSREA/{treatment}_vs_{control}.tsv"
+    message:
+        "SSREA method for screened elements prioritization. From {wildcards.treatment} vs {wildcards.control}."
     script:
         "../../workflow/scripts/screen_enrichment_analysis.R"

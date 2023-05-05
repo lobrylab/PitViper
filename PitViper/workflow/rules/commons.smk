@@ -131,6 +131,8 @@ rule MAGeCK_counts_normalize:
         name = "resources/" + config['token'] + "/screen",
     log:
         "logs/" + config['token'] + "/MAGeCK_counts_normalize.log"
+    message:
+        "Normalizing counts table: {input} to {output}."
     shell:
         "mageck count \
             -k {input} \

@@ -11,6 +11,8 @@ rule crisphiermix_generate_count_matrix:
         matrix="results/{token}/count_matrices/CRISPhieRmix/{treatment}_vs_{control}_count_matrix.txt"
     log:
         "logs/{token}/CRISPhieRmix/{treatment}_vs_{control}_count_matrix.log"
+    message:
+        "Generating count matrix for CRISPhieRmix: {wildcards.treatment} vs {wildcards.control}, using {input.counts} and {input.samples}."
     shell:
         "python3 workflow/scripts/crisphiermix_count_files.py \
             --file {input.samples} \
@@ -39,5 +41,7 @@ rule CRISPhieRmix:
         "logs/{token}/CRISPhieRmix/{treatment}_vs_{control}.log"
     benchmark:
         "benchmarks/{token}/CRISPhieRmix/{treatment}_vs_{control}.tsv"
+    message:
+        "Running CRISPhieRmix for {wildcards.treatment} vs {wildcards.control}."
     script:
         "../../workflow/scripts/run_crisphiermix.R"

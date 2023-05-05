@@ -24,6 +24,8 @@ rule bowtie_build:
         config['library_file'][0:-4]
     log:
         "logs/" + config['token'] + "/mapping/bowtie_build.log"
+    message:
+        "Building bowtie index for {input}."
     shell:
         "bowtie2-build {input} {params} > {log}"
 
@@ -47,6 +49,8 @@ rule bowtie_mapping:
         index_base_name=index
     log:
         "logs/{token}/Bowtie_mapping/{sample}_bowtie_mapping.log"
+    message:
+        "Mapping {input.fastq} to {input.index}."
     shell:
         "bowtie2 \
             -x {params.index_base_name} \

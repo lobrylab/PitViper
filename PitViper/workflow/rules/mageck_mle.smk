@@ -1,7 +1,3 @@
-
-
-
-
 rule generate_design_matrix:
     """Create design matrix for treatment versus control."""
     input:
@@ -10,6 +6,8 @@ rule generate_design_matrix:
         matrix="results/{token}/design_matrices/MAGeCK/{treatment}_vs_{control}_design_matrix.txt"
     log:
         "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}_design_matrix.log"
+    message:
+        "Generating design matrix for MAGeCK MLE analysis. From {input} to {output.matrix}."
     shell:
         "python3 workflow/scripts/readSamples.py --file {input} --directory results/{wildcards.token}/design_matrices/MAGeCK/ --control {wildcards.control} --treatment {wildcards.treatment}"
 
@@ -36,6 +34,8 @@ rule mageck_mle:
         control_sgrna_opt = lambda x: "--control-sgrna {controls_file}".format(controls_file=config['controls_file']) if config['controls_file'] != '' else ''
     log:
         "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}.log"
+    message:
+        "Running MAGeCK MLE for {params.name}. From {input.count_table} and {input.designmat} to {output.gene_summary} and {output.sgrna_summary}."
     shell:
         "mageck mle -k {input.count_table} \
             -d {input.designmat} \

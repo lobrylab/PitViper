@@ -5,6 +5,8 @@ rule awk_bed_formating:
 		"resources/" + config['token'] + "/annotation_ROSE.bed"
 	log:
 		"logs/" + config['token'] + "/awk_formating.log"
+	message:
+		"Formating annotation file {input} to {output}."
 	shell:
   		"bash ./workflow/scripts/awk_formating.sh {input} {output}"
 
@@ -19,5 +21,7 @@ rule ROSE_annotation:
 		genome_version = config['genome_version_rose']
 	log:
 		"logs/" + config['token'] + "/ROSE_annotation.log"
+	message:
+		"Annotating regions with ROSE: {input} to {output} with genome version {params.genome_version}."
 	shell:
 		"python workflow/scripts/ROSE/ROSE_geneMapper.py -i {input} -g {params.genome_version} -o {params.out_dir}"
