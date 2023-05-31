@@ -84,7 +84,7 @@ rule bagel_essentials_genes:
         "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_essentials_genes.txt"
     message:
         "Getting essential genes estimated by BAGEL for {wildcards.treatment} vs {wildcards.control} \
-        on file {input.bf}. Output file: {output}"
+        on file {input}. Output file: {output}"
     shell:
         "gawk '(NR==1) {{print $0}} ($2 > 0 && NR!=1) {{print $0}}' {input} > {output}"
 
@@ -97,6 +97,6 @@ rule bagel_nonessentials_genes:
         "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_nonessentials_genes.txt"
     message:
         "Getting nonessential genes estimated by BAGEL for {wildcards.treatment} vs {wildcards.control} \
-        on file {input.bf}. Output file: {output}"
+        on file {input}. Output file: {output}"
     shell:
         "gawk '(NR==1) {{print $0}} ($2 < 0 && NR!=1) {{print $0}}' {input} > {output}"
