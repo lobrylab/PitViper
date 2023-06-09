@@ -25,6 +25,7 @@ dependencies:
   - jupyter_server=1.11.2
   - mageck=0.5.9.4
   - matplotlib=3.5.0
+  - mistune=0.8.4
   - natsort=8.0.0
   - nodejs
   - nbformat=4
