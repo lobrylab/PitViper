@@ -21,7 +21,7 @@ set -e
 
 # Set configurable variables using environment variables
 app_env_var=${APP_ENV_VAR:-FLASK_APP}
-conda_env_name=${CONDA_ENV_NAME:-pitviper_test}
+conda_env_name=${CONDA_ENV_NAME:-pitviper_env}
 app_path=${APP_PATH:-PitViper/gui/app.py}
 
 # Check that the required file exists
