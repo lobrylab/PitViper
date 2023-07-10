@@ -2,15 +2,29 @@
 
 # This script sets up the environment and runs the PitViper Flask application
 
+# Get first argument
+installer=$1
+
+# Check if installer is 'conda' or 'mamba'
+if [[ "$installer" == "conda" ]]; then
+    echo "Using conda installer"
+elif [[ "$installer" == "mamba" ]]; then
+    echo "Using mamba installer"
+else
+    # Set default installer to conda
+    installer="conda"
+    echo "No installer specified. Using conda installer by default."
+fi
+
 # Exit if any command fails
 set -e
 
 # Set configurable variables using environment variables
 app_env_var=${APP_ENV_VAR:-FLASK_APP}
-conda_env_name=${CONDA_ENV_NAME:-pitviper_env}
+conda_env_name=${CONDA_ENV_NAME:-pitviper_test}
 app_path=${APP_PATH:-PitViper/gui/app.py}
 
-# Check that the required file
+# Check that the required file exists
 test -e "$app_path" || { echo "Error: $app_path does not exist"; exit 1; }
 
 # Use absolute path for file
@@ -23,19 +37,34 @@ if conda env list | grep -qsw "$conda_env_name"; then
     source $conda_path/etc/profile.d/conda.sh
     conda activate "$conda_env_name"
 else
+    # Create conda environment
     echo "Creating conda environment: $conda_env_name"
-    if conda list -n base | grep -q "mamba"
-	then
-    		echo "Mamba package is already installed."
-	else
-    		echo "Installing Mamba package..."
-		conda install -y -c conda-forge mamba
-	fi
-    mamba env create -f PitViper/environment.yaml -n "$conda_env_name"
+    # Check if installer is 'conda' or 'mamba'
+    if [[ "$installer" == "conda" ]]; then
+        # Install packages using conda
+        echo "Installing packages using conda..."
+        conda env create -f PitViper/environment.yaml -n "$conda_env_name"
+    elif [[ "$installer" == "mamba" ]]; then
+        # Install packages using mamba
+        echo "Installing packages using mamba..."
+
+        # Check if mamba package is already installed
+        if conda list -n base | grep -q "mamba"; then
+            echo "Mamba package is already installed."
+        # Install mamba package if it's not already installed
+        else
+            echo "Installing Mamba package..."
+            conda install -y -c conda-forge mamba
+        fi
+        mamba env create -f PitViper/environment.yaml -n "$conda_env_name"
+    fi
     conda_path=$(conda info | grep -i 'base environment' | awk '{print $4}')
     source $conda_path/etc/profile.d/conda.sh
     conda activate "$conda_env_name"
     Rscript -e 'install.packages("PitViper/workflow/scripts/CRISPhieRmix-1.1.tar.gz", repos = NULL, type="source")'
+
+    # Freeze the conda environment to a YAML file
+    conda env export > PitViper/environment_freeze.yaml
 fi
 
 # Set the Flask app environment variable if it's not already set
@@ -43,4 +72,5 @@ if [[ "${!app_env_var}" != "$app_full_path" ]]; then
     export "$app_env_var=$app_full_path"
 fi
 
+# Run the Flask application
 (cd PitViper/ && flask run)
