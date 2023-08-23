@@ -2578,7 +2578,7 @@ def ranking(treatment, control, token, tools_available, params):
                 (crisphie["top_3_mean_log2FoldChange"] > score)
                 & (crisphie["locfdr"] < fdr)
             ]
-        crisphie["default_rank"] = crisphie["FDR"].rank(method="dense").copy()
+        crisphie["default_rank"] = crisphie["locfdr"].rank(method="dense").copy()
         crisphie = crisphie[["gene", "default_rank"]].rename(
             columns={"gene": "id", "default_rank": "crisphiermix_rank"}
         )
@@ -2645,7 +2645,7 @@ def ranking(treatment, control, token, tools_available, params):
 
     if params["CRISPhieRmix"]["on"]:
         crisphie = tools_available["CRISPhieRmix"][comparison][comparison + ".txt"]
-        crisphie["default_rank"] = crisphie["FDR"].rank(method="dense").copy()
+        crisphie["default_rank"] = crisphie["locfdr"].rank(method="dense").copy()
         crisphie = crisphie[["gene", "default_rank"]].rename(
             columns={"gene": "id", "default_rank": "crisphiermix_rank"}
         )
@@ -2668,7 +2668,7 @@ def plot_venn(occurences):
         r_occurences = ro.conversion.py2rpy(occurences)
 
     with rpy2.robjects.lib.grdevices.render_to_bytesio(
-        grdevices.png, width=1024, height=896, res=150
+        grdevices.png, width=4096, height=3584, res=600
     ) as img:
         venn_lib.venn(
             r_occurences,
@@ -2948,13 +2948,13 @@ def multiple_tools_results(tools_available, token):
             data_array = data
 
         # Initialize figure by creating upper dendrogram
-        fig = ff.create_dendrogram(data_array, orientation="bottom")  # , labels=labels)
+        fig = ff.create_dendrogram(data_array, orientation="bottom")
         for i in range(len(fig["data"])):
             fig["data"][i]["yaxis"] = "y2"
 
         # Create Side Dendrogram
         dendro_side = ff.create_dendrogram(
-            data_array.transpose(), orientation="right"
+            data_array.transpose(), orientation="right",
         )  # , labels=cols)
         for i in range(len(dendro_side["data"])):
             dendro_side["data"][i]["xaxis"] = "x2"
@@ -3009,11 +3009,15 @@ def multiple_tools_results(tools_available, token):
         # Add Heatmap Data to Figure
         for data in heatmap:
             fig.add_trace(data)
-
+                
         # Edit Layout
         fig.update_layout(
             {"width": 800, "height": 900, "showlegend": False, "hovermode": "closest"}
         )
+        
+        fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        
+        
         # Edit xaxis
         fig.update_layout(
             font={"size": 10},
@@ -3041,13 +3045,16 @@ def multiple_tools_results(tools_available, token):
                 "ticks": "",
             }
         )
-
+                
+        # Wrap elements in cols[indicies_yaxis] with <i>
+        wrapped_cols = pd.Index([f'<i>{col}</i>' for col in cols], name=cols.name)
+        
         # # Edit yaxis
         fig.update_layout(
             font={"size": 10},
             yaxis={
                 "domain": [0, 0.85],
-                "ticktext": cols[indicies_yaxis],
+                "ticktext": wrapped_cols[indicies_yaxis],
                 "tickmode": "array",
                 "tickvals": dendro_side["layout"]["yaxis"]["tickvals"],
                 "mirror": False,
@@ -3056,7 +3063,7 @@ def multiple_tools_results(tools_available, token):
                 "zeroline": False,
                 "showticklabels": True,
                 "ticks": "",
-                "side": "right",
+                "side": "right", 
             },
         )
         # Edit yaxis2
@@ -3081,6 +3088,21 @@ def multiple_tools_results(tools_available, token):
         )
         show_parameters(params)
         display(fig)
+        
+        # Create download button with plotly.io.write_image
+        download_button = widgets.Button(
+            description="Download", style=dict(button_color="#707070")
+        )
+        
+        @download_button.on_click
+        def download_button_clicked(b):
+            heatmap_name = f"results/{token}/{column_to_plot}_heatmap.pdf"
+            fig.write_image(heatmap_name)
+            from IPython.display import FileLink
+            display(FileLink(heatmap_name))
+            
+        display(download_button)
+        
 
     @output_tools_form.capture()
     def tools_widget_updated(event):
