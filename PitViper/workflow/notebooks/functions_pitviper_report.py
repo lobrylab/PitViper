@@ -1261,8 +1261,8 @@ def tool_results(results_directory, tools_available, token):
         elements,
     ):
         tool = "BAGEL"
-        significant_label = "BF > 0"
-        non_significant_label = "BF ≤ 0"
+        significant_label = "FDR ≤ 0"
+        non_significant_label = "FDR > 0"
         highlight_label = "Gene(s) of interest"
         treatment, control = comparison.split("_vs_")
         source = BAGEL_data(
@@ -1273,9 +1273,9 @@ def tool_results(results_directory, tools_available, token):
             tools_available=tools_available,
         )
         source["default_rank"] = source["BF"].rank(method="dense", ascending=False)
-        source.loc[source["BF"] > 0, "significant"] = significant_label
-        source.loc[source["BF"] <= 0, "significant"] = non_significant_label
-        source.loc[source.GENE.isin(elements), "significant"] = highlight_label
+        source.loc[source["FDR"] <= fdr_cutoff, "significant"] = significant_label
+        source.loc[source["FDR"] > fdr_cutoff, "significant"] = non_significant_label
+        source.loc[source.Gene.isin(elements), "significant"] = highlight_label
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
@@ -1293,7 +1293,7 @@ def tool_results(results_directory, tools_available, token):
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
                 y=alt.Y("BF:Q", axis=alt.Axis(title="%s Bayesian Factor" % treatment)),
-                tooltip=["GENE", "BF", "STD", "significant", "default_rank"],
+                tooltip=["Gene", "BF", "FDR", "significant", "default_rank"],
                 color=alt.Color(
                     "significant",
                     scale=alt.Scale(domain=domain, range=range_),
@@ -1307,7 +1307,7 @@ def tool_results(results_directory, tools_available, token):
         text = (
             alt.Chart(source.query("significant == 'Gene(s) of interest'"))
             .mark_text(dy=10, dx=20, color="blue")
-            .encode(x=alt.X("default_rank:Q"), y=alt.Y("BF:Q"), text=alt.Text("GENE"))
+            .encode(x=alt.X("default_rank:Q"), y=alt.Y("BF:Q"), text=alt.Text("Gene"))
         )
         chart = chart + line + text
         display(chart)
@@ -1606,7 +1606,7 @@ def show_sgRNA_counts_lines(token):
 
 
 def regions2genes(token, se):
-    annotation_file = f"resources/{token}/annotation_ROSE_REGION_TO_GENE.txt"
+    annotation_file = f"resources/{token}/annotation_ROSE_REGION_TO_Gene.txt"
     if os.path.exists(annotation_file):
         annotation_table = pd.read_table(
             annotation_file, sep="\t", skiprows=1, header=None
@@ -1617,21 +1617,21 @@ def regions2genes(token, se):
             "Start",
             "End",
             "none1",
-            "OVERLAP_GENES",
-            "PROXIMAL_GENES",
-            "CLOSEST_GENE",
+            "OVERLAP_GeneS",
+            "PROXIMAL_GeneS",
+            "CLOSEST_Gene",
             "L",
             "none2",
         ]
         annotation_table = annotation_table.loc[annotation_table.Name.isin(se)]
-        annotation_table["OVERLAP_GENES"] = annotation_table["OVERLAP_GENES"].fillna(0)
-        annotation_table["PROXIMAL_GENES"] = annotation_table["PROXIMAL_GENES"].fillna(
+        annotation_table["OVERLAP_GeneS"] = annotation_table["OVERLAP_GeneS"].fillna(0)
+        annotation_table["PROXIMAL_GeneS"] = annotation_table["PROXIMAL_GeneS"].fillna(
             0
         )
-        annotation_table["CLOSEST_GENE"] = annotation_table["CLOSEST_GENE"].fillna(0)
-        overlap = [x for x in annotation_table["OVERLAP_GENES"].values if x != 0]
-        proximal = [x for x in annotation_table["PROXIMAL_GENES"].values if x != 0]
-        closest = [x for x in annotation_table["CLOSEST_GENE"].values if x != 0]
+        annotation_table["CLOSEST_Gene"] = annotation_table["CLOSEST_Gene"].fillna(0)
+        overlap = [x for x in annotation_table["OVERLAP_GeneS"].values if x != 0]
+        proximal = [x for x in annotation_table["PROXIMAL_GeneS"].values if x != 0]
+        closest = [x for x in annotation_table["CLOSEST_Gene"].values if x != 0]
         s2g = []
         for genes_set in [overlap, proximal, closest]:
             for i in range(len(genes_set)):
@@ -1712,7 +1712,7 @@ def tool_results_by_element(results_directory, tools_available, token):
         elif tool == "MAGeCK_RRA":
             elements_list = list(set(result.id))
         elif tool == "BAGEL":
-            elements_list = list(set(result.GENE))
+            elements_list = list(set(result.Gene))
         elif tool == "SSREA":
             elements_list = list(set(result.pathway))
         elif tool == "directional_scoring_method":
@@ -1760,7 +1760,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                     results_directory=results_directory,
                     tools_available=tools_available,
                 )
-                gene_var = "GENE"
+                gene_var = "Gene"
                 break
             if tool == "SSREA":
                 result = SSREA_like_data(
@@ -2033,16 +2033,17 @@ def tool_results_by_element(results_directory, tools_available, token):
     def BAGEL_results(result, fdr_cutoff, control, gene, sort_cols):
         significant_label = "Yes"
         non_significant_label = "No"
-        result.loc[result["BF"] > 0, "significant"] = significant_label
-        result.loc[result["BF"] <= 0, "significant"] = non_significant_label
+        result.loc[result["FDR"] <= fdr_cutoff, "significant"] = significant_label
+        result.loc[result["FDR"] > fdr_cutoff, "significant"] = non_significant_label
         new_row = {
-            "GENE": gene,
+            "Gene": gene,
             "condition": control,
             "significant": "Baseline",
             "BF": 0,
+            "FDR": 1,
         }
         result = result.append(new_row, ignore_index=True)
-        res = result.loc[result.GENE == gene]
+        res = result.loc[result.Gene == gene]
         # filter res to keep 'condition' in sort_cols
         if control not in sort_cols:
             sort_cols.append(control)
@@ -2064,7 +2065,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Significativity:"),
                 ),
-                tooltip=["GENE", "BF", "STD", "NumObs", "condition"],
+                tooltip=["Gene", "BF", "FDR", "condition"],
             )
             .properties(title=gene + " (BAGEL)", width=100)
         )
@@ -2277,8 +2278,8 @@ def enrichr_plots(token, pitviper_res):
 
             if tool.value == "BAGEL":
                 info = tool_res[conditions.value][conditions.value + "_BAGEL_output.bf"]
-                info = info.loc[info["BF"] > score_cutoff.value]
-                genes = info["GENE"]
+                info = info.loc[info["FDR"] > fdr_cutoff.value]
+                genes = info["Gene"]
 
             if tool.value == "directional_scoring_method":
                 info = tool_res[conditions.value][
@@ -2381,8 +2382,8 @@ def genemania_link_results(token, tools_available):
 
         if tool.value == "BAGEL":
             info = tool_res[conditions.value][conditions.value + "_BAGEL_output.bf"]
-            info = info.loc[info["BF"] > float(score_cutoff.value)]
-            genes = info["GENE"]
+            info = info.loc[info["FDR"] > float(fdr_cutoff.value)]
+            genes = info["Gene"]
 
         if tool.value == "directional_scoring_method":
             info = tool_res[conditions.value][
@@ -2506,15 +2507,12 @@ def ranking(treatment, control, token, tools_available, params):
 
     if params["BAGEL"]["on"]:
         score = params["BAGEL"]["score"]
-        greater = params["BAGEL"]["greater"]
+        #greater = params["BAGEL"]["greater"]
         bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.bf"]
-        if greater:
-            bagel = bagel[(bagel["BF"] > score)]
-        else:
-            bagel = bagel[(bagel["BF"] < score)]
-        bagel["default_rank"] = bagel["BF"].rank(method="dense", ascending=False).copy()
-        bagel = bagel[["GENE", "default_rank"]].rename(
-            columns={"GENE": "id", "default_rank": "bagel_rank"}
+        bagel = bagel[(bagel["FDR"] <= score)]
+        bagel["default_rank"] = bagel["FDR"].rank(method="dense", ascending=False).copy()
+        bagel = bagel[["Gene", "default_rank"]].rename(
+            columns={"Gene": "id", "default_rank": "bagel_rank"}
         )
         bagel_genes = list(bagel.id)
         tool_results["BAGEL"] = bagel_genes
@@ -2613,9 +2611,9 @@ def ranking(treatment, control, token, tools_available, params):
 
     if params["BAGEL"]["on"]:
         bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.bf"]
-        bagel["default_rank"] = bagel["BF"].rank(method="dense", ascending=False).copy()
-        bagel = bagel[["GENE", "default_rank"]].rename(
-            columns={"GENE": "id", "default_rank": "bagel_rank"}
+        bagel["default_rank"] = bagel["FDR"].rank(method="dense", ascending=False).copy()
+        bagel = bagel[["Gene", "default_rank"]].rename(
+            columns={"Gene": "id", "default_rank": "bagel_rank"}
         )
         pdList.append(bagel)
 

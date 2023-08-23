@@ -62,6 +62,7 @@ else
     source $conda_path/etc/profile.d/conda.sh
     conda activate "$conda_env_name"
     Rscript -e 'devtools::install_github("timydaley/CRISPhieRmix")'
+    git clone https://github.com/hart-lab/bagel.git PitViper/workflow/scripts/bagel
 
     # Freeze the conda environment to a YAML file
     conda env export > PitViper/environment_freeze.yaml
