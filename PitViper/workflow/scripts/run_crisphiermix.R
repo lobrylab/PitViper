@@ -28,7 +28,7 @@ all_count.DESeq2 <- merge(x = genes, y = res, by = "sgRNA")
 # Parameters
 neg_controls_file <- snakemake@params[[3]]
 screen_type <- snakemake@params[[4]]
-mu <- snakemake@params[[5]]
+mu <- as.numeric(snakemake@params[[5]])
 bimodal <- snakemake@params[[6]]
 
 if (neg_controls_file != "") {
