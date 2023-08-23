@@ -71,4 +71,5 @@ dependencies:
     - nest-asyncio==1.5.1
     - ipywidgets==8.0.0b0
     - jinja2==3.0.3
+    - kaleido
     
