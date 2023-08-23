@@ -210,7 +210,7 @@ def import_results(token: str):
         for comparison in os.listdir(results_directory + tool):
             tools_available[tool][comparison] = {}
             for file in os.listdir(os.path.join(results_directory, tool, comparison)):
-                if file.endswith(".txt") or file.endswith(".bf"):
+                if file.endswith(".txt") or file.endswith(".pr"):
                     if tool in ["CRISPhieRmix"]:
                         sep = ","
                     else:
@@ -778,7 +778,7 @@ def BAGEL_data(
         if _comparison.split("_vs_")[-1] == control:
             keys_list = list(tools_available[tool][_comparison].keys())
             for key in keys_list:
-                if key.endswith("_BAGEL_output.bf"):
+                if key.endswith("_BAGEL_output.pr"):
                     break
             data = tools_available[tool][_comparison][key]
             trt = _comparison.split("_vs_")[0]
@@ -786,7 +786,7 @@ def BAGEL_data(
             tables_list.append(data)
         if _comparison == comparison:
             data = tools_available[tool][_comparison][
-                "%s_BAGEL_output.bf" % _comparison
+                "%s_BAGEL_output.pr" % _comparison
             ]
             tables_list.append(data)
     result = pd.concat(tables_list)
@@ -2277,7 +2277,7 @@ def enrichr_plots(token, pitviper_res):
                 genes = info["id"]
 
             if tool.value == "BAGEL":
-                info = tool_res[conditions.value][conditions.value + "_BAGEL_output.bf"]
+                info = tool_res[conditions.value][conditions.value + "_BAGEL_output.pr"]
                 info = info.loc[info["FDR"] > fdr_cutoff.value]
                 genes = info["Gene"]
 
@@ -2381,7 +2381,7 @@ def genemania_link_results(token, tools_available):
             genes = info["id"]
 
         if tool.value == "BAGEL":
-            info = tool_res[conditions.value][conditions.value + "_BAGEL_output.bf"]
+            info = tool_res[conditions.value][conditions.value + "_BAGEL_output.pr"]
             info = info.loc[info["FDR"] > float(fdr_cutoff.value)]
             genes = info["Gene"]
 
@@ -2508,7 +2508,7 @@ def ranking(treatment, control, token, tools_available, params):
     if params["BAGEL"]["on"]:
         score = params["BAGEL"]["score"]
         #greater = params["BAGEL"]["greater"]
-        bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.bf"]
+        bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.pr"]
         bagel = bagel[(bagel["FDR"] <= score)]
         bagel["default_rank"] = bagel["FDR"].rank(method="dense", ascending=False).copy()
         bagel = bagel[["Gene", "default_rank"]].rename(
@@ -2610,7 +2610,7 @@ def ranking(treatment, control, token, tools_available, params):
         pdList.append(rra)
 
     if params["BAGEL"]["on"]:
-        bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.bf"]
+        bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.pr"]
         bagel["default_rank"] = bagel["FDR"].rank(method="dense", ascending=False).copy()
         bagel = bagel[["Gene", "default_rank"]].rename(
             columns={"Gene": "id", "default_rank": "bagel_rank"}
