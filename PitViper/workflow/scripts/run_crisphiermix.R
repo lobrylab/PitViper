@@ -64,10 +64,13 @@ if (neg_controls_file != "") {
                                                      negCtrl = neg_ctrl_guides_log2fc, 
                                                      screenType = screen_type,
                                                      mu = mu, 
-                                                     bimodal = bimodal)
+                                                     BIMODAL = bimodal)
 } else {
   log2fcCRISPhieRmixFit = CRISPhieRmix::CRISPhieRmix(x = all_count.DESeq2$log2FoldChange,
-                                                     geneIds = geneIds)
+                                                     geneIds = geneIds,
+                                                     screen_type = screen_type,
+                                                     mu = mu,
+                                                     BIMODAL = bimodal)
 }
 
 ### Create results table
