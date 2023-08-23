@@ -25,14 +25,17 @@ cts <- read_delim(snakemake@input[[2]],
 genes <- cts %>% select(Gene, sgRNA)
 all_count.DESeq2 <- merge(x = genes, y = res, by = "sgRNA")
 
+# Parameters
+neg_controls_file <- snakemake@params[[3]]
+screen_type <- snakemake@params[[4]]
+mu <- snakemake@params[[5]]
+bimodal <- snakemake@params[[6]]
 
-if (snakemake@params[[3]] != "") {
-  # Open negatives controls guides file
-  neg_controls_file <- snakemake@params[[3]]
+if (neg_controls_file != "") {
   # Retrieve neg controls guides ID
   neg_controls_ids <- read.csv(neg_controls_file, header = F, col.names = "id")$id
+
   # Retrieve neg controls guides log2FoldChange
-  neg_ctrl_guides <- which(all_count.DESeq2$sgRNA %in% neg_controls_ids)
   neg_ctrl_guides_log2fc <- all_count.DESeq2 %>% filter(sgRNA %in% neg_controls_ids) %>% pull(log2FoldChange)
 
   # Retrieve non controls guides log2FoldChanges
@@ -55,16 +58,26 @@ meanlog2FoldChanges <- all_count.DESeq2 %>%
 
 
 ### Run CRISPhieRmix
-if (snakemake@params[[3]] != "") {
-  log2fcCRISPhieRmixFit = CRISPhieRmix::CRISPhieRmix(x = all_count.DESeq2$log2FoldChange, geneIds = geneIds,  negCtrl = neg_ctrl_guides_log2fc)
+if (neg_controls_file != "") {
+  log2fcCRISPhieRmixFit = CRISPhieRmix::CRISPhieRmix(x = all_count.DESeq2$log2FoldChange, 
+                                                     geneIds = geneIds,
+                                                     negCtrl = neg_ctrl_guides_log2fc, 
+                                                     screenType = screen_type,
+                                                     mu = mu, 
+                                                     bimodal = bimodal)
 } else {
-  log2fcCRISPhieRmixFit = CRISPhieRmix::CRISPhieRmix(x = all_count.DESeq2$log2FoldChange, geneIds = geneIds)
+  log2fcCRISPhieRmixFit = CRISPhieRmix::CRISPhieRmix(x = all_count.DESeq2$log2FoldChange,
+                                                     geneIds = geneIds)
 }
-print(log2fcCRISPhieRmixFit)
-log2fcCRISPhieRmixScores = data.frame(gene = log2fcCRISPhieRmixFit$genes, locfdr = log2fcCRISPhieRmixFit$locfdr, FDR = log2fcCRISPhieRmixFit$FDR)
-log2fcCRISPhieRmixScores$locfdr[which(log2fcCRISPhieRmixScores$FDR < 0)] = 0
-log2fcCRISPhieRmixScores = log2fcCRISPhieRmixScores[order(log2fcCRISPhieRmixScores$locfdr, decreasing = FALSE), ]
 
+### Create results table
+log2fcCRISPhieRmixScores = data.frame(gene = log2fcCRISPhieRmixFit$genes, locfdr = log2fcCRISPhieRmixFit$locfdr, FDR = log2fcCRISPhieRmixFit$FDR)
+
+### Replace negative FDR values by 0
+log2fcCRISPhieRmixScores$locfdr[which(log2fcCRISPhieRmixScores$FDR < 0)] = 0
+
+### Merge results with mean log2FoldChanges
 crisphiermix_res <- merge(x = log2fcCRISPhieRmixScores, y = meanlog2FoldChanges, by.x = "gene", by.y = "Gene")
 
+### Write results
 write.csv(crisphiermix_res, file = snakemake@output[[1]], row.names = FALSE, quote = FALSE)
