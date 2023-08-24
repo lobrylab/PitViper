@@ -27,7 +27,7 @@ The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/sta
 
 [`Conda`](https://docs.conda.io/en/latest/) and [`Git`](https://git-scm.com/) are required to install PitViper.
 
-[`Mamba`] (https://github.com/mamba-org/mamba) is needed to speed up the installation process:
+[`Mamba`](https://github.com/mamba-org/mamba) is needed to speed up the installation process:
 
 ```bash
 $ conda install -c conda-forge mamba
