@@ -850,6 +850,13 @@ def tool_results(results_directory, tools_available, token):
         min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off"
     )
 
+    # if BAGEL is selected, add a text box to choose the threshold for BF score
+    if "BAGEL" in element.value.split(","):
+        bf_widget = widgets.FloatSlider(
+            min=0.0, max=1.0, step=0.01, value=0.5, description="BF cut-off"
+        )
+        display(bf_widget)
+
     color_sig_widget = widgets.ColorPicker(
         concise=False, description="Significant color:", value="red"
     )
