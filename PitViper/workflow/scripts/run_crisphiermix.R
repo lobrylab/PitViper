@@ -30,6 +30,7 @@ neg_controls_file <- snakemake@params[[3]]
 screen_type <- snakemake@params[[4]]
 mu <- as.numeric(snakemake@params[[5]])
 bimodal <- snakemake@params[[6]]
+top <- as.numeric(snakemake@params[[7]])
 
 if (neg_controls_file != "") {
   # Retrieve neg controls guides ID
@@ -49,12 +50,20 @@ if (neg_controls_file != "") {
   geneIds = factor(geneIds, levels = unique(geneIds))
 }
 
+if (top >= 1) {
+  ### Compute mean log2FoldChange of Top-3 sgRNAs per target.
+  meanlog2FoldChanges <- all_count.DESeq2 %>%
+    group_by(Gene) %>%
+    slice_max(order_by = abs(log2FoldChange), n = top) %>%
+    summarise(mean_log2FoldChange = mean(log2FoldChange))
+} else {
+  meanlog2FoldChanges <- all_count.DESeq2 %>%
+    group_by(Gene) %>%
+    slice_max(order_by = abs(log2FoldChange), prop = top) %>%
+    summarise(mean_log2FoldChange = mean(log2FoldChange))
+}
 
-### Compute mean log2FoldChange of Top-3 sgRNAs per target.
-meanlog2FoldChanges <- all_count.DESeq2 %>%
-  group_by(Gene) %>%
-  slice_max(order_by = abs(log2FoldChange), n = 3) %>%
-  summarise(top_3_mean_log2FoldChange = mean(log2FoldChange))
+
 
 
 ### Run CRISPhieRmix

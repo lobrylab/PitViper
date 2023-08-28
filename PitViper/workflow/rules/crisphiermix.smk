@@ -40,6 +40,7 @@ rule CRISPhieRmix:
         screen_type = config['crisphiermix_type'],
         mu = config['crisphiermix_mu'],
         bimodal = config['crisphiermix_bimodal'],
+        top = config['crisphiermix_top'],
     log:
         "logs/{token}/CRISPhieRmix/{treatment}_vs_{control}.log"
     benchmark:
