@@ -37,3 +37,4 @@ benchmarks/
 PitViper/.tests/unit/*
 PitViper/workflow/envs/jupyter.yaml
 resources/depmap/*
+PitViper/workflow/scripts/bagel/
