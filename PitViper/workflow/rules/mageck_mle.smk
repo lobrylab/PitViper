@@ -31,7 +31,7 @@ rule mageck_mle:
         outliers_opt = lambda x: "--remove-outliers" if config['mageck_mle_outliers'] == 'True' else '',
         perm_round_opt = config['mageck_mle_perm_N'],
         no_perm_group_opt = lambda x: "--no-permutation-by-group" if config['mageck_mle_perm_all'] == 'True' else '',
-        control_sgrna_opt = lambda x: "--control-sgrna {controls_file}".format(controls_file=config['controls_file']) if config['controls_file'] != '' else ''
+        control_sgrna_opt = lambda x: "--control-sgrna {controls_file}".format(controls_file=config['controls_file']) if ((config['controls_file'] != '') and (config['mageck_mle_control_neg'] == 'True')) else ''
     log:
         "logs/{token}/MAGeCK/MLE/{treatment}_vs_{control}.log"
     message:

@@ -36,7 +36,7 @@ rule CRISPhieRmix:
     params:
         n_control=getControlIdsLen,
         n_treatment=getTreatmentIdsLen,
-        control_sgrna_opt = lambda x: config['controls_file'] if config['controls_file'] != '' else '',
+        control_sgrna_opt = lambda x: config['controls_file'] if ((config['controls_file'] != '') and (config['crisphiermix_control_neg'] == 'True')) else '',
         screen_type = config['crisphiermix_type'],
         mu = config['crisphiermix_mu'],
         bimodal = config['crisphiermix_bimodal'],
