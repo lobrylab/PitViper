@@ -83,7 +83,6 @@ rule bagel_pr:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_pr.log"
     message:
         "Running BAGEL's foldchange calculation for {wildcards.treatment} vs {wildcards.control} \
-        on file {input.foldchange}. Output file: {output.pr}"
     shell:
         "python workflow/scripts/bagel/BAGEL.py pr \
             -i {input.foldchange} \
