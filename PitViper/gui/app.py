@@ -131,7 +131,7 @@ def result():
             "normalized_count_table"
         ] = f"resources/{result_dict['token']}/screen.count_normalized.txt"
 
-    # Save BAGEL files in resources directory if BAGEL is activated
+    # Save BAGEL2 files in resources directory if BAGEL2 is activated
     if result_dict["bagel_activate"] == "True":
         for filename in ["essentials", "nonessentials"]:
             file = request.files.get(filename)
