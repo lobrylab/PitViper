@@ -20,7 +20,6 @@ rule bagel_generate_count_matrix:
             --treatment {wildcards.treatment} > {log}"
 
 
-
 rule bagel_foldchange:
     "Run BAGEL's script for foldchange calculation."
     input:
@@ -29,15 +28,13 @@ rule bagel_foldchange:
         foldchange="results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL.foldchange"
     params:
         "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL"
-    conda:
-        "../envs/bagel.yaml"
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_foldchange.log"
     message:
         "Running BAGEL's foldchange calculation for {wildcards.treatment} vs {wildcards.control} \
         on file {input.count_table}. Output file: {output.foldchange}"
     shell:
-        "python workflow/scripts/bagel-for-knockout-screens-code/BAGEL-calc_foldchange.py \
+        "python workflow/scripts/bagel/BAGEL.py fc \
             -i {input.count_table} \
             -o {params} \
             -c 1 > {log}"
@@ -59,44 +56,36 @@ rule bagel_bf:
     params:
         nonessential = config['nonessentials'],
         essentials = config['essentials'],
-        columns = bagel_bf_columns#",".join([ i + 1 for i in range(len())])
+        columns = bagel_bf_columns,
     log:
         "logs/{token}/BAGEL/{treatment}_vs_{control}_bf.log"
-    conda:
-        "../envs/bagel.yaml"
     message:
         "Running BAGEL's foldchange calculation for {wildcards.treatment} vs {wildcards.control} \
         on file {input.foldchange}. Output file: {output.bf}"
     shell:
-        "python workflow/scripts/bagel-for-knockout-screens-code/BAGEL.py \
+        "python workflow/scripts/bagel/BAGEL.py bf \
             -i {input.foldchange} \
             -o {output.bf} \
             -e {params.essentials} \
             -n {params.nonessential} \
             -c {params.columns} > {log}"
 
-
-rule bagel_essentials_genes:
-    "Get essential genes estimated by BAGEL."
+rule bagel_pr:
+    "Use BAGEL's precision-recall."
     input:
-        rules.bagel_bf.output.bf
+        foldchange = rules.bagel_bf.output.bf
     output:
-        "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_essentials_genes.txt"
+        pr = "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.pr"
+    params:
+        nonessential = config['nonessentials'],
+        essentials = config['essentials'],
+    log:
+        "logs/{token}/BAGEL/{treatment}_vs_{control}_pr.log"
     message:
-        "Getting essential genes estimated by BAGEL for {wildcards.treatment} vs {wildcards.control} \
-        on file {input}. Output file: {output}"
+        "Running BAGEL's foldchange calculation for {wildcards.treatment} vs {wildcards.control} \
     shell:
-        "gawk '(NR==1) {{print $0}} ($2 > 0 && NR!=1) {{print $0}}' {input} > {output}"
-
-
-rule bagel_nonessentials_genes:
-    "Get nonessential genes estimated by BAGEL."
-    input:
-        rules.bagel_bf.output.bf
-    output:
-        "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_bagel_nonessentials_genes.txt"
-    message:
-        "Getting nonessential genes estimated by BAGEL for {wildcards.treatment} vs {wildcards.control} \
-        on file {input}. Output file: {output}"
-    shell:
-        "gawk '(NR==1) {{print $0}} ($2 < 0 && NR!=1) {{print $0}}' {input} > {output}"
+        "python workflow/scripts/bagel/BAGEL.py pr \
+            -i {input.foldchange} \
+            -o {output.pr} \
+            -e {params.essentials} \
+            -n {params.nonessential} > {log}"
