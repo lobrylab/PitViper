@@ -1059,7 +1059,7 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
-        source["default_rank"] = source["top_3_mean_log2FoldChange"].rank(
+        source["default_rank"] = source["mean_log2FoldChange"].rank(
             method="dense"
         )
         source.loc[source["locfdr"] < fdr_cutoff, "significant"] = significant_label
@@ -1084,9 +1084,9 @@ def tool_results(results_directory, tools_available, token):
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
                 y=alt.Y(
-                    "top_3_mean_log2FoldChange:Q",
+                    "mean_log2FoldChange:Q",
                     axis=alt.Axis(
-                        title="%s top-3 sgRNAs log2FoldChange average" % treatment
+                        title="%s sgRNAs log2FoldChange average" % treatment
                     ),
                 ),
                 tooltip=[
@@ -1095,7 +1095,7 @@ def tool_results(results_directory, tools_available, token):
                     "FDR",
                     "significant",
                     "default_rank",
-                    "top_3_mean_log2FoldChange",
+                    "mean_log2FoldChange",
                 ],
                 color=alt.Color(
                     "significant",
@@ -1112,7 +1112,7 @@ def tool_results(results_directory, tools_available, token):
             .mark_text(dy=10, dx=20, color="blue")
             .encode(
                 x=alt.X("default_rank:Q"),
-                y=alt.Y("top_3_mean_log2FoldChange:Q"),
+                y=alt.Y("mean_log2FoldChange:Q"),
                 text=alt.Text("gene"),
             )
         )
@@ -1855,7 +1855,7 @@ def tool_results_by_element(results_directory, tools_available, token):
             "condition": control,
             "significant": "Baseline",
             "locfdr": 1,
-            "top_3_mean_log2FoldChange": 0,
+            "mean_log2FoldChange": 0,
         }
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.gene == gene]
@@ -1872,8 +1872,8 @@ def tool_results_by_element(results_directory, tools_available, token):
             .mark_point(filled=True, size=100)
             .encode(
                 y=alt.Y(
-                    "top_3_mean_log2FoldChange",
-                    axis=alt.Axis(title="Top-3 sgRNAs log2FoldChange average"),
+                    "mean_log2FoldChange",
+                    axis=alt.Axis(title="sgRNAs log2FoldChange average"),
                 ),
                 x=alt.X("condition:O", sort=sort_cols),
                 color=alt.Color(
@@ -1881,7 +1881,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Significativity:"),
                 ),
-                tooltip=["gene", "locfdr", "significant", "top_3_mean_log2FoldChange"],
+                tooltip=["gene", "locfdr", "significant", "mean_log2FoldChange"],
             )
             .properties(title=gene + " (CRISPhieRmix)", width=100)
         )
@@ -2328,11 +2328,11 @@ def enrichr_plots(token, pitviper_res):
                 info = info.loc[info["locfdr"] < fdr_cutoff.value]
                 if score_cutoff.value > 0:
                     info = info.loc[
-                        info["top_3_mean_log2FoldChange"] > score_cutoff.value
+                        info["mean_log2FoldChange"] > score_cutoff.value
                     ]
                 elif score_cutoff.value <= 0:
                     info = info.loc[
-                        info["top_3_mean_log2FoldChange"] < score_cutoff.value
+                        info["mean_log2FoldChange"] < score_cutoff.value
                     ]
                 genes = info["gene"]
 
@@ -2582,18 +2582,18 @@ def ranking(treatment, control, token, tools_available, params):
         tool_genes.append(ssrea_genes)
 
     if params["CRISPhieRmix"]["on"]:
-        score = params["CRISPhieRmix"]["top_3_mean_log2FoldChange"]
+        score = params["CRISPhieRmix"]["mean_log2FoldChange"]
         fdr = params["CRISPhieRmix"]["fdr"]
         greater = params["CRISPhieRmix"]["greater"]
         crisphie = tools_available["CRISPhieRmix"][comparison][comparison + ".txt"]
         if not greater:
             crisphie = crisphie[
-                (crisphie["top_3_mean_log2FoldChange"] < score)
+                (crisphie["mean_log2FoldChange"] < score)
                 & (crisphie["locfdr"] < fdr)
             ]
         else:
             crisphie = crisphie[
-                (crisphie["top_3_mean_log2FoldChange"] > score)
+                (crisphie["mean_log2FoldChange"] > score)
                 & (crisphie["locfdr"] < fdr)
             ]
         crisphie["default_rank"] = crisphie["locfdr"].rank(method="dense").copy()
@@ -2718,7 +2718,7 @@ def reset_params():
         "CRISPhieRmix": {
             "on": False,
             "fdr": 0.05,
-            "top_3_mean_log2FoldChange": 0,
+            "mean_log2FoldChange": 0,
             "greater": False,
         },
         "directional_scoring_method": {"on": False, "direction": "Negative"},
@@ -2781,7 +2781,7 @@ def display_tools_widgets(tools_selected):
         params["CRISPhieRmix"]["fdr"] = change["new"]
 
     def CRISPhieRmix_score_update(change):
-        params["CRISPhieRmix"]["top_3_mean_log2FoldChange"] = change["new"]
+        params["CRISPhieRmix"]["mean_log2FoldChange"] = change["new"]
 
     ### directional_scoring_method
     def directional_scoring_method_direction_update(change):
@@ -3212,10 +3212,10 @@ def multiple_tools_results(tools_available, token):
                 word = "less"
             display(
                 HTML(
-                    """<p style="color:black;padding: 0.5em;"><b>CRISPhieRmix</b>: FDR < %s, Top-3 LogFoldChange Average threshold = %s, keep elements with Top-3 LogFoldChange Average %s than threshold.</p>"""
+                    """<p style="color:black;padding: 0.5em;"><b>CRISPhieRmix</b>: FDR < %s, Log2FoldChange Average threshold = %s, keep elements with Log2FoldChange Average %s than threshold.</p>"""
                     % (
                         params["CRISPhieRmix"]["fdr"],
-                        params["CRISPhieRmix"]["top_3_mean_log2FoldChange"],
+                        params["CRISPhieRmix"]["mean_log2FoldChange"],
                         word,
                     )
                 )

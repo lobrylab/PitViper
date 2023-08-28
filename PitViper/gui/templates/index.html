@@ -550,9 +550,15 @@
                           data-bs-trigger="focus" title="Help"
                           data-bs-content="Initial value of mu for the interesting genes. Default = -4">Help</a>
                       </legend>
+                      <!-- top -->
+                      <legend class="col-form-label col-sm-4 pt-3">Top-N of guides to consider in log<sub>2</sub>(Fold
+                        Change) calculation: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
+                          data-bs-trigger="focus" title="Help" data-bs-content="If N >= 1, consider top-N of guides, ranked by abs(log<sub>2</sub>(Fold
+                          Change)). If N < 1, consider the top-N fraction of guides. Default = 3">Help</a>
+                      </legend>
                       <div style="display:flex; align-items: center">
-                        <input class="form-select" type="number" id="replyNumber" data-bind="value:replyNumber" value=-4
-                          name="crisphiermix_mu" />
+                        <input class="form-select" type="number" id="replyNumber" data-bind="value:replyNumber" value=3
+                          name="crisphiermix_top" min=0.00001 />
                       </div>
                       <!-- screen type -->
                       <legend class="col-form-label col-sm-5 pt-3">Screen type: <a tabindex="0" class="btn btn-link"
