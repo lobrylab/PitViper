@@ -6,8 +6,8 @@ def generatedResults(wildcards):
     token = config['token']
     for comparaison in comparaisons:
         if (config['bagel_activate'] == 'True'):
-            results.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
-            results.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.pr".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+            results.append("results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+            results.append("results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.pr".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if (config['mageck_mle_activate'] == 'True'):
             results.append("results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if (config['mageck_rra_activate'] == 'True'):
