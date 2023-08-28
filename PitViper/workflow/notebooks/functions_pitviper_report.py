@@ -55,6 +55,8 @@ alt.data_transformers.disable_max_rows()
 
 pd.options.mode.chained_assignment = None
 
+# Define layout for widgets
+layout = widgets.Layout(width='auto', height='40px') #set width and height
 
 def natural_sort(l: list):
     """Do a natural sorting on the input list l.
@@ -142,6 +144,13 @@ def download_normalized_counts(token):
         filename=cts_name,
         label=f"Download normalized counts matrix!",
     )
+    
+  
+# TODO: how to let the user choose the comparison to download?  
+# def download_deseq2_data(token):
+#     config_name = "./config/%s.yaml" % token
+#     config = open_yaml(config_name)
+    
 
 
 def download_design(token):
@@ -369,11 +378,11 @@ def show_read_count_distribution(token: str, width=800, height=400):
 
     chart = (
         alt.Chart(table)
-        .transform_fold(list(table.columns[2:]), as_=["Measurement_type", "counts"])
+        .transform_fold(list(table.columns[2:]), as_=["Replicate", "counts"])
         .transform_density(
             density="counts",
             bandwidth=0.3,
-            groupby=["Measurement_type"],
+            groupby=["Replicate"],
             extent=[0, 20],
             counts=True,
             steps=200,
@@ -381,9 +390,9 @@ def show_read_count_distribution(token: str, width=800, height=400):
         .mark_line()
         .encode(
             alt.X("value:Q", axis=alt.Axis(title="log2(read count)")),
-            alt.Y("density:Q"),
-            alt.Color("Measurement_type:N"),
-            tooltip=["Measurement_type:N", "value:Q", "density:Q"],
+            alt.Y("density:Q", axis=alt.Axis(title="Density")),
+            alt.Color("Replicate:N"),
+            tooltip=["Replicate:N", "value:Q", "density:Q"],
         )
         .properties(width=width, height=height)
     )
@@ -850,13 +859,6 @@ def tool_results(results_directory, tools_available, token):
         min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off"
     )
 
-    # if BAGEL is selected, add a text box to choose the threshold for BF score
-    if "BAGEL" in element.value.split(","):
-        bf_widget = widgets.FloatSlider(
-            min=0.0, max=1.0, step=0.01, value=0.5, description="BF cut-off"
-        )
-        display(bf_widget)
-
     color_sig_widget = widgets.ColorPicker(
         concise=False, description="Significant color:", value="red"
     )
@@ -876,7 +878,7 @@ def tool_results(results_directory, tools_available, token):
         tool = "MAGeCK_MLE"
         significant_label = "FDR < %s" % fdr_cutoff
         non_significant_label = "FDR ≥ %s" % fdr_cutoff
-        highlight_label = "Gene(s) of interest"
+        highlight_label = "Hit(s) of Interest"
         treatment, control = comparison.split("_vs_")
         source = MAGeCK_MLE_data(
             comparison=comparison,
@@ -917,6 +919,7 @@ def tool_results(results_directory, tools_available, token):
                     "sgRNA",
                     treatment + "|beta",
                     treatment + "|fdr",
+                    treatment + "|p-value",
                     "significant",
                     "default_rank",
                 ],
@@ -931,7 +934,7 @@ def tool_results(results_directory, tools_available, token):
         )
         line = alt.Chart(pd.DataFrame({"y": [0]})).mark_rule().encode(y="y")
         text = (
-            alt.Chart(source.query("significant == 'Gene(s) of interest'"))
+            alt.Chart(source.query("significant == 'Hit(s) of Interest'"))
             .mark_text(dy=10, dx=20, color="blue")
             .encode(
                 x=alt.X("default_rank:Q"),
@@ -954,7 +957,7 @@ def tool_results(results_directory, tools_available, token):
         tool = "MAGeCK_RRA"
         significant_label = "FDR < %s" % fdr_cutoff
         non_significant_label = "FDR ≥ %s" % fdr_cutoff
-        highlight_label = "Gene(s) of interest"
+        highlight_label = "Hit(s) of Interest"
         treatment, control = comparison.split("_vs_")
         source = MAGeCK_RRA_data(
             comparison=comparison,
@@ -1002,6 +1005,13 @@ def tool_results(results_directory, tools_available, token):
                     "id",
                     "num",
                     "neg|lfc",
+                    "neg|p-value",
+                    "neg|fdr",
+                    "neg|score",
+                    "pos|lfc",
+                    "pos|p-value",
+                    "pos|fdr",
+                    "pos|score",
                     "selected_fdr",
                     "significant",
                     "neg|rank",
@@ -1018,7 +1028,7 @@ def tool_results(results_directory, tools_available, token):
         )
         line = alt.Chart(pd.DataFrame({"y": [0]})).mark_rule().encode(y="y")
         text = (
-            alt.Chart(source.query("significant == 'Gene(s) of interest'"))
+            alt.Chart(source.query("significant == 'Hit(s) of Interest'"))
             .mark_text(dy=10, dx=20, color="blue")
             .encode(
                 x=alt.X("default_rank:Q"), y=alt.Y("neg|lfc:Q"), text=alt.Text("id")
@@ -1040,7 +1050,7 @@ def tool_results(results_directory, tools_available, token):
         tool = "CRISPhieRmix"
         significant_label = "FDR < %s" % fdr_cutoff
         non_significant_label = "FDR ≥ %s" % fdr_cutoff
-        highlight_label = "Gene(s) of interest"
+        highlight_label = "Hit(s) of Interest"
         treatment, control = comparison.split("_vs_")
         source = CRISPhieRmix_data(
             comparison=comparison,
@@ -1098,7 +1108,7 @@ def tool_results(results_directory, tools_available, token):
         )
         line = alt.Chart(pd.DataFrame({"y": [0]})).mark_rule().encode(y="y")
         text = (
-            alt.Chart(source.query("significant == 'Gene(s) of interest'"))
+            alt.Chart(source.query("significant == 'Hit(s) of Interest'"))
             .mark_text(dy=10, dx=20, color="blue")
             .encode(
                 x=alt.X("default_rank:Q"),
@@ -1121,7 +1131,7 @@ def tool_results(results_directory, tools_available, token):
         tool = "directional_scoring_method"
         significant_label = "Filter: pass"
         non_significant_label = "Filter: don't pass"
-        highlight_label = "Gene(s) of interest"
+        highlight_label = "Hit(s) of Interest"
         treatment, control = comparison.split("_vs_")
         source = directional_scoring_method_data(
             comparison=comparison,
@@ -1175,7 +1185,7 @@ def tool_results(results_directory, tools_available, token):
         )
         line = alt.Chart(pd.DataFrame({"y": [0]})).mark_rule().encode(y="y")
         text = (
-            alt.Chart(source.query("significant == 'Gene(s) of interest'"))
+            alt.Chart(source.query("significant == 'Hit(s) of Interest'"))
             .mark_text(dy=10, dx=20, color="blue")
             .encode(
                 x=alt.X("default_rank:Q"), y=alt.Y("score:Q"), text=alt.Text("Gene")
@@ -1196,7 +1206,7 @@ def tool_results(results_directory, tools_available, token):
         tool = "SSREA"
         significant_label = "FDR < %s" % fdr_cutoff
         non_significant_label = "FDR ≥ %s" % fdr_cutoff
-        highlight_label = "Gene(s) of interest"
+        highlight_label = "Hit(s) of Interest"
         treatment, control = comparison.split("_vs_")
         source = SSREA_like_data(
             comparison=comparison,
@@ -1249,7 +1259,7 @@ def tool_results(results_directory, tools_available, token):
         )
         line = alt.Chart(pd.DataFrame({"y": [0]})).mark_rule().encode(y="y")
         text = (
-            alt.Chart(source.query("significant == 'Gene(s) of interest'"))
+            alt.Chart(source.query("significant == 'Hit(s) of Interest'"))
             .mark_text(dy=10, dx=20, color="blue")
             .encode(
                 x=alt.X("default_rank:Q"), y=alt.Y("NES:Q"), text=alt.Text("pathway")
@@ -1268,9 +1278,9 @@ def tool_results(results_directory, tools_available, token):
         elements,
     ):
         tool = "BAGEL"
-        significant_label = "FDR ≤ 0"
-        non_significant_label = "FDR > 0"
-        highlight_label = "Gene(s) of interest"
+        significant_label = "BF > 0"
+        non_significant_label = "BF ≤ 0"
+        highlight_label = "Hit(s) of Interest"
         treatment, control = comparison.split("_vs_")
         source = BAGEL_data(
             comparison=comparison,
@@ -1280,8 +1290,8 @@ def tool_results(results_directory, tools_available, token):
             tools_available=tools_available,
         )
         source["default_rank"] = source["BF"].rank(method="dense", ascending=False)
-        source.loc[source["FDR"] <= fdr_cutoff, "significant"] = significant_label
-        source.loc[source["FDR"] > fdr_cutoff, "significant"] = non_significant_label
+        source.loc[source["BF"] > fdr_cutoff, "significant"] = significant_label
+        source.loc[source["BF"] <= fdr_cutoff, "significant"] = non_significant_label
         source.loc[source.Gene.isin(elements), "significant"] = highlight_label
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
@@ -1312,7 +1322,7 @@ def tool_results(results_directory, tools_available, token):
         )
         line = alt.Chart(pd.DataFrame({"y": [0]})).mark_rule().encode(y="y")
         text = (
-            alt.Chart(source.query("significant == 'Gene(s) of interest'"))
+            alt.Chart(source.query("significant == 'Hit(s) of Interest'"))
             .mark_text(dy=10, dx=20, color="blue")
             .encode(x=alt.X("default_rank:Q"), y=alt.Y("BF:Q"), text=alt.Text("Gene"))
         )
@@ -1902,10 +1912,12 @@ def tool_results_by_element(results_directory, tools_available, token):
             "significant": "Baseline",
             "neg|fdr": 1,
             "neg|lfc": 0,
+            "neg|p-value": 1,
             "pos|fdr": 1,
             "pos|lfc": 0,
             "neg|score": 1,
             "pos|score": 1,
+            "pos|p-value": 1,
         }
 
         result = result.append(new_row, ignore_index=True)
@@ -1940,9 +1952,11 @@ def tool_results_by_element(results_directory, tools_available, token):
                     "neg|score",
                     "neg|lfc",
                     "neg|fdr",
+                    "neg|p-value",
                     "pos|lfc",
                     "pos|fdr",
                     "pos|score",
+                    "pos|p-value",
                     "score",
                     "significant",
                     "condition",
@@ -2040,8 +2054,8 @@ def tool_results_by_element(results_directory, tools_available, token):
     def BAGEL_results(result, fdr_cutoff, control, gene, sort_cols):
         significant_label = "Yes"
         non_significant_label = "No"
-        result.loc[result["FDR"] <= fdr_cutoff, "significant"] = significant_label
-        result.loc[result["FDR"] > fdr_cutoff, "significant"] = non_significant_label
+        result.loc[result["BF"] > fdr_cutoff, "significant"] = significant_label
+        result.loc[result["BF"] <= fdr_cutoff, "significant"] = non_significant_label
         new_row = {
             "Gene": gene,
             "condition": control,
@@ -2285,7 +2299,7 @@ def enrichr_plots(token, pitviper_res):
 
             if tool.value == "BAGEL":
                 info = tool_res[conditions.value][conditions.value + "_BAGEL_output.pr"]
-                info = info.loc[info["FDR"] > fdr_cutoff.value]
+                info = info.loc[info["BF"] > score_cutoff.value]
                 genes = info["Gene"]
 
             if tool.value == "directional_scoring_method":
@@ -2389,7 +2403,7 @@ def genemania_link_results(token, tools_available):
 
         if tool.value == "BAGEL":
             info = tool_res[conditions.value][conditions.value + "_BAGEL_output.pr"]
-            info = info.loc[info["FDR"] > float(fdr_cutoff.value)]
+            info = info.loc[info["BF"] > score_cutoff.value]
             genes = info["Gene"]
 
         if tool.value == "directional_scoring_method":
@@ -2514,10 +2528,9 @@ def ranking(treatment, control, token, tools_available, params):
 
     if params["BAGEL"]["on"]:
         score = params["BAGEL"]["score"]
-        #greater = params["BAGEL"]["greater"]
         bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.pr"]
-        bagel = bagel[(bagel["FDR"] <= score)]
-        bagel["default_rank"] = bagel["FDR"].rank(method="dense", ascending=False).copy()
+        bagel = bagel[(bagel["BF"] > score)]
+        bagel["default_rank"] = bagel["BF"].rank(method="dense", ascending=False).copy()
         bagel = bagel[["Gene", "default_rank"]].rename(
             columns={"Gene": "id", "default_rank": "bagel_rank"}
         )
@@ -2618,7 +2631,7 @@ def ranking(treatment, control, token, tools_available, params):
 
     if params["BAGEL"]["on"]:
         bagel = tools_available["BAGEL"][comparison][comparison + "_BAGEL_output.pr"]
-        bagel["default_rank"] = bagel["FDR"].rank(method="dense", ascending=False).copy()
+        bagel["default_rank"] = bagel["BF"].rank(method="dense", ascending=False).copy()
         bagel = bagel[["Gene", "default_rank"]].rename(
             columns={"Gene": "id", "default_rank": "bagel_rank"}
         )
@@ -2827,15 +2840,15 @@ def display_tools_widgets(tools_selected):
         rra_fdr.observe(rra_fdr_update, "value")
     if "BAGEL" in tools_selected:
         params["BAGEL"]["on"] = True
-        bagel_score = widgets.FloatText(value=0, description="Score cut-off:")
+        bagel_score = widgets.FloatText(value=0, description="BF >", layout=layout, display='flex', flex_flow='column', align_items='stretch', )
         bagel_text = widgets.HTML(value="<b>BAGEL</b>:")
-        bagel_order = widgets.ToggleButtons(
-            options=["Greater than score", "Lower than score"], description="Selection:"
-        )
+        # bagel_order = widgets.ToggleButtons(
+        #     options=["Greater than score", "Lower than score"], description="Selection:"
+        # )
         display(bagel_text)
-        bagel_box = widgets.HBox([bagel_score, bagel_order])
+        bagel_box = widgets.HBox([bagel_score])  #, bagel_order])
         display(bagel_box)
-        bagel_order.observe(bagel_order_update, "value")
+        # bagel_order.observe(bagel_order_update, "value")
         bagel_score.observe(bagel_score_update, "value")
     if "CRISPhieRmix" in tools_selected:
         params["CRISPhieRmix"]["on"] = True
@@ -3182,14 +3195,14 @@ def multiple_tools_results(tools_available, token):
                 )
             )
         if "BAGEL" in tools_widget.value:
-            if params["BAGEL"]["greater"]:
-                word = "greater"
-            else:
-                word = "less"
+            # if params["BAGEL"]["greater"]:
+            #     word = "greater"
+            # else:
+            #     word = "less"
             display(
                 HTML(
-                    """<p style="color:black;padding: 0.5em;"><b>BAGEL</b>: Bayesian factor threshold = %s, keep elements with Bayesian factor %s than threshold.</p>"""
-                    % (params["BAGEL"]["score"], word)
+                    """<p style="color:black;padding: 0.5em;"><b>BAGEL</b>: Bayesian factor threshold = %s, keep elements with Bayesian factor > than threshold.</p>"""
+                    % (params["BAGEL"]["score"])
                 )
             )
         if "CRISPhieRmix" in tools_widget.value:
@@ -3644,7 +3657,7 @@ def multiple_tools_results(tools_available, token):
                             x=alt.X("cell_line_name", axis=alt.Axis(title="Cell line")),
                             y=alt.Y("gene_name", axis=alt.Axis(title="Gene name")),
                             color=alt.Color(
-                                "primary_disease", scale=alt.Scale(scheme="tableau20")
+                                "primary_disease", scale=alt.Scale(scheme="tableau20"), legend=alt.Legend(title="Primary disease")
                             ),
                             tooltip=[
                                 "protein_change",
