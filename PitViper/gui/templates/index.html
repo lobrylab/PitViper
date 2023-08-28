@@ -382,7 +382,7 @@
                           slow the algorithm.">Help</a>
                       </div>
                       <!-- adjust-method -->
-                      <legend class="col-form-label col-sm-5 pt-3">Method for sgrna-level p-value adjustment: <a
+                      <legend class="col-form-label col-sm-10 pt-3">Method for sgrna-level p-value adjustment: <a
                           tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
                           data-bs-trigger="focus" title="Help" data-bs-content="Method for sgrna-level p-value adjustment, including
                             false discovery rate (fdr), holm's method (holm), or
@@ -393,6 +393,17 @@
                         <option value="fdr" selected>FDR</option>
                         <option value="holm">Holm</option>
                         <option value="pounds">Pounds</option>
+                      </select>
+                      <!-- use control neg-->
+                      <legend class="col-form-label col-sm-10 pt-3">Use control negative guides to estimate the
+                        background? <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
+                          data-bs-trigger="focus" title="Help"
+                          data-bs-content="Boolean variable to use control negative guides to estimate the background if available.">Help
+                        </a></legend>
+                      <select class="form-select" label="mageck_mle_control_neg" name="mageck_mle_control_neg">
+                        <option selected>Open this select menu</option>
+                        <option value="True" selected>True</option>
+                        <option value="False">False</option>
                       </select>
                     </div>
                     <p style="padding: 1em;"> Reference: <a
@@ -418,7 +429,7 @@
                     </div>
                     <div id="mageck_rra_options" style="display: none;">
                       <!-- norm-method -->
-                      <legend class="col-form-label col-sm-5 pt-3">Normalization method: <a tabindex="0"
+                      <legend class="col-form-label col-sm-10 pt-3">Normalization method: <a tabindex="0"
                           class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus"
                           title="Help"
                           data-bs-content="Method for normalization, including 'none' (no normalization), 'median' (median normalization, default), 'total' (normalization by total read counts), 'control' (normalization by control sgRNAs specified by the --control-sgrna option).">Help
@@ -431,7 +442,7 @@
                         <option value="control">Control</option>
                       </select>
                       <!-- adjust-method -->
-                      <legend class="col-form-label col-sm-5 pt-3">Method for sgrna-level p-value adjustment: <a
+                      <legend class="col-form-label col-sm-10 pt-3">Method for sgrna-level p-value adjustment: <a
                           tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
                           data-bs-trigger="focus" title="Help" data-bs-content="Method for sgrna-level p-value adjustment, including
                       false discovery rate (fdr), holm's method (holm), or
@@ -453,7 +464,7 @@
                           data-bind="value:replyNumber" value=0.25 name="mageck_rra_pthreshold" />
                       </div>
                       <!-- sort-criteria -->
-                      <legend class="col-form-label col-sm-5 pt-3">Sorting criteria: <a tabindex="0"
+                      <legend class="col-form-label col-sm-10 pt-3">Sorting criteria: <a tabindex="0"
                           class="btn btn-link" role="button" data-bs-toggle="popover" data-bs-trigger="focus"
                           title="Help" data-bs-content="Sorting criteria, either by negative selection (neg)
                       or positive selection (pos). Default negative
@@ -465,7 +476,7 @@
                         <option value="pos">Positive</option>
                       </select>
                       <!-- --remove-zero -->
-                      <legend class="col-form-label col-sm-5 pt-3">Remove sgRNAs whose mean value is zero in control
+                      <legend class="col-form-label col-sm-10 pt-3">Remove sgRNAs whose mean value is zero in control
                         or/and treatment: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
                           data-bs-trigger="focus" title="Help" data-bs-content="Remove sgRNAs whose mean value is zero in control,
                       treatment, both control/treatment, or any
@@ -491,7 +502,7 @@
                           data-bind="value:replyNumber" value=0 name="mageck_rra_count_min" />
                       </div>
                       <!-- --gene-lfc-method -->
-                      <legend class="col-form-label col-sm-5 pt-3">Method to calculate gene log fold changes (LFC) from
+                      <legend class="col-form-label col-sm-10 pt-3">Method to calculate gene log fold changes (LFC) from
                         sgRNA LFCs. <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
                           data-bs-trigger="focus" title="Help" data-bs-content="Method to calculate gene log fold changes (LFC) from
                       sgRNA LFCs. Available methods include the median/mean
@@ -511,6 +522,17 @@
                         <option value="mean">Mean</option>
                         <option value="alphamean">Alpha mean</option>
                         <option value="secondbest">Second best</option>
+                      </select>
+                      <!-- use control neg-->
+                      <legend class="col-form-label col-sm-10 pt-3">Use control negative guides to estimate the
+                        background? <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
+                          data-bs-trigger="focus" title="Help"
+                          data-bs-content="Boolean variable to use control negative guides to estimate the background if available.">Help
+                        </a></legend>
+                      <select class="form-select" label="mageck_rra_control_neg" name="mageck_rra_control_neg">
+                        <option selected>Open this select menu</option>
+                        <option value="True" selected>True</option>
+                        <option value="False">False</option>
                       </select>
                     </div>
                     <p style="padding: 1em;"> Reference: <a
@@ -534,7 +556,7 @@
                     </div>
                     <div id="crisphiermix_options" style="display: none;">
                       <!-- --bimodal -->
-                      <legend class="col-form-label col-sm-5 pt-3">Fit a bimodal alternative distribution? <a
+                      <legend class="col-form-label col-sm-10 pt-3">Fit a bimodal alternative distribution? <a
                           tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
                           data-bs-trigger="focus" title="Help"
                           data-bs-content="Boolean variable to fit a bimodal alternative distribution for the case when both directions are of interest.">Help
@@ -550,6 +572,10 @@
                           data-bs-trigger="focus" title="Help"
                           data-bs-content="Initial value of mu for the interesting genes. Default = -4">Help</a>
                       </legend>
+                      <div style="display:flex; align-items: center">
+                        <input class="form-select" type="number" id="replyNumber" data-bind="value:replyNumber" value=-4
+                          name="crisphiermix_mu" />
+                      </div>
                       <!-- top -->
                       <legend class="col-form-label col-sm-4 pt-3">Top-N of guides to consider in log<sub>2</sub>(Fold
                         Change) calculation: <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
@@ -558,10 +584,10 @@
                       </legend>
                       <div style="display:flex; align-items: center">
                         <input class="form-select" type="number" id="replyNumber" data-bind="value:replyNumber" value=3
-                          name="crisphiermix_top" min=0.00001 />
+                          name="crisphiermix_top" />
                       </div>
                       <!-- screen type -->
-                      <legend class="col-form-label col-sm-5 pt-3">Screen type: <a tabindex="0" class="btn btn-link"
+                      <legend class="col-form-label col-sm-10 pt-3">Screen type: <a tabindex="0" class="btn btn-link"
                           role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help" data-bs-content="Acceptable options are 'GOF' for gain of function screens (mu>0) or 'LOF' for
                       loss of function screens.">Help
                         </a></legend>
@@ -569,6 +595,17 @@
                         <option selected>Open this select menu</option>
                         <option value="LOF" selected>Loss Of Function</option>
                         <option value="GOF">Gain Of Function</option>
+                      </select>
+                      <!-- use control neg-->
+                      <legend class="col-form-label col-sm-10 pt-3">Use control negative guides to estimate the
+                        background? <a tabindex="0" class="btn btn-link" role="button" data-bs-toggle="popover"
+                          data-bs-trigger="focus" title="Help"
+                          data-bs-content="Boolean variable to use control negative guides to estimate the background if available.">Help
+                        </a></legend>
+                      <select class="form-select" label="crisphiermix_control_neg" name="crisphiermix_control_neg">
+                        <option selected>Open this select menu</option>
+                        <option value="True" selected>True</option>
+                        <option value="False">False</option>
                       </select>
                     </div>
                     <p style="padding: 1em;"> Reference: <a
@@ -664,7 +701,7 @@
                       <label class="form-check-label" for="ssrea_activate">Activate</label>
                     </div>
                     <div id="ssrea_options" style="display: none;">
-                      <legend class="col-form-label col-sm-5 pt-3">Ranking method: <a tabindex="0" class="btn btn-link"
+                      <legend class="col-form-label col-sm-10 pt-3">Ranking method: <a tabindex="0" class="btn btn-link"
                           role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help"
                           data-bs-content="Signal-to-Noise ratio can be used only if there is at least three replicates by sample.">Help
                         </a></legend>
