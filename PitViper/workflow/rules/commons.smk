@@ -96,12 +96,43 @@ def get_all_pairwise_comparisons():
     return comparisons
 
 
+def bagel_bf_columns(wildcards):
+    """Return a list of column numbers for BAGEL2 output file. Use in bagel.smk"""
+    file = "results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL.foldchange".format(token=wildcards.token, treatment=wildcards.treatment, control=wildcards.control)
+    content = pd.read_csv(file, sep="\t")
+    out = ",".join([ str(i + 1) for i in range(len(content.columns)-2)])
+    return out
+
+
+def generatedResults(wildcards):
+    """Return a list of all the results files to integrate in the report. Use in integration.smk"""
+    results = []
+    comparaisons = get_all_pairwise_comparisons()
+    token = config['token']
+    for comparaison in comparaisons:
+        if (config['bagel_activate'] == 'True'):
+            results.append("results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+            results.append("results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.pr".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        if (config['mageck_mle_activate'] == 'True'):
+            results.append("results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        if (config['mageck_rra_activate'] == 'True'):
+            results.append("results/{token}/MAGeCK_RRA/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        if (config['crisphiermix_activate'] == 'True'):
+            results.append("results/{token}/CRISPhieRmix/{treatment}_vs_{control}/{treatment}_vs_{control}.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        if (config['ssrea_activate'] == 'True'):
+            results.append("results/{token}/SSREA/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_SSREA.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        if (config['directional_scoring_method_activate'] == 'True'):
+            results.append("results/{token}/directional_scoring_method/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_directional_scoring_method.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+        results.append(config['normalized_count_table'])
+    return results
+
+
 def get_pipeline_outputs(wildcards):
     wanted_outputs = []
     samples_file = pd.read_csv(config['tsv_file'], sep="\t")
     comparaisons = get_all_pairwise_comparisons()
     token = config['token']
-    wanted_outputs.append("results/" + config['token'] + "/Report.ipynb")
+    wanted_outputs.append(f"results/{config['token']}/Report.ipynb")
     for comparaison in comparaisons:
         if (config['directional_scoring_method_activate'] == 'True'):
             wanted_outputs.append("results/{token}/directional_scoring_method/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_directional_scoring_method.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
@@ -120,21 +151,3 @@ def get_pipeline_outputs(wildcards):
         if config['bed_annotation_file'] != "":
             wanted_outputs.append("resources/{token}/annotation_ROSE_REGION_TO_GENE.txt".format(token = token))
     return wanted_outputs
-
-
-rule MAGeCK_counts_normalize:
-    input:
-        config['count_table_file']
-    output:
-        config['normalized_count_table']
-    params:
-        name = "resources/" + config['token'] + "/screen",
-    log:
-        "logs/" + config['token'] + "/MAGeCK_counts_normalize.log"
-    message:
-        "Normalizing counts table: {input} to {output}."
-    shell:
-        "mageck count \
-            -k {input} \
-            -n {params.name} \
-            --norm-method total > {log} 2>&1"

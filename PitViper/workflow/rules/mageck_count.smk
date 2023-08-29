@@ -20,6 +20,7 @@ else:
 
 
 rule mageck_count_fastq:
+    """ MaGeck count fastq. """
     input:
         fastqs = getFastqFiles,
         library = config['library_file']
@@ -36,7 +37,7 @@ rule mageck_count_fastq:
         align_all_opt = lambda x: "--count-pair True" if config['mageck_count_all_align'] == 'True' else '',
         count_N_opt = lambda x: "--count-n" if config['mageck_count_N'] == 'True' else ''
     log:
-        "logs/" + config['token'] + "/mapping/MAGeCK_counts_fastq.log"
+        f"logs/{config['token']}/mapping/MAGeCK_counts_fastq.log"
     message:
         "MAGeCK counts fastq from {input.library} to {output.file} and {output.normalized}. Using {params.name} as name."
     shell:
@@ -52,6 +53,7 @@ rule mageck_count_fastq:
 
 
 rule mageck_count_bam:
+    """ MaGeck count bam. """
     input:
         bams = getBamFiles,
         library = config['library_file']
@@ -68,7 +70,7 @@ rule mageck_count_bam:
         align_all_opt = lambda x: "True" if config['mageck_count_all_align'] == 'True' else 'False',
         count_N_opt = lambda x: "--count-n" if config['mageck_count_N'] == 'True' else ''
     log:
-        "logs/" + config['token'] + "/mapping/MAGeCK_counts_bam.log"
+        f"logs/{config['token']}/mapping/MAGeCK_counts_bam.log"
     message:
         "MAGeCK counts bam from {input.library} to {output.file} and {output.normalized}. Using {params.name} as name."
     shell:

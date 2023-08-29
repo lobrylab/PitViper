@@ -1,10 +1,11 @@
 rule awk_bed_formating:
+	"""This rule is used to format the annotation file to be used by ROSE."""
 	input:
 		config['bed_annotation_file']
 	output:
-		"resources/" + config['token'] + "/annotation_ROSE.bed"
+		f"resources/{config['token']}/annotation_ROSE.bed"
 	log:
-		"logs/" + config['token'] + "/awk_formating.log"
+		f"logs/{config['token']}/awk_formating.log"
 	message:
 		"Formating annotation file {input} to {output}."
 	shell:
@@ -12,15 +13,16 @@ rule awk_bed_formating:
 
 
 rule ROSE_annotation:
+	"""This rule is used to annotate the regions with ROSE."""
 	input:
-		"resources/" + config['token'] + "/annotation_ROSE.bed"
+		f"resources/{config['token']}/annotation_ROSE.bed"
 	output:
-		"resources/" + config['token'] + "/annotation_ROSE_REGION_TO_GENE.txt"
+		f"resources/{config['token']}/annotation_ROSE_REGION_TO_GENE.txt"
 	params:
-		out_dir = "resources/" + config['token'] + "/",
+		out_dir = f"resources/{config['token']}/",
 		genome_version = config['genome_version_rose']
 	log:
-		"logs/" + config['token'] + "/ROSE_annotation.log"
+		f"logs/{config['token']}/ROSE_annotation.log"
 	message:
 		"Annotating regions with ROSE: {input} to {output} with genome version {params.genome_version}."
 	shell:

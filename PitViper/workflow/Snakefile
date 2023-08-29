@@ -23,6 +23,7 @@ include: "rules/bagel.smk"
 include: "rules/ssrea.smk"
 include: "rules/crisphiermix.smk"
 include: "rules/integration.smk"
+include: "rules/mageck_normalize.smk"
 
 # Define the workflow.
 rule all:

@@ -2,7 +2,7 @@ rule bagel_generate_count_matrix:
     """ Generate count matrix between two conditions for BAGEL2. """
     input:
         samples=config['tsv_file'],
-        counts=rules.counts_filtering.output.normalized_filtered_counts#config['normalized_count_table']
+        counts=rules.counts_filtering.output.normalized_filtered_counts
     output:
         matrix="results/{token}/count_matrices/BAGEL2/{treatment}_vs_{control}_count_matrix.txt"
 
@@ -38,13 +38,6 @@ rule bagel_foldchange:
             -i {input.count_table} \
             -o {params} \
             -c 1 > {log}"
-
-
-def bagel_bf_columns(wildcards):
-    file = "results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL.foldchange".format(token=wildcards.token, treatment=wildcards.treatment, control=wildcards.control)
-    content = pd.read_csv(file, sep="\t")
-    out = ",".join([ str(i + 1) for i in range(len(content.columns)-2)])
-    return out
 
 
 rule bagel_bf:
