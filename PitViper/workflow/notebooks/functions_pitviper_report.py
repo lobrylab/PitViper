@@ -3651,7 +3651,7 @@ def multiple_tools_results(tools_available, token):
                         .reset_index()
                     )
                     chart = (
-                        alt.Chart(essential_genes, title="depmap deleterious mutations")
+                        alt.Chart(essential_genes, title="DepMap Deleterious Mutations")
                         .mark_rect()
                         .encode(
                             x=alt.X("cell_line_name", axis=alt.Axis(title="Cell line")),

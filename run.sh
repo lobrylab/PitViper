@@ -12,8 +12,8 @@ elif [[ "$installer" == "mamba" ]]; then
     echo "Using mamba installer"
 else
     # Set default installer to conda
-    installer="conda"
-    echo "No installer specified. Using conda installer by default."
+    installer="mamba"
+    echo "No installer specified. Using mamba installer by default."
 fi
 
 # Exit if any command fails
