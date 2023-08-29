@@ -64,8 +64,6 @@ if (top >= 1) {
 }
 
 
-
-
 ### Run CRISPhieRmix
 if (neg_controls_file != "") {
   log2fcCRISPhieRmixFit = CRISPhieRmix::CRISPhieRmix(x = all_count.DESeq2$log2FoldChange, 
@@ -73,14 +71,19 @@ if (neg_controls_file != "") {
                                                      negCtrl = neg_ctrl_guides_log2fc, 
                                                      screenType = screen_type,
                                                      mu = mu, 
-                                                     BIMODAL = bimodal)
+                                                     BIMODAL = bimodal,
+                                                     max_iter = 1000,
+                                                     tol = 1e-12)
 } else {
   log2fcCRISPhieRmixFit = CRISPhieRmix::CRISPhieRmix(x = all_count.DESeq2$log2FoldChange,
                                                      geneIds = geneIds,
                                                      screenType = screen_type,
                                                      mu = mu,
-                                                     BIMODAL = bimodal)
+                                                     BIMODAL = bimodal,
+                                                     max_iter = 1000,
+                                                     tol = 1e-12)
 }
+
 
 ### Create results table
 log2fcCRISPhieRmixScores = data.frame(gene = log2fcCRISPhieRmixFit$genes, locfdr = log2fcCRISPhieRmixFit$locfdr, FDR = log2fcCRISPhieRmixFit$FDR)
