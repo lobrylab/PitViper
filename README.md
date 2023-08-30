@@ -118,8 +118,6 @@ The folder containing all previously ran analysis will be accessible in jupyter 
 
 ### Inputs
 
-Before using PitViper, we will introduce its input files.
-
 PitViper allows you to start an analysis from raw data files such as FASTQ, an already aligned BAM file or a count matrix. Depending on this, the input files will be different.
 
 #### Starting from raw FASTQ files
@@ -127,7 +125,7 @@ PitViper allows you to start an analysis from raw data files such as FASTQ, an a
 You will need:
 
 1. Path to FATSQ files on system
-2. A library file with three comma-separated columns without header: shRNA ID, shRNA sequence, targer element.
+2. A library file with three comma-separated columns without header: shRNA ID, shRNA sequence, target element.
 3. A design matrix that summary your conditions, their replicates and associated FASTQ files.
 
 ##### Design matrix
@@ -143,17 +141,11 @@ Let say that you have two conditions, A (control) and B (treatment), with 3 repl
 | B         | B_2       | /path/to/B_rep2.fastq | 1     |
 | B         | B_3       | /path/to/B_rep3.fastq | 1     |
 
-`order` column define which condition to treat as a control versus which treatment. `order = x` will be used as control for any `order > x`. In this case: condition B (treatment) versus A (control).
+`order` column define which condition to treat as a control versus which treatment. `order = x` will be used as control for any `order > x`. In this case: condition B (treatment) versus A (control). `order` should be consistent across replicates.
 
 ##### Library file
 
-This file have to be comma-separeted.
-
-First column is for guide's ID. This column should not be redundant.
-
-Second column is guide's sequence.
-
-Third column is the element targeted by the corresponding guide. Note: Multiple guides can target the same element.
+This file have to be comma-separeted. First column is for guide's ID. This column should not be redundant. Second column is guide's sequence. Third column is the element targeted by the corresponding guide. Note: Multiple guides can target the same element.
 
 ```
 guide_A.1,CTTAGTTTTGAACAAGTACA,element_A
