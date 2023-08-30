@@ -16,6 +16,10 @@ The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/sta
 
 - [Installation](#installation)
 
+  - [From the command line](from-the-command-line)
+  
+  - [Run PitViper from Docker container](run-pitviper-from-docker-container)
+
 - [Inputs](#inputs)
 
   - [Starting from raw FASTQ or BAM files](#starting-from-raw-fastq-files)
