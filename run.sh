@@ -63,9 +63,9 @@ else
     conda activate "$conda_env_name"
 
     # Install CRISPhieRmix
-    curl -L https://github.com/timydaley/CRISPhieRmix/tarball/e400f21 -o /PitViper/CRISPhieRmix.tar.gz
-    Rscript -e 'install.packages("/PitViper/CRISPhieRmix.tar.gz", repos = NULL, type="source")'
-    rm -rf /PitViper/CRISPhieRmix.tar.gz
+    curl -L https://github.com/timydaley/CRISPhieRmix/tarball/e400f21 -o PitViper/CRISPhieRmix.tar.gz
+    Rscript -e 'install.packages("PitViper/CRISPhieRmix.tar.gz", repos = NULL, type="source")'
+    rm -rf PitViper/CRISPhieRmix.tar.gz
     
     # Install BAGEL2
     git clone https://github.com/hart-lab/bagel.git PitViper/workflow/scripts/bagel
