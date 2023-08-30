@@ -18,6 +18,8 @@ It stands for "Processing, InTerpretation, and VIsualization of PoolEd screening
     
 - **Flexibility**: Whether you have raw FASTQ or BAM files, or a pre-processed count matrix, PitViper adapts to your data input preference.
 
+- **Visualization**: Interactive Jupyter Notebook reports facilitate results visualization and interpretation.
+
 ## Table of contents
 
 - [Prerequisites](#prerequisites)
