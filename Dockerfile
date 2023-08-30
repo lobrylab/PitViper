@@ -12,14 +12,11 @@ RUN wget \
     && rm -f Miniconda3-latest-Linux-x86_64.sh \
     && conda init bash
 
-RUN conda install -c conda-forge mamba
-
 COPY . /PitViper
 
-RUN cd /PitViper/ \
-    && bash install_PitViper_env.sh
+RUN cd /PitViper && bash install_PitViper_env.sh mamba
 
 EXPOSE 5000
 EXPOSE 8888
 
-CMD cd /PitViper/PitViper && bash run.sh
+CMD cd /PitViper/PitViper && bash run_docker.sh conda
