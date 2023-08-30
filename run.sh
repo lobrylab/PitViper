@@ -49,7 +49,7 @@ else
         echo "Installing packages using mamba..."
 
         # Check if mamba package is already installed
-        if conda list -n base | grep -q "mamba"; then
+        if conda list -n base | grep -qws "mamba"; then
             echo "Mamba package is already installed."
         # Install mamba package if it's not already installed
         else
@@ -61,7 +61,13 @@ else
     conda_path=$(conda info | grep -i 'base environment' | awk '{print $4}')
     source $conda_path/etc/profile.d/conda.sh
     conda activate "$conda_env_name"
-    Rscript -e 'devtools::install_github("timydaley/CRISPhieRmix")'
+
+    # Install CRISPhieRmix
+    curl -L https://github.com/timydaley/CRISPhieRmix/tarball/e400f21 -o /PitViper/CRISPhieRmix.tar.gz
+    Rscript -e 'install.packages("/PitViper/CRISPhieRmix.tar.gz", repos = NULL, type="source")'
+    rm -rf /PitViper/CRISPhieRmix.tar.gz
+    
+    # Install BAGEL2
     git clone https://github.com/hart-lab/bagel.git PitViper/workflow/scripts/bagel
 
     # Freeze the conda environment to a YAML file
