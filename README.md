@@ -136,19 +136,19 @@ The folder containing all previously ran analysis will be accessible in jupyter 
 
 ## Inputs
 
-PitViper allows you to start an analysis from raw data files such as FASTQ, an already aligned BAM file or a count matrix. Depending on this, the input files will be different.
+PitViper accommodates diverse input data formats, allowing you to initiate an analysis using raw data files, aligned BAM files, or a count matrix. The specific input requirements vary based on your starting data type.
 
 ### Starting from raw FASTQ files
 
-You will need:
+For this approach, you will need the following:
 
-1. Path to FATSQ files on system
-2. A library file with three comma-separated columns without header: shRNA ID, shRNA sequence, target element.
-3. A design matrix that summary your conditions, their replicates and associated FASTQ files.
+1. Path to FATSQ files on your system.
+2. A library file comprising three comma-separated columns without headers: guide ID, guide sequence, target element.
+3. A design matrix summarizing your experimental conditions, their replicates, and associated FASTQ files.
 
 #### Design matrix
 
-Let say that you have two conditions, A (control) and B (treatment), with 3 replicates for each. The associated matrix should look as below:
+Suppose you have two conditions, A (control) and B (treatment), each with three replicates. Your design matrix should be structured as follows:
 
 | condition | replicate | fastq                 | order |
 |-----------|-----------|-----------------------|-------|
@@ -159,11 +159,11 @@ Let say that you have two conditions, A (control) and B (treatment), with 3 repl
 | B         | B_2       | /path/to/B_rep2.fastq | 1     |
 | B         | B_3       | /path/to/B_rep3.fastq | 1     |
 
-`order` column define which condition to treat as a control versus which treatment. `order = x` will be used as control for any `order > x`. In this case: condition B (treatment) versus A (control). `order` should be consistent across replicates.
+In the order column, the control condition (A) is designated by order = 0, and any condition with an order value greater than 0 (e.g., 1 for B) is treated as a treatment condition. The order should remain consistent across replicates.
 
 #### Library file
 
-This file have to be comma-separeted. First column is for guide's ID. This column should not be redundant. Second column is guide's sequence. Third column is the element targeted by the corresponding guide. Note: Multiple guides can target the same element.
+The library file should be comma-separated with three columns: guide's ID, guide's sequence, and the corresponding target element.
 
 ```
 guide_A.1,CTTAGTTTTGAACAAGTACA,element_A
@@ -177,9 +177,9 @@ guide_B.2,GATTGTCTGTGAAATTTCTG,element_B
 
 #### Design matrix
 
-Let say that you have two conditions, A (control) and B (treatment), with 3 replicates for each but aligned BAM files instead of raw FASTQ files:
+If you have aligned BAM files instead of raw FASTQ files, follow these modifications to the design matrix:
 
-- Replace column name `fastq` by `bam` and fastq files paths by bam files paths, as follow:
+- Replace the fastq column with a bam column, and replace the paths to FASTQ files with paths to BAM files.
 
 | condition | replicate | bam                 | order |
 |-----------|-----------|---------------------|-------|
@@ -195,7 +195,7 @@ Let say that you have two conditions, A (control) and B (treatment), with 3 repl
 
 ### Starting from count matrix
 
-When starting from a count matrix, fastq/bam column isn't necessary:
+Starting from a count matrix eliminates the need for a fastq or bam column:
 
 | condition | replicate | order |
 |-----------|-----------|-------|
@@ -206,7 +206,7 @@ When starting from a count matrix, fastq/bam column isn't necessary:
 | B         | B_2       | 1     |
 | B         | B_3       | 1     |
 
-However, its mandatory that `replicate` column contain the same labels that in count matrix header:
+However, the replicate column must contain the same labels as those in the count matrix header:
 
 | shRNA       | Gene      | A_1 | A_2 | A_3 | B_1 | B_2 | B_3 |
 |-------------|-----------|-----|-----|-----|-----|-----|-----|
