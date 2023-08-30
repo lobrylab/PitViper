@@ -27,49 +27,90 @@ The pipeline is built with [`Snakemake`](https://snakemake.readthedocs.io/en/sta
 
 [`Conda`](https://docs.conda.io/en/latest/) and [`Git`](https://git-scm.com/) are required to install PitViper.
 
-[`Mamba`](https://github.com/mamba-org/mamba) is needed to speed up the installation process:
-
-```bash
-$ conda install -c conda-forge mamba
-```
-
 Then, clone PitViper repository using `Git`:
 
 ```bash
 $ git clone https://github.com/PaulArthurM/PitViper.git  # Clone PitViper reposity in ~/PitViper/
 
-$ cd PitViper/PitViper  # Change working directory to PitViper root directory
+$ cd PitViper  # Change working directory to PitViper root directory
 ```
 
 ### Installation
 
-Now install the PitViper dependencies. To make dependency management easier, a Conda YAML file containing all the dependencies has been created and can be used with `Mamba` to automatically install all the dependencies: `pitviper_env.yaml`.
+#### From the command line
 
-In addition, `install_PitViper_env.sh` is a bash script created to perform this step in one command:
-
-```bash
-$ ./install_PitViper_env.sh
-```
-
-`./install_PitViper_env.sh` first create a Conda environment called `pitviper_env` which should be visible after the installation is complete, as follows:
+The `run.sh` script can be used to automatically create the conda environment, install all dependencies and run PitViper graphical user interface (GUI). Dependencies are installed only when `run.sh` is run for the first time.
 
 ```bash
-$ conda env list
-  # conda environments:
-  #
-  base                  *  /home/paularthur/miniconda3
-  pitviper_env             /home/paularthur/miniconda3/envs/pitviper_env
-```
-
-Once `pitviper_env` is created, you can run the `run.sh` script from the command line, it should launch a server using `Flask` in the background and open the PitViper GUI in your default web browser:
-
-```bash
+# Inside PitViper root directory
 $ ./run.sh
 ```
 
+After installation is completed, the PitViper GUI should be automatically opened in your default web browser. 
 
 <img src="PitViper/docs/PitViper.png" alt="alt text">
 
+#### Run PitViper from Docker container
+
+##### Building Image
+
+PitViper main directory contains a Dockerfile that allows easy building of PitViper image. From this folder simply run:
+
+```bash
+$ docker build -t [image_name] .
+```
+
+##### Downloading image from dockerhub
+
+PitViper docker image can also be downloaded from dockerhub using:
+
+```bash
+$ docker pull lobrylab/pitviper:v1.0
+```
+
+##### Running container
+
+To start a PitViper container simply run:
+
+```bash
+$ docker run -p 5000:5000 -p 8888:8888 -v [fastq/bam_files_path]: [fastq/bam_files_path] -n [name_the_container] [PitViper_image_name]
+```
+
+For example:
+
+```bash
+$ docker run -p 5000:5000 -p 8888:8888 -v /home/data/:/home/data/ -n pitviper lobrylab/pitviper:v1.0
+```
+
+PitViper GUI can now be accessed in your web browser at the address: localhost:5000.
+
+Upon completion of PitViper analysis, the jupyter notebook will be accessible following the localhost:8888/[token] link displayed in the terminal.
+
+To quit PitViper and stop the container simply quit the jupyter notebook session.
+
+##### Re-starting container
+
+To start a new analysis, just restart the container using the following command :
+
+```bash
+$ docker start -a [container_name]
+```
+
+##### Accessing jupyter notebooks of a previous docker PitViper runs
+
+To access the notebook of a previously ran PitViper analysis, first start the container :
+
+```bash
+$ docker start [container_name]
+```
+
+Then execute the notebook script: 
+
+```bash
+$ docker exec -ti [container_name] bash /PitViper/notebook.sh
+```
+
+The folder containing all previously ran analysis will be accessible in jupyter notebook following the localhost:8888/[token] link displayed in the terminal.
 
 ### Inputs
 
