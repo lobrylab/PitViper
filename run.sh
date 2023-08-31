@@ -18,6 +18,15 @@ noflask="false"
 # Parse the command line arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --help)
+      echo "Usage: $0 [options]"
+      echo "Options:"
+      echo "  --mode           The mode to use for creating the conda environment (yaml or lock). Default is yaml."
+      echo "  --installer      The installer to use for creating the conda environment (conda or mamba). Default is mamba."
+      echo "  --noflask        Do not run the Flask application."
+      echo "  --help           Display this help message."
+      exit 0
+      ;;
     --mode)
       mode="$2"
       shift 2
