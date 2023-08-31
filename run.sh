@@ -11,9 +11,35 @@ readonly MAMBA_INSTALLER="mamba"
 readonly YAML_MODE="yaml"
 readonly LOCK_MODE="lock"
 
-# Initialize installer variable before conditional checks
-installer="${1:-$MAMBA_INSTALLER}"
-mode="${2:-$YAML_MODE}"
+installer="mamba"
+mode="yaml"
+noflask="false"
+
+# Parse the command line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --mode)
+      mode="$2"
+      shift 2
+      ;;
+    --installer)
+      installer="$2"
+      shift 2
+      ;;
+    --noflask)
+      noflask="true"
+      shift 1
+      ;;
+    *)
+      echo "Unknown argument: $1"
+      exit 1
+      ;;
+  esac
+done
+
+# # Initialize installer variable before conditional checks
+# installer="${1:-$MAMBA_INSTALLER}"
+# mode="${2:-$YAML_MODE}"
 
 # Set configurable variables using environment variables
 app_env_var=${APP_ENV_VAR:-FLASK_APP}
@@ -128,5 +154,8 @@ if [[ "${!app_env_var}" != "$app_full_path" ]]; then
     export "$app_env_var=$app_full_path"
 fi
 
-# Run the Flask application
-(cd PitViper/ && flask run)
+# If noflask is set to false, run the Flask application
+if [[ "$noflask" == "false" ]]; then
+    # Run the Flask application
+    (cd PitViper/ && flask run)
+fi
