@@ -78,8 +78,6 @@ $ ./run.sh --installer mamba --mode yaml
 $ ./run.sh --noflask
 ```
 
-All 4 combinations are possible. Argument 1 is 'conda' or 'mamba'. Argument 2 is 'yaml' or 'lock'. Default is mamba and yaml.
-
 ### Run PitViper from Docker container
 
 #### Building Image
