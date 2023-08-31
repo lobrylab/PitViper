@@ -222,7 +222,7 @@ PitViper CLI is a command-line tool for running the PitViper pipeline.
 
 ### Usage
 
-`pitviper.py --configfile <configfile> [--dry_run] [--jobs <jobs>] [--notebook <notebook>]`
+`$ pitviper.py --configfile <configfile> [--dry_run] [--jobs <jobs>] [--notebook <notebook>]`
 
     --configfile: Path to the configuration file. The configuration file must be in YAML format.
     --dry_run: If enabled, the pipeline will be run in dry run mode, which means that no commands will be executed. This is useful for testing the pipeline without actually running it.
@@ -232,14 +232,14 @@ PitViper CLI is a command-line tool for running the PitViper pipeline.
 ### Examples
 
 ```bash
-pitviper.py --configfile config.yaml
+$ pitviper.py --configfile config.yaml
 
 # Run the pipeline in dry run mode
-pitviper.py --configfile config.yaml --dry_run
+$ pitviper.py --configfile config.yaml --dry_run
 
 # Run the pipeline with 4 jobs in parallel
-pitviper.py --configfile config.yaml --jobs 4
+$ pitviper.py --configfile config.yaml --jobs 4
 
 # Run the pipeline and save the output notebook to notebook.html
-pitviper.py --configfile config.yaml --notebook notebook.html
+$ pitviper.py --configfile config.yaml --notebook notebook.html
 ```
