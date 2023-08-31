@@ -35,6 +35,8 @@ It stands for "Processing, InTerpretation, and VIsualization of PoolEd screening
   - [Starting from raw FASTQ or BAM files](#starting-from-raw-fastq-files)
 
   - [Starting from count matrix](#starting-from-count-matrix)
+ 
+- [PitViper CLI](#pitviper-cli)
 
 
 ## Prerequisites
@@ -212,3 +214,32 @@ However, the replicate column must contain the same labels as those in the count
 |-------------|-----------|-----|-----|-----|-----|-----|-----|
 | guide_A.1   | element_A | 456 | 273 | 345 | 354 | 587 | 258 |
 | guide_A.2   | element_A | 354 | 234 | 852 | 546 | 64  | 452 |
+
+
+## PitViper CLI
+
+PitViper CLI is a command-line tool for running the PitViper pipeline.
+
+### Usage
+
+`pitviper.py --configfile <configfile> [--dry_run] [--jobs <jobs>] [--notebook <notebook>]`
+
+    --configfile: Path to the configuration file. The configuration file must be in YAML format.
+    --dry_run: If enabled, the pipeline will be run in dry run mode, which means that no commands will be executed. This is useful for testing the pipeline without actually running it.
+    --jobs: Number of Snakemake rules to run in parallel. The default is 1.
+    --notebook: Output file(s) of a PitViper rule with "notebook" entry.
+
+### Examples
+
+```bash
+pitviper.py --configfile config.yaml
+
+# Run the pipeline in dry run mode
+pitviper.py --configfile config.yaml --dry_run
+
+# Run the pipeline with 4 jobs in parallel
+pitviper.py --configfile config.yaml --jobs 4
+
+# Run the pipeline and save the output notebook to notebook.html
+pitviper.py --configfile config.yaml --notebook notebook.html
+```
