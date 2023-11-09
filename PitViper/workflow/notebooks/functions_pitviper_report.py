@@ -122,6 +122,11 @@ def download(tools_available: dict, tool: str, treatment: str, control: str):
         )
 
 
+def display_config(token: str):
+    config_name = "./config/%s.yaml" % token
+    config = open_yaml(config_name)
+    display(config)    
+
 def download_raw_counts(token):
     config_name = "./config/%s.yaml" % token
     config = open_yaml(config_name)
