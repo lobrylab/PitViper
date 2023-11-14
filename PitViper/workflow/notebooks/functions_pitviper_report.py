@@ -56,7 +56,8 @@ alt.data_transformers.disable_max_rows()
 pd.options.mode.chained_assignment = None
 
 # Define layout for widgets
-layout = widgets.Layout(width='auto', height='40px') #set width and height
+layout = widgets.Layout(width="auto", height="40px")  # set width and height
+
 
 def natural_sort(l: list):
     """Do a natural sorting on the input list l.
@@ -125,7 +126,8 @@ def download(tools_available: dict, tool: str, treatment: str, control: str):
 def display_config(token: str):
     config_name = "./config/%s.yaml" % token
     config = open_yaml(config_name)
-    display(config)    
+    download_file(content=config, filename=config_name, label="Download config file!")
+
 
 def download_raw_counts(token):
     config_name = "./config/%s.yaml" % token
@@ -149,13 +151,12 @@ def download_normalized_counts(token):
         filename=cts_name,
         label=f"Download normalized counts matrix!",
     )
-    
-  
-# TODO: how to let the user choose the comparison to download?  
+
+
+# TODO: how to let the user choose the comparison to download?
 # def download_deseq2_data(token):
 #     config_name = "./config/%s.yaml" % token
 #     config = open_yaml(config_name)
-    
 
 
 def download_design(token):
@@ -1064,9 +1065,7 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
-        source["default_rank"] = source["mean_log2FoldChange"].rank(
-            method="dense"
-        )
+        source["default_rank"] = source["mean_log2FoldChange"].rank(method="dense")
         source.loc[source["locfdr"] < fdr_cutoff, "significant"] = significant_label
         source.loc[
             source["locfdr"] >= fdr_cutoff, "significant"
@@ -1090,9 +1089,7 @@ def tool_results(results_directory, tools_available, token):
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
                 y=alt.Y(
                     "mean_log2FoldChange:Q",
-                    axis=alt.Axis(
-                        title="%s sgRNAs log2FoldChange average" % treatment
-                    ),
+                    axis=alt.Axis(title="%s sgRNAs log2FoldChange average" % treatment),
                 ),
                 tooltip=[
                     "gene",
@@ -2332,13 +2329,9 @@ def enrichr_plots(token, pitviper_res):
                 info = tool_res[conditions.value][conditions.value + ".txt"]
                 info = info.loc[info["locfdr"] < fdr_cutoff.value]
                 if score_cutoff.value > 0:
-                    info = info.loc[
-                        info["mean_log2FoldChange"] > score_cutoff.value
-                    ]
+                    info = info.loc[info["mean_log2FoldChange"] > score_cutoff.value]
                 elif score_cutoff.value <= 0:
-                    info = info.loc[
-                        info["mean_log2FoldChange"] < score_cutoff.value
-                    ]
+                    info = info.loc[info["mean_log2FoldChange"] < score_cutoff.value]
                 genes = info["gene"]
 
             enrichr_res = getEnrichrResults(genes, description.value, base)
@@ -2593,13 +2586,11 @@ def ranking(treatment, control, token, tools_available, params):
         crisphie = tools_available["CRISPhieRmix"][comparison][comparison + ".txt"]
         if not greater:
             crisphie = crisphie[
-                (crisphie["mean_log2FoldChange"] < score)
-                & (crisphie["locfdr"] < fdr)
+                (crisphie["mean_log2FoldChange"] < score) & (crisphie["locfdr"] < fdr)
             ]
         else:
             crisphie = crisphie[
-                (crisphie["mean_log2FoldChange"] > score)
-                & (crisphie["locfdr"] < fdr)
+                (crisphie["mean_log2FoldChange"] > score) & (crisphie["locfdr"] < fdr)
             ]
         crisphie["default_rank"] = crisphie["locfdr"].rank(method="dense").copy()
         crisphie = crisphie[["gene", "default_rank"]].rename(
@@ -2845,13 +2836,20 @@ def display_tools_widgets(tools_selected):
         rra_fdr.observe(rra_fdr_update, "value")
     if "BAGEL2" in tools_selected:
         params["BAGEL2"]["on"] = True
-        bagel_score = widgets.FloatText(value=0, description="BF >", layout=layout, display='flex', flex_flow='column', align_items='stretch', )
+        bagel_score = widgets.FloatText(
+            value=0,
+            description="BF >",
+            layout=layout,
+            display="flex",
+            flex_flow="column",
+            align_items="stretch",
+        )
         bagel_text = widgets.HTML(value="<b>BAGEL2</b>:")
         # bagel_order = widgets.ToggleButtons(
         #     options=["Greater than score", "Lower than score"], description="Selection:"
         # )
         display(bagel_text)
-        bagel_box = widgets.HBox([bagel_score])  #, bagel_order])
+        bagel_box = widgets.HBox([bagel_score])  # , bagel_order])
         display(bagel_box)
         # bagel_order.observe(bagel_order_update, "value")
         bagel_score.observe(bagel_score_update, "value")
@@ -2977,7 +2975,8 @@ def multiple_tools_results(tools_available, token):
 
         # Create Side Dendrogram
         dendro_side = ff.create_dendrogram(
-            data_array.transpose(), orientation="right",
+            data_array.transpose(),
+            orientation="right",
         )  # , labels=cols)
         for i in range(len(dendro_side["data"])):
             dendro_side["data"][i]["xaxis"] = "x2"
@@ -3032,15 +3031,14 @@ def multiple_tools_results(tools_available, token):
         # Add Heatmap Data to Figure
         for data in heatmap:
             fig.add_trace(data)
-                
+
         # Edit Layout
         fig.update_layout(
             {"width": 800, "height": 900, "showlegend": False, "hovermode": "closest"}
         )
-        
+
         fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        
-        
+
         # Edit xaxis
         fig.update_layout(
             font={"size": 10},
@@ -3068,10 +3066,10 @@ def multiple_tools_results(tools_available, token):
                 "ticks": "",
             }
         )
-                
+
         # Wrap elements in cols[indicies_yaxis] with <i>
-        wrapped_cols = pd.Index([f'<i>{col}</i>' for col in cols], name=cols.name)
-        
+        wrapped_cols = pd.Index([f"<i>{col}</i>" for col in cols], name=cols.name)
+
         # # Edit yaxis
         fig.update_layout(
             font={"size": 10},
@@ -3086,7 +3084,7 @@ def multiple_tools_results(tools_available, token):
                 "zeroline": False,
                 "showticklabels": True,
                 "ticks": "",
-                "side": "right", 
+                "side": "right",
             },
         )
         # Edit yaxis2
@@ -3111,21 +3109,21 @@ def multiple_tools_results(tools_available, token):
         )
         show_parameters(params)
         display(fig)
-        
+
         # Create download button with plotly.io.write_image
         download_button = widgets.Button(
             description="Download", style=dict(button_color="#707070")
         )
-        
+
         @download_button.on_click
         def download_button_clicked(b):
             heatmap_name = f"results/{token}/{column_to_plot}_heatmap.pdf"
             fig.write_image(heatmap_name)
             from IPython.display import FileLink
+
             display(FileLink(heatmap_name))
-            
+
         display(download_button)
-        
 
     @output_tools_form.capture()
     def tools_widget_updated(event):
@@ -3662,7 +3660,9 @@ def multiple_tools_results(tools_available, token):
                             x=alt.X("cell_line_name", axis=alt.Axis(title="Cell line")),
                             y=alt.Y("gene_name", axis=alt.Axis(title="Gene name")),
                             color=alt.Color(
-                                "primary_disease", scale=alt.Scale(scheme="tableau20"), legend=alt.Legend(title="Primary disease")
+                                "primary_disease",
+                                scale=alt.Scale(scheme="tableau20"),
+                                legend=alt.Legend(title="Primary disease"),
                             ),
                             tooltip=[
                                 "protein_change",
