@@ -55,11 +55,12 @@ PitViper can be effortlessly installed using the provided `run.sh` script. This 
 
 ```bash
 # Clone the PitViper repository and navigate to its root directory
-$ git clone https://github.com/PaulArthurM/PitViper.git
-$ cd PitViper
-
+git clone https://github.com/PaulArthurM/PitViper.git
+```
+```bash
 # Run the installation script
-$ ./run.sh
+cd PitViper
+./run.sh
 ```
 
 Available options:
@@ -79,7 +80,7 @@ Once installation is complete, the PitViper GUI will automatically open in your 
 PitViper main directory contains a Dockerfile that allows easy building of PitViper image. From this folder simply run:
 
 ```bash
-$ docker build -t [image_name] .
+docker build -t [image_name] .
 ```
 
 #### Downloading image from dockerhub
@@ -87,7 +88,7 @@ $ docker build -t [image_name] .
 PitViper docker image can also be downloaded from dockerhub using:
 
 ```bash
-$ docker pull lobrylab/pitviper:v1.0
+docker pull lobrylab/pitviper:v1.0
 ```
 
 #### Running container
@@ -95,13 +96,13 @@ $ docker pull lobrylab/pitviper:v1.0
 To start a PitViper container simply run:
 
 ```bash
-$ docker run -p 5000:5000 -p 8888:8888 -v [fastq/bam_files_path]: [fastq/bam_files_path] -n [name_the_container] [PitViper_image_name]
+docker run -p 5000:5000 -p 8888:8888 -v [fastq/bam_files_path]:[fastq/bam_files_path] --name [name_the_container] [PitViper_image_name]
 ```
 
 For example:
 
 ```bash
-$ docker run -p 5000:5000 -p 8888:8888 -v /home/data/:/home/data/ -n pitviper lobrylab/pitviper:v1.0
+docker run -p 5000:5000 -p 8888:8888 -v /home/data/:/home/data/ --name pitviper lobrylab/pitviper:v1.0
 ```
 
 PitViper GUI can now be accessed in your web browser at the address: localhost:5000.
@@ -115,7 +116,7 @@ To quit PitViper and stop the container simply quit the jupyter notebook session
 To start a new analysis, just restart the container using the following command :
 
 ```bash
-$ docker start -a [container_name]
+docker start -a [container_name]
 ```
 
 #### Accessing jupyter notebooks of a previous docker PitViper runs
@@ -123,13 +124,13 @@ $ docker start -a [container_name]
 To access the notebook of a previously ran PitViper analysis, first start the container :
 
 ```bash
-$ docker start [container_name]
+docker start [container_name]
 ```
 
 Then execute the notebook script: 
 
 ```bash
-$ docker exec -ti [container_name] bash /PitViper/notebook.sh
+docker exec -ti [container_name] bash /PitViper/notebook.sh
 ```
 
 The folder containing all previously ran analysis will be accessible in jupyter notebook following the localhost:8888/[token] link displayed in the terminal.
@@ -230,14 +231,15 @@ PitViper CLI is a command-line tool for running the PitViper pipeline.
 ### Examples
 
 ```bash
-$ pitviper.py --configfile config.yaml
-
-# Run the pipeline in dry run mode
-$ pitviper.py --configfile config.yaml --dry_run
-
-# Run the pipeline with 4 jobs in parallel
-$ pitviper.py --configfile config.yaml --jobs 4
-
-# Run the pipeline and save the output notebook to notebook.html
-$ pitviper.py --configfile config.yaml --notebook notebook.html
+python pitviper.py --configfile config.yaml
 ```
+```bash
+# Run the pipeline in dry run mode
+python pitviper.py --configfile config.yaml --dry_run
+```
+```bash
+# Run the pipeline with 4 jobs in parallel
+python pitviper.py --configfile config.yaml --jobs 4
+```bash
+# Run the pipeline and save the output notebook to notebook.html
+python pitviper.py --configfile config.yaml --notebook notebook.html
