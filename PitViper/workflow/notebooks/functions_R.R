@@ -6,7 +6,6 @@ library(ggplot2)
 library(tidyr)
 library(venn)
 
-
 RobustRankAggregate <- function(ranks) {  
     glist <- list()
     i <- 1
@@ -42,11 +41,11 @@ RobustRankAggregate <- function(ranks) {
         i <- i + 1
     }
 
-    if ("gsea_rank" %in% colnames(ranks)) {
-        gsea <- ranks %>%
-            select(id, gsea_rank) %>%
-            arrange(gsea_rank) %>% pull(id)
-        glist[[i]] <- gsea
+    if ("ssrea_rank" %in% colnames(ranks)) {
+        ssrea <- ranks %>%
+            select(id, ssrea_rank) %>%
+            arrange(ssrea_rank) %>% pull(id)
+        glist[[i]] <- ssrea
         i <- i + 1
     }
     
@@ -55,6 +54,7 @@ RobustRankAggregate <- function(ranks) {
     rownames(res) <- NULL
     return(res)
 }
+
 
 
 mean_counts_by_condition <- function(conditions, gene) {
