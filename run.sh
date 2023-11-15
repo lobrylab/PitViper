@@ -143,7 +143,7 @@ else
     conda activate "$conda_env_name"
 
     # Install CRISPhieRmix
-    curl -L https://github.com/timydaley/CRISPhieRmix/tarball/e400f21 -o PitViper/CRISPhieRmix.tar.gz
+    curl -L https://github.com/lobrylab/CRISPhieRmix/tarball/e400f21 -o PitViper/CRISPhieRmix.tar.gz
     Rscript -e 'install.packages("PitViper/CRISPhieRmix.tar.gz", repos = NULL, type="source")'
     rm -rf PitViper/CRISPhieRmix.tar.gz
     
@@ -151,7 +151,7 @@ else
     # Check if PitViper/workflow/scripts/bagel already exists, if not clone the repository
     bagel_dir="PitViper/workflow/scripts/bagel"
     if [[ ! -d "$bagel_dir" ]]; then
-        git clone https://github.com/hart-lab/bagel.git "$bagel_dir"
+        git clone https://github.com/lobrylab/bagel.git "$bagel_dir"
     fi
 
     # Freeze the conda environment to a YAML file
