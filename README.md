@@ -240,6 +240,8 @@ python pitviper.py --configfile config.yaml --dry_run
 ```bash
 # Run the pipeline with 4 jobs in parallel
 python pitviper.py --configfile config.yaml --jobs 4
+```
 ```bash
 # Run the pipeline and save the output notebook to notebook.html
 python pitviper.py --configfile config.yaml --notebook notebook.html
+```
