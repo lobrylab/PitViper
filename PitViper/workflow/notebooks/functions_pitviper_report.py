@@ -3,6 +3,7 @@ import os
 import random as rd
 import re
 import warnings
+import uuid
 from functools import partial, reduce
 from os import listdir, path
 from pathlib import Path
@@ -30,6 +31,7 @@ from scipy.stats import zscore
 from sklearn import decomposition
 
 from IPython.display import Markdown as md
+
 
 buf = []
 
@@ -123,40 +125,68 @@ def download(tools_available: dict, tool: str, treatment: str, control: str):
         )
 
 
-def display_config(token: str):
-    config_name = "./config/%s.yaml" % token
-    config = open_yaml(config_name)
-    download_file(content=config, filename=config_name, label="Download config file!")
+# def display_config(token: str):
+#     config_name = "./config/%s.yaml" % token
+#     config = open_yaml(config_name)
+#     download_file(content=config, filename=config_name, label="Download config file!")
+
+
+def download_config(token: str):
+    config_name = f"./config/{token}.yaml"
+    config_dict = open_yaml(config_name)
+
+    if config_dict is not None:
+        # Convert dictionary back to YAML formatted string
+        config_yaml_str = yaml.dump(config_dict, default_flow_style=False)
+
+        # Call download_file with the YAML string
+        download_file(
+            content=config_yaml_str, filename=config_name, label="Download config file!"
+        )
+    else:
+        print("Error: Config file could not be loaded.")
 
 
 def download_raw_counts(token):
-    config_name = "./config/%s.yaml" % token
+    config_name = f"./config/{token}.yaml"
     config = open_yaml(config_name)
+
+    # Get the name of the file with raw counts
     raw_cts_name = config["count_table_file"]
-    raw_cts_content = pd.read_table(raw_cts_name).to_string()
+
+    # Load the file into a pandas DataFrame
+    raw_cts_df = pd.read_table(raw_cts_name)
+
+    # Convert DataFrame to TSV format string
+    raw_cts_tsv = raw_cts_df.to_csv(sep="\t", index=False)
+
+    # Call download_file with the TSV string
     download_file(
-        content=raw_cts_content,
-        filename=raw_cts_name,
-        label=f"Download raw counts matrix!",
+        content=raw_cts_tsv,
+        filename=f"{raw_cts_name}.tsv",
+        label="Download raw counts matrix!",
     )
 
 
 def download_normalized_counts(token):
-    config_name = "./config/%s.yaml" % token
+    config_name = f"./config/{token}.yaml"
     config = open_yaml(config_name)
+
+    # Get the name of the normalized count table file
     cts_name = config["normalized_count_table"]
-    cts_content = pd.read_table(cts_name).to_string()
+
+    # Load the file into a pandas DataFrame
+    cts_df = pd.read_table(cts_name)
+
+    # Convert DataFrame to TSV format string
+    cts_tsv = cts_df.to_csv(sep="\t", index=False)
+
+    # Call download_file with the TSV string
     download_file(
-        content=cts_content,
-        filename=cts_name,
-        label=f"Download normalized counts matrix!",
+        content=cts_tsv,
+        filename=f"{cts_name}.tsv",
+        label="Download normalized counts matrix!",
     )
-
-
-# TODO: how to let the user choose the comparison to download?
-# def download_deseq2_data(token):
-#     config_name = "./config/%s.yaml" % token
-#     config = open_yaml(config_name)
 
 
 def download_design(token):
@@ -168,16 +198,6 @@ def download_design(token):
         content=design_content,
         filename=design_name,
         label=f"Download design file!",
-    )
-
-
-def download_config(token):
-    config_name = "./config/%s.yaml" % token
-    config = open_yaml(config_name)
-    download_file(
-        content=config,
-        filename=config_name,
-        label=f"Download config file!",
     )
 
 
@@ -340,24 +360,77 @@ def show_mapping_qc(token: str):
     display(s)
 
 
+# def download_file(content, label, filename):
+#     # Add download button
+#     outname = os.path.basename(filename)
+#     id_file = rd.random()
+#     display(
+#         HTML(
+#             '<textarea id="textbox_{id_file}" style="display: none;">{content}</textarea> <button id="create_{id_file}">{label}</button> <a download="{filename}" id="downloadlink_{id_file}" style="display: none">Download</a>'.format(
+#                 **locals()
+#             )
+#         )
+#     )
+#     display(
+#         HTML(
+#             '<script type="text/javascript">!function(){{var e=null,t=document.getElementById("create_{id_file}"),n=document.getElementById("textbox_{id_file}");t.addEventListener("click",function(){{var t,l,c=document.getElementById("downloadlink_{id_file}");c.href=(t=n.value,l=new Blob([t],{{type:"text/plain"}}),null!==e&&window.URL.revokeObjectURL(e),e=window.URL.createObjectURL(l)),c.click()}},!1)}}();</script>'.format(
+#                 **locals()
+#             )
+#         )
+#     )
+
+
 def download_file(content, label, filename):
-    # Add download button
-    outname = os.path.basename(filename)
-    id_file = rd.random()
-    display(
-        HTML(
-            '<textarea id="textbox_{id_file}" style="display: none;">{content}</textarea> <button id="create_{id_file}">{label}</button> <a download="{filename}" id="downloadlink_{id_file}" style="display: none">Download</a>'.format(
-                **locals()
-            )
-        )
-    )
-    display(
-        HTML(
-            '<script type="text/javascript">!function(){{var e=null,t=document.getElementById("create_{id_file}"),n=document.getElementById("textbox_{id_file}");t.addEventListener("click",function(){{var t,l,c=document.getElementById("downloadlink_{id_file}");c.href=(t=n.value,l=new Blob([t],{{type:"text/plain"}}),null!==e&&window.URL.revokeObjectURL(e),e=window.URL.createObjectURL(l)),c.click()}},!1)}}();</script>'.format(
-                **locals()
-            )
-        )
-    )
+    """
+    Generates a download button in a Jupyter Notebook for the given content.
+
+    Parameters:
+    content (str): Content to be downloaded.
+    label (str): Label for the download button.
+    filename (str): Name of the file to be downloaded.
+
+    Returns:
+    None
+    """
+    try:
+        # Generate a unique ID for HTML elements
+        unique_id = str(uuid.uuid4())
+
+        # Get the base name of the file to ensure it's a valid filename
+        safe_filename = os.path.basename(filename)
+
+        # Determine the MIME type (default to 'text/plain')
+        mime_type = "text/plain"
+
+        # HTML and JavaScript code for the download button
+        html_script = f"""
+        <textarea id="textbox_{unique_id}" style="display: none;">{content}</textarea>
+        <button id="create_{unique_id}">{label}</button>
+        <a download="{safe_filename}" id="downloadlink_{unique_id}" style="display: none">Download</a>
+        <script type="text/javascript">
+        !function() {{
+            var file_blob = null;
+            var button = document.getElementById("create_{unique_id}");
+            var textbox = document.getElementById("textbox_{unique_id}");
+            button.addEventListener("click", function() {{
+                var content = textbox.value;
+                var blob = new Blob([content], {{type: "{mime_type}"}});
+                if (file_blob !== null) {{
+                    window.URL.revokeObjectURL(file_blob);
+                }}
+                file_blob = window.URL.createObjectURL(blob);
+                var downloadLink = document.getElementById("downloadlink_{unique_id}");
+                downloadLink.href = file_blob;
+                downloadLink.click();
+            }}, false);
+        }}();
+        </script>
+        """
+
+        # Display the HTML and JavaScript
+        display(HTML(html_script))
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 
 def show_read_count_distribution(token: str, width=800, height=400):

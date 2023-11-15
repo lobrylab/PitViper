@@ -700,7 +700,7 @@
                         value="False" onclick="toggleDivVisibility('ssrea_options', 'ssrea_activate')">
                       <label class="form-check-label" for="ssrea_activate">Activate</label>
                     </div>
-                    <div id="ssrea_options" style="display: none;">
+                    <!-- <div id="ssrea_options" style="display: none;">
                       <legend class="col-form-label col-sm-10 pt-3">Ranking method: <a tabindex="0" class="btn btn-link"
                           role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help"
                           data-bs-content="Signal-to-Noise ratio can be used only if there is at least three replicates by sample.">Help
@@ -710,6 +710,23 @@
                         <option value="signal_to_noise" selected>Signal-to-Noise</option>
                         <option value="fold_change">Fold-change</option>
                       </select>
+                    </div> -->
+                    <div id="ssrea_options" style="display: none;">
+                      <legend class="col-form-label col-sm-10 pt-3">Ranking method: <a tabindex="0" class="btn btn-link"
+                          role="button" data-bs-toggle="popover" data-bs-trigger="focus" title="Help"
+                          data-bs-content="Signal-to-Noise ratio can be used only if there is at least three replicates per sample.">Help
+                        </a></legend>
+                      <select class="form-select" id="ssrea_ranking_method" name="ssrea_ranking_method"
+                        onchange="checkSelection()">
+                        <option selected>Open this select menu</option>
+                        <option value="signal_to_noise">Signal-to-Noise</option>
+                        <option value="fold_change" selected>Fold-change</option>
+                      </select>
+                      <!-- Warning message, initially hidden -->
+                      <div id="warningMessage" style="display: none; color: red;">
+                        <p>Warning: If the number of replicates per condition is not higher than 2, the Fold-Change
+                          method will be automatically used.</p>
+                      </div>
                     </div>
                     <p style="padding: 1em;"> Reference: <a href="https://www.pnas.org/content/102/43/15545"
                         class="link-primary text-dark">Original GSEA article</a> and <a
@@ -842,6 +859,18 @@
           document.getElementById("content").style.display = "none";
         });
       }
+
+      function checkSelection() {
+        var method = document.getElementById("ssrea_ranking_method").value;
+        var warningDiv = document.getElementById("warningMessage");
+        // Display the warning if Signal-to-Noise is selected
+        if (method === "signal_to_noise") {
+          warningDiv.style.display = "block";
+        } else {
+          warningDiv.style.display = "none";
+        }
+      }
+
     </script>
 
 </body>
