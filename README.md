@@ -225,7 +225,7 @@ Test dataset consisting of:
     - a design file: design.tsv
     - a list of control features: negative_controls.txt
     
-can be found in [Git](https://github.com/lobrylab/PitViper/tree/master/PitViper/resources/example/) folder.
+can be found in [PitViper/resources/example](https://github.com/lobrylab/PitViper/tree/master/PitViper/resources/example/) folder.
 
 These files can be used to test proper PitViper functionning.
 
