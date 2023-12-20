@@ -215,6 +215,12 @@ However, the replicate column must contain the same labels as those in the count
 | guide_A.2   | element_A | 354 | 234 | 852 | 546 | 64  | 452 |
 
 
+###Example Dataset to test PitViper
+
+Test dataset consisting of a count matrix, an associated design file and a list of control features can be found in PitViper/resources/example/ folder.
+These files can be used to test proper PitViper functionning.
+
+
 ## PitViper CLI
 
 PitViper CLI is a command-line tool for running the PitViper pipeline.
