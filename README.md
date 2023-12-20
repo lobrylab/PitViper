@@ -36,6 +36,8 @@ It stands for "Processing, InTerpretation, and VIsualization of PoolEd screening
 
   - [Starting from count matrix](#starting-from-count-matrix)
  
+  - [Example Dataset to test PitViper](#example-dataset-to-test-pitviper)
+ 
 - [PitViper CLI](#pitviper-cli)
 
 
@@ -215,7 +217,7 @@ However, the replicate column must contain the same labels as those in the count
 | guide_A.2   | element_A | 354 | 234 | 852 | 546 | 64  | 452 |
 
 
-###Example Dataset to test PitViper
+### Example Dataset to test PitViper
 
 Test dataset consisting of a count matrix, an associated design file and a list of control features can be found in PitViper/resources/example/ folder.
 These files can be used to test proper PitViper functionning.
