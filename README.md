@@ -87,6 +87,14 @@ In the jupyter notebook window click on Report.ipynb file to open it.
 
 Then, click the double arrow button on top (restart the kernel and re-run the whole notebook) to initialize all the widgets.
 
+<img src="PitViper/docs/Notebook2.jpg" alt="alt text">
+
+<img src="PitViper/docs/Notebook3.jpg" alt="alt text">
+
+The notebook is now ready to be used.
+
+<img src="PitViper/docs/Notebook4.jpg" alt="alt text">
+
 If the notebook window does not open, you can open it by copying and pasting the notebook adress displayed in the terminal that will have the following format : localhost:8888/[token]
 
 ```bash
@@ -99,6 +107,16 @@ If the notebook window does not open, you can open it by copying and pasting the
      or http://127.0.0.1:8888/?token=c95230fc1989707e31bc8edb5090e0e9dd3e8933f4390d31
 ```
 
+To re-open a notebook later, activate PitViper conda anvironment:
+
+```bash
+conda activate pitviper_env
+```
+Then start the notebook server pointing to the results folder:
+
+```bash
+jupyter notebook results/
+```
 
 ### Running PitViper from Docker container
 
