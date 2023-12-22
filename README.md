@@ -75,6 +75,27 @@ Once installation is complete, the PitViper GUI will automatically open in your 
 
 <img src="PitViper/docs/PitViper.png" alt="alt text">
 
+### Jupyter Notebook usage
+
+Once main PitViper analysis will be over, a jupyter notebook server will automatically open in a new browser window.
+
+In the jupyter notebook window click on Report.ipynb file to open it.
+
+Then, click the double arrow button on top (restart the kernel and re-run the whole notebook) to initialize all the widgets.
+
+If the notebook window does not open, you can open it by copying and pasting the notebook adress displayed in the terminal that will have the following format : localhost:8888/[token]
+
+```bash
+# Example lines displayed after PitViper completion in the terminal
+
+ To access the notebook, open this file in a browser:
+        file:///root/.local/share/jupyter/runtime/nbserver-3149-open.html
+    Or copy and paste one of these URLs:
+        http://1320331d8021:8888/?token=c95230fc1989707e31bc8edb5090e0e9dd3e8933f4390d31
+     or http://127.0.0.1:8888/?token=c95230fc1989707e31bc8edb5090e0e9dd3e8933f4390d31
+```
+
+
 ### Run PitViper from Docker container
 
 #### Building Image
