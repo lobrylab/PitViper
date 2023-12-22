@@ -107,7 +107,7 @@ If the notebook window does not open, you can open it by copying and pasting the
      or http://127.0.0.1:8888/?token=c95230fc1989707e31bc8edb5090e0e9dd3e8933f4390d31
 ```
 
-To re-open a notebook later, activate PitViper conda anvironment:
+To re-open a notebook later, activate PitViper conda environment:
 
 ```bash
 conda activate pitviper_env
