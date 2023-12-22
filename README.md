@@ -24,11 +24,13 @@ It stands for "Processing, InTerpretation, and VIsualization of PoolEd screening
 
 - [Prerequisites](#prerequisites)
 
-- [Installation](#installation)
+- [Installation and execution](#installation-and-execution)
 
   - [Using the Automated Script](#using-the-automated-script)
+ 
+  - [Jupyter Notebook usage](#jupyter-notebook-usage)
   
-  - [Run PitViper from Docker container](#run-pitviper-from-docker-container)
+  - [Running PitViper from Docker container](#running-pitviper-from-docker-container)
 
 - [Inputs](#inputs)
 
@@ -49,7 +51,7 @@ Before using this script, ensure you have the following prerequisites:
 
 - Git: If the application's dependencies include external repositories, Git is required for cloning those repositories. You can download [Git](https://git-scm.com/) from the official Git website.
 
-## Installation
+## Installation and execution
 
 ### Using the Automated Script
 
@@ -79,6 +81,8 @@ Once installation is complete, the PitViper GUI will automatically open in your 
 
 Once main PitViper analysis will be over, a jupyter notebook server will automatically open in a new browser window.
 
+<img src="PitViper/docs/Notebook1.jpg" alt="alt text">
+
 In the jupyter notebook window click on Report.ipynb file to open it.
 
 Then, click the double arrow button on top (restart the kernel and re-run the whole notebook) to initialize all the widgets.
@@ -96,7 +100,7 @@ If the notebook window does not open, you can open it by copying and pasting the
 ```
 
 
-### Run PitViper from Docker container
+### Running PitViper from Docker container
 
 #### Building Image
 
