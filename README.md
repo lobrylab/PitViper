@@ -75,6 +75,8 @@ Available options:
 
 Once installation is complete, the PitViper GUI will automatically open in your default web browser, allowing you to start analyzing your functional screening data seamlessly.
 
+A screencast of complete PitViper installation, starting with miniconda installation and followed by PitViper execution with test dataset cans be found **[here](https://youtu.be/R2CxY4Ns8Uw)**
+
 <img src="PitViper/docs/PitViper.png" alt="alt text">
 
 ### Jupyter Notebook usage
