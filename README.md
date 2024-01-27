@@ -59,7 +59,7 @@ PitViper can be effortlessly installed using the provided `run.sh` script. This 
 
 ```bash
 # Clone the PitViper repository and navigate to its root directory
-git clone https://github.com/PaulArthurM/PitViper.git
+git clone [https://github.com/PaulArthurM/PitViper.git](https://github.com/lobrylab/PitViper)
 ```
 ```bash
 # Run the installation script
