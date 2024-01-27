@@ -283,7 +283,8 @@ These files can be used to test proper PitViper functionning.
 
 ## PitViper CLI
 
-PitViper CLI is a command-line tool for running the PitViper pipeline.
+Although its main intent is to use the GUI, PitViper CLI is a command-line tool for running the PitViper pipeline.
+The CLI can be particularly useful to resume a stopped execution of the snakemake pipeline.
 
 ### Usage
 
