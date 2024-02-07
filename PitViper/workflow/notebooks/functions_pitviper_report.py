@@ -59,6 +59,7 @@ pd.options.mode.chained_assignment = None
 
 # Define layout for widgets
 layout = widgets.Layout(width="auto", height="40px")  # set width and height
+style = {"description_width": "initial"}
 
 
 def natural_sort(l: list):
@@ -935,15 +936,155 @@ def tool_results(results_directory, tools_available, token):
     )
 
     fdr_widget = widgets.FloatSlider(
-        min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off"
+        min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
+    )
+
+    # Add a widget to define the BAGEL2 minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    bagel_bf_widget = widgets.FloatText(
+        value=0,
+        description="BAGEL2 BF cut-off:",
+        # If BAGEL2 is not available, the widget is disabled
+        disabled="BAGEL2" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the BAGEL2 BF cut-off. Default is ">=".
+    bagel_bf_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<="],
+        value=">=",
+        description="",
+        # If BAGEL2 is not available, the widget is disabled
+        disabled="BAGEL2" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="50px"),
+    )
+
+    # Add a widget to define the SSREA minimum NES cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    ssrea_nes_widget = widgets.FloatText(
+        value=0,
+        description="SSREA NES cut-off:",
+        # If SSREA is not available, the widget is disabled
+        disabled="SSREA" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the SSREA NES cut-off. Default is ">=". Using Dropdown widget.
+    ssrea_nes_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<="],
+        value=">=",
+        description="",
+        # If SSREA is not available, the widget is disabled
+        disabled="SSREA" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="50px"),
+    )
+
+    # Add a widget to define the directional_scoring_method minimum score cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    directional_scoring_method_score_widget = widgets.FloatText(
+        value=0,
+        description="DSM score cut-off:",
+        # If directional_scoring_method is not available, the widget is disabled
+        disabled="directional_scoring_method" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the directional_scoring_method score cut-off. Default is ">=". Using Dropdown widget.
+    directional_scoring_method_score_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<="],
+        value=">=",
+        description="",
+        # If directional_scoring_method is not available, the widget is disabled
+        disabled="directional_scoring_method" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="50px"),
+    )
+
+    # Add a widget to define the CRISPhieRmix minimum mean logFC cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    crisphiermix_logfc_widget = widgets.FloatText(
+        value=0,
+        description="CRISPhieRmix logFC cut-off:",
+        # If CRISPhieRmix is not available, the widget is disabled
+        disabled="CRISPhieRmix" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the CRISPhieRmix mean logFC cut-off. Default is ">=". Using Dropdown widget.
+    crisphiermix_logfc_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<="],
+        value=">=",
+        description="",
+        # If CRISPhieRmix is not available, the widget is disabled
+        disabled="CRISPhieRmix" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="50px"),
+    )
+
+    # Add a widget to define the MAGeCK_MLE minimum beta cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    mageck_mle_beta_widget = widgets.FloatText(
+        value=0,
+        description="MAGeCK MLE beta cut-off:",
+        # If MAGeCK_MLE is not available, the widget is disabled
+        disabled="MAGeCK_MLE" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the MAGeCK_MLE beta cut-off. Default is ">=". Using Dropdown widget.
+    mageck_mle_beta_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<="],
+        value=">=",
+        description="",
+        # If MAGeCK_MLE is not available, the widget is disabled
+        disabled="MAGeCK_MLE" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="50px"),
+    )
+
+    # Add a widget to define the MAGeCK_RRA minimum LFC cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    mageck_rra_lfc_widget = widgets.FloatText(
+        value=0,
+        description="MAGeCK RRA LFC cut-off:",
+        # If MAGeCK_RRA is not available, the widget is disabled
+        disabled="MAGeCK_RRA" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the MAGeCK_RRA LFC cut-off. Default is ">=". Using Dropdown widget.
+    mageck_rra_lfc_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<="],
+        value=">=",
+        description="",
+        # If MAGeCK_RRA is not available, the widget is disabled
+        disabled="MAGeCK_RRA" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="50px"),
     )
 
     color_sig_widget = widgets.ColorPicker(
-        concise=False, description="Significant color:", value="red"
+        concise=False,
+        description="Significant color:",
+        value="red",
+        style=style,
     )
     color_non_widget = widgets.ColorPicker(
-        concise=False, description="Non-significant color:", value="gray"
+        concise=False,
+        description="Non-significant color:",
+        value="gray",
+        style=style,
     )
+
+    def filter_by_threshold(
+        df, treatment, threshold, orientation, fdr_cutoff, significant_label
+    ):
+        orientation = {
+            ">=": lambda x: x > threshold,
+            "<=": lambda x: x <= threshold,
+            "abs>=": lambda x: abs(x) >= threshold,
+            "abs<=": lambda x: abs(x) <= threshold,
+        }[orientation]
+
+        mask = (df[treatment] < fdr_cutoff) & (orientation(df[treatment + "|beta"]))
+        df.loc[mask, "significant"] = significant_label
+        return df
 
     def _MAGeCK_MLE_snake_plot(
         comparison,
@@ -959,6 +1100,8 @@ def tool_results(results_directory, tools_available, token):
         non_significant_label = "FDR ≥ %s" % fdr_cutoff
         highlight_label = "Hit(s) of Interest"
         treatment, control = comparison.split("_vs_")
+        mageck_mle_beta = float(mageck_mle_beta_widget.value)
+        mageck_mle_beta_orientation = mageck_mle_beta_orientation_widget.value
         source = MAGeCK_MLE_data(
             comparison=comparison,
             control="",
@@ -967,12 +1110,17 @@ def tool_results(results_directory, tools_available, token):
             tools_available=tools_available,
         )
         source["default_rank"] = source[treatment + "|beta"].rank()
-        source.loc[
-            source[treatment + "|fdr"] < fdr_cutoff, "significant"
-        ] = significant_label
-        source.loc[
-            source[treatment + "|fdr"] >= fdr_cutoff, "significant"
-        ] = non_significant_label
+
+        source["significant"] = non_significant_label
+        source = filter_by_threshold(
+            source,
+            treatment,
+            mageck_mle_beta,
+            mageck_mle_beta_orientation,
+            fdr_cutoff,
+            significant_label,
+        )
+
         source.loc[source.Gene.isin(elements), "significant"] = highlight_label
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
@@ -1038,6 +1186,8 @@ def tool_results(results_directory, tools_available, token):
         non_significant_label = "FDR ≥ %s" % fdr_cutoff
         highlight_label = "Hit(s) of Interest"
         treatment, control = comparison.split("_vs_")
+        mageck_rra_lfc = float(mageck_rra_lfc_widget.value)
+        mageck_rra_lfc_orientation = mageck_rra_lfc_orientation_widget.value
         source = MAGeCK_RRA_data(
             comparison=comparison,
             control="",
@@ -1053,12 +1203,22 @@ def tool_results(results_directory, tools_available, token):
             source["neg|lfc"] < 0, source["neg|fdr"], source["pos|fdr"]
         )
 
-        source.loc[
-            source["selected_fdr"] < fdr_cutoff, "significant"
-        ] = significant_label
-        source.loc[
-            source["selected_fdr"] >= fdr_cutoff, "significant"
-        ] = non_significant_label
+        source["significant"] = non_significant_label
+        source = filter_by_threshold(
+            source,
+            "neg",
+            mageck_rra_lfc,
+            mageck_rra_lfc_orientation,
+            fdr_cutoff,
+            significant_label,
+        )
+
+        # source.loc[source["selected_fdr"] < fdr_cutoff, "significant"] = (
+        #     significant_label
+        # )
+        # source.loc[source["selected_fdr"] >= fdr_cutoff, "significant"] = (
+        #     non_significant_label
+        # )
         source.loc[source.id.isin(elements), "significant"] = highlight_label
 
         domain = [significant_label, non_significant_label, highlight_label]
@@ -1140,9 +1300,9 @@ def tool_results(results_directory, tools_available, token):
         )
         source["default_rank"] = source["mean_log2FoldChange"].rank(method="dense")
         source.loc[source["locfdr"] < fdr_cutoff, "significant"] = significant_label
-        source.loc[
-            source["locfdr"] >= fdr_cutoff, "significant"
-        ] = non_significant_label
+        source.loc[source["locfdr"] >= fdr_cutoff, "significant"] = (
+            non_significant_label
+        )
         source.loc[source.gene.isin(elements), "significant"] = highlight_label
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
@@ -1216,12 +1376,12 @@ def tool_results(results_directory, tools_available, token):
             tools_available=tools_available,
         )
         source["default_rank"] = source["score"].rank(method="first")
-        source.loc[
-            source.category.isin(["down", "up"]), "significant"
-        ] = significant_label
-        source.loc[
-            ~source.category.isin(["down", "up"]), "significant"
-        ] = non_significant_label
+        source.loc[source.category.isin(["down", "up"]), "significant"] = (
+            significant_label
+        )
+        source.loc[~source.category.isin(["down", "up"]), "significant"] = (
+            non_significant_label
+        )
         source.loc[source.Gene.isin(elements), "significant"] = highlight_label
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
@@ -1292,9 +1452,9 @@ def tool_results(results_directory, tools_available, token):
         )
         source["default_rank"] = source[["NES"]].rank(method="dense")
         source.loc[abs(source["padj"]) < fdr_cutoff, "significant"] = significant_label
-        source.loc[
-            abs(source["padj"]) >= fdr_cutoff, "significant"
-        ] = non_significant_label
+        source.loc[abs(source["padj"]) >= fdr_cutoff, "significant"] = (
+            non_significant_label
+        )
         source.loc[source.pathway.isin(elements), "significant"] = highlight_label
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
@@ -1503,7 +1663,38 @@ def tool_results(results_directory, tools_available, token):
     display(tools_widget)
     display(element)
     display(comparisons_widget)
+    # Display a text widget to delimite the filter for each tool
+    display(HTML("<h3>Highlight features:</h3>"))
     display(fdr_widget)
+
+    display(HTML("<h4>BAGEL2:</h4>"))
+    display(widgets.HBox([bagel_bf_widget, bagel_bf_orientation_widget]))
+
+    display(HTML("<h4>SSREA:</h4>"))
+    display(widgets.HBox([ssrea_nes_widget, ssrea_nes_orientation_widget]))
+
+    display(HTML("<h4>DSM:</h4>"))
+    display(
+        widgets.HBox(
+            [
+                directional_scoring_method_score_widget,
+                directional_scoring_method_score_orientation_widget,
+            ]
+        )
+    )
+
+    display(HTML("<h4>CRISPhieRmix:</h4>"))
+    display(
+        widgets.HBox([crisphiermix_logfc_widget, crisphiermix_logfc_orientation_widget])
+    )
+
+    display(HTML("<h4>MAGeCK MLE:</h4>"))
+    display(widgets.HBox([mageck_mle_beta_widget, mageck_mle_beta_orientation_widget]))
+
+    display(HTML("<h4>MAGeCK RRA:</h4>"))
+    display(widgets.HBox([mageck_rra_lfc_widget, mageck_rra_lfc_orientation_widget]))
+
+    display(HTML("<h3>Color:</h3>"))
     display(color_sig_widget)
     display(color_non_widget)
 
@@ -1922,9 +2113,9 @@ def tool_results_by_element(results_directory, tools_available, token):
         significant_label = "Yes"
         non_significant_label = "No"
         result.loc[result["locfdr"] < fdr_cutoff, "significant"] = significant_label
-        result.loc[
-            result["locfdr"] >= fdr_cutoff, "significant"
-        ] = non_significant_label
+        result.loc[result["locfdr"] >= fdr_cutoff, "significant"] = (
+            non_significant_label
+        )
         new_row = {
             "gene": gene,
             "condition": control,
@@ -1971,15 +2162,15 @@ def tool_results_by_element(results_directory, tools_available, token):
             result["neg|lfc"] < 0, result["neg|fdr"], result["pos|fdr"]
         )
 
-        result.loc[
-            result["selected_fdr"] < fdr_cutoff, "significant"
-        ] = significant_label
-        result.loc[
-            result["selected_fdr"] < fdr_cutoff, "significant"
-        ] = significant_label
-        result.loc[
-            result["selected_fdr"] >= fdr_cutoff, "significant"
-        ] = non_significant_label
+        result.loc[result["selected_fdr"] < fdr_cutoff, "significant"] = (
+            significant_label
+        )
+        result.loc[result["selected_fdr"] < fdr_cutoff, "significant"] = (
+            significant_label
+        )
+        result.loc[result["selected_fdr"] >= fdr_cutoff, "significant"] = (
+            non_significant_label
+        )
 
         new_row = {
             "id": gene,
@@ -2172,12 +2363,12 @@ def tool_results_by_element(results_directory, tools_available, token):
     ):
         significant_label = "Yes"
         non_significant_label = "No"
-        result.loc[
-            result.category.isin(["down", "up"]), "significant"
-        ] = significant_label
-        result.loc[
-            ~result.category.isin(["down", "up"]), "significant"
-        ] = non_significant_label
+        result.loc[result.category.isin(["down", "up"]), "significant"] = (
+            significant_label
+        )
+        result.loc[~result.category.isin(["down", "up"]), "significant"] = (
+            non_significant_label
+        )
         new_row = {
             "Gene": gene,
             "condition": control,
