@@ -901,9 +901,69 @@ def CRISPhieRmix_data(
     return result
 
 
+def filter_by_threshold(
+    df,
+    score_column,
+    threshold,
+    orientation,
+    significant_label,
+    fdr_column=None,
+    fdr_cutoff=None,
+):
+    """Filter a dataframe based on a threshold and a column."""
+    orientation = {
+        ">=": lambda x: x > threshold,
+        "<=": lambda x: x <= threshold,
+        "abs>=": lambda x: abs(x) >= threshold,
+        "abs<=": lambda x: abs(x) <= threshold,
+        "abs>": lambda x: abs(x) > threshold,
+        "abs<": lambda x: abs(x) < threshold,
+    }[orientation]
+
+    if fdr_cutoff and fdr_column:
+        mask = (df[fdr_column] < fdr_cutoff) & (orientation(df[score_column]))
+    else:
+        mask = orientation(df[score_column])
+
+    df.loc[mask, "significant"] = significant_label
+    return df
+
+
+def get_reverse_orientation(orientation):
+    """Return the reverse orientation of a given orientation."""
+    if orientation == ">=":
+        return "<="
+    elif orientation == "<=":
+        return ">="
+    elif orientation == "abs>=":
+        return "abs<"
+    elif orientation == "abs<=":
+        return "abs>"
+    elif orientation == "abs>":
+        return "abs<="
+    elif orientation == "abs<":
+        return "abs>="
+
+
+def get_pretty_orientation(orientation):
+    """Return the pretty version of a given orientation."""
+    if orientation == ">=":
+        return "≥"
+    elif orientation == "<=":
+        return "≤"
+    elif orientation == "abs>=":
+        return "abs≥"
+    elif orientation == "abs<=":
+        return "abs≤"
+    elif orientation == "abs>":
+        return "abs>"
+    elif orientation == "abs<":
+        return "abs<"
+
+
 def tool_results(results_directory, tools_available, token):
     """Display selected method's results for all genes."""
-    config = "./config/%s.yaml" % token
+    config = f"./config/{token}.yaml"
     content = open_yaml(config)
     cts_file = "results/%s/normalized.filtered.counts.txt" % token
     cts = pd.read_csv(cts_file, sep="\t")
@@ -956,7 +1016,7 @@ def tool_results(results_directory, tools_available, token):
         # If BAGEL2 is not available, the widget is disabled
         disabled="BAGEL2" not in tools,
         # style=style,
-        layout=widgets.Layout(width="50px"),
+        layout=widgets.Layout(width="75px"),
     )
 
     # Add a widget to define the SSREA minimum NES cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
@@ -971,12 +1031,12 @@ def tool_results(results_directory, tools_available, token):
     # Add a widget to define the orientation of the SSREA NES cut-off. Default is ">=". Using Dropdown widget.
     ssrea_nes_orientation_widget = widgets.Dropdown(
         options=[">=", "<=", "abs>=", "abs<="],
-        value=">=",
+        value="abs>=",
         description="",
         # If SSREA is not available, the widget is disabled
         disabled="SSREA" not in tools,
         # style=style,
-        layout=widgets.Layout(width="50px"),
+        layout=widgets.Layout(width="75px"),
     )
 
     # Add a widget to define the directional_scoring_method minimum score cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
@@ -990,13 +1050,13 @@ def tool_results(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the directional_scoring_method score cut-off. Default is ">=". Using Dropdown widget.
     directional_scoring_method_score_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<="],
-        value=">=",
+        options=[">=", "<=", "abs>=", "abs<=", "abs>", "abs<"],
+        value="abs>",
         description="",
         # If directional_scoring_method is not available, the widget is disabled
         disabled="directional_scoring_method" not in tools,
         # style=style,
-        layout=widgets.Layout(width="50px"),
+        layout=widgets.Layout(width="75px"),
     )
 
     # Add a widget to define the CRISPhieRmix minimum mean logFC cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
@@ -1011,12 +1071,12 @@ def tool_results(results_directory, tools_available, token):
     # Add a widget to define the orientation of the CRISPhieRmix mean logFC cut-off. Default is ">=". Using Dropdown widget.
     crisphiermix_logfc_orientation_widget = widgets.Dropdown(
         options=[">=", "<=", "abs>=", "abs<="],
-        value=">=",
+        value="abs>=",
         description="",
         # If CRISPhieRmix is not available, the widget is disabled
         disabled="CRISPhieRmix" not in tools,
         # style=style,
-        layout=widgets.Layout(width="50px"),
+        layout=widgets.Layout(width="75px"),
     )
 
     # Add a widget to define the MAGeCK_MLE minimum beta cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
@@ -1031,12 +1091,12 @@ def tool_results(results_directory, tools_available, token):
     # Add a widget to define the orientation of the MAGeCK_MLE beta cut-off. Default is ">=". Using Dropdown widget.
     mageck_mle_beta_orientation_widget = widgets.Dropdown(
         options=[">=", "<=", "abs>=", "abs<="],
-        value=">=",
+        value="abs>=",
         description="",
         # If MAGeCK_MLE is not available, the widget is disabled
         disabled="MAGeCK_MLE" not in tools,
         # style=style,
-        layout=widgets.Layout(width="50px"),
+        layout=widgets.Layout(width="75px"),
     )
 
     # Add a widget to define the MAGeCK_RRA minimum LFC cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
@@ -1051,12 +1111,12 @@ def tool_results(results_directory, tools_available, token):
     # Add a widget to define the orientation of the MAGeCK_RRA LFC cut-off. Default is ">=". Using Dropdown widget.
     mageck_rra_lfc_orientation_widget = widgets.Dropdown(
         options=[">=", "<=", "abs>=", "abs<="],
-        value=">=",
+        value="abs>=",
         description="",
         # If MAGeCK_RRA is not available, the widget is disabled
         disabled="MAGeCK_RRA" not in tools,
         # style=style,
-        layout=widgets.Layout(width="50px"),
+        layout=widgets.Layout(width="75px"),
     )
 
     color_sig_widget = widgets.ColorPicker(
@@ -1072,20 +1132,6 @@ def tool_results(results_directory, tools_available, token):
         style=style,
     )
 
-    def filter_by_threshold(
-        df, treatment, threshold, orientation, fdr_cutoff, significant_label
-    ):
-        orientation = {
-            ">=": lambda x: x > threshold,
-            "<=": lambda x: x <= threshold,
-            "abs>=": lambda x: abs(x) >= threshold,
-            "abs<=": lambda x: abs(x) <= threshold,
-        }[orientation]
-
-        mask = (df[treatment] < fdr_cutoff) & (orientation(df[treatment + "|beta"]))
-        df.loc[mask, "significant"] = significant_label
-        return df
-
     def _MAGeCK_MLE_snake_plot(
         comparison,
         fdr_cutoff,
@@ -1095,13 +1141,26 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "MAGeCK_MLE"
-        significant_label = "FDR < %s" % fdr_cutoff
-        non_significant_label = "FDR ≥ %s" % fdr_cutoff
-        highlight_label = "Hit(s) of Interest"
-        treatment, control = comparison.split("_vs_")
+
+        # Define the beta and beta orientation
         mageck_mle_beta = float(mageck_mle_beta_widget.value)
         mageck_mle_beta_orientation = mageck_mle_beta_orientation_widget.value
+
+        # Define the significant and non-significant labels using FDR and beta thresholds
+        significant_label = f"FDR < {fdr_cutoff} and beta {get_pretty_orientation(mageck_mle_beta_orientation)} {mageck_mle_beta}"
+
+        # Define the non-significant label
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or beta {get_pretty_orientation(get_reverse_orientation(mageck_mle_beta_orientation))} {mageck_mle_beta}"
+
+        # Define the highlight label
+        highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
+        treatment, control = comparison.split("_vs_")
+
+        # Get the MAGeCK MLE results
         source = MAGeCK_MLE_data(
             comparison=comparison,
             control="",
@@ -1109,37 +1168,49 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
+
+        # Compute the default rank of the beta scores
         source["default_rank"] = source[treatment + "|beta"].rank()
 
+        # Set the significant label to non-significant by default
         source["significant"] = non_significant_label
+
+        # Filter the data based on the beta and FDR thresholds
         source = filter_by_threshold(
             source,
-            treatment,
+            treatment + "|beta",
             mageck_mle_beta,
             mageck_mle_beta_orientation,
-            fdr_cutoff,
             significant_label,
+            treatment + "|fdr",
+            fdr_cutoff,
         )
 
+        # Highlight the elements of interest
         source.loc[source.Gene.isin(elements), "significant"] = highlight_label
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
-            alt.Chart(source, title="MAGeCK MLE (%s)" % comparison)
+            alt.Chart(source, title=f"MAGeCK MLE ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
                 y=alt.Y(
-                    treatment + "|beta:Q", axis=alt.Axis(title="%s beta" % treatment)
+                    treatment + "|beta:Q", axis=alt.Axis(title=f"{treatment} beta")
                 ),
                 tooltip=[
                     "Gene",
@@ -1181,13 +1252,24 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "MAGeCK_RRA"
-        significant_label = "FDR < %s" % fdr_cutoff
-        non_significant_label = "FDR ≥ %s" % fdr_cutoff
-        highlight_label = "Hit(s) of Interest"
-        treatment, control = comparison.split("_vs_")
+
+        # Define the LFC and LFC orientation
         mageck_rra_lfc = float(mageck_rra_lfc_widget.value)
         mageck_rra_lfc_orientation = mageck_rra_lfc_orientation_widget.value
+
+        # Define the significant and non-significant labels using FDR threshold and LFC
+        significant_label = f"FDR < {fdr_cutoff} and LFC {get_pretty_orientation(mageck_rra_lfc_orientation)} {mageck_rra_lfc}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or LFC {get_pretty_orientation(get_reverse_orientation(mageck_rra_lfc_orientation))} {mageck_rra_lfc}"
+
+        # Define the highlight label
+        highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
+        treatment, control = comparison.split("_vs_")
+
+        # Get the MAGeCK RRA results
         source = MAGeCK_RRA_data(
             comparison=comparison,
             control="",
@@ -1203,35 +1285,37 @@ def tool_results(results_directory, tools_available, token):
             source["neg|lfc"] < 0, source["neg|fdr"], source["pos|fdr"]
         )
 
+        # Set the significant label to non-significant by default
         source["significant"] = non_significant_label
+
         source = filter_by_threshold(
             source,
-            "neg",
+            "neg|lfc",
             mageck_rra_lfc,
             mageck_rra_lfc_orientation,
-            fdr_cutoff,
             significant_label,
+            "selected_fdr",
+            fdr_cutoff,
         )
 
-        # source.loc[source["selected_fdr"] < fdr_cutoff, "significant"] = (
-        #     significant_label
-        # )
-        # source.loc[source["selected_fdr"] >= fdr_cutoff, "significant"] = (
-        #     non_significant_label
-        # )
+        # Highlight the elements of interest
         source.loc[source.id.isin(elements), "significant"] = highlight_label
 
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
             alt.Chart(source, title="MAGeCK RRA (%s)" % comparison)
             .mark_circle(size=60)
@@ -1286,11 +1370,24 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "CRISPhieRmix"
-        significant_label = "FDR < %s" % fdr_cutoff
-        non_significant_label = "FDR ≥ %s" % fdr_cutoff
+
+        # Define the mean log2FoldChange and mean log2FoldChange orientation
+        crisphiermix_logfc = float(crisphiermix_logfc_widget.value)
+        crisphiermix_logfc_orientation = crisphiermix_logfc_orientation_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and logFC {get_pretty_orientation(crisphiermix_logfc_orientation)} {crisphiermix_logfc}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or logFC {get_pretty_orientation(get_reverse_orientation(crisphiermix_logfc_orientation))} {crisphiermix_logfc}"
+
+        # Define the highlight label
         highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
+
+        # Get the CRISPhieRmix results
         source = CRISPhieRmix_data(
             comparison=comparison,
             control="",
@@ -1298,31 +1395,48 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
+
+        # Compute the default rank of the mean log2FoldChange
         source["default_rank"] = source["mean_log2FoldChange"].rank(method="dense")
-        source.loc[source["locfdr"] < fdr_cutoff, "significant"] = significant_label
-        source.loc[source["locfdr"] >= fdr_cutoff, "significant"] = (
-            non_significant_label
+
+        source["significant"] = non_significant_label
+
+        source = filter_by_threshold(
+            source,
+            "mean_log2FoldChange",
+            crisphiermix_logfc,
+            crisphiermix_logfc_orientation,
+            significant_label,
+            "FDR",
+            fdr_cutoff,
         )
+
+        # Highlight the elements of interest
         source.loc[source.gene.isin(elements), "significant"] = highlight_label
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
-            alt.Chart(source, title="CRISPhieRmix (%s)" % comparison)
+            alt.Chart(source, title=f"CRISPhieRmix ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
                 y=alt.Y(
                     "mean_log2FoldChange:Q",
-                    axis=alt.Axis(title="%s sgRNAs log2FoldChange average" % treatment),
+                    axis=alt.Axis(title=f"{treatment} sgRNAs log2FoldChange average"),
                 ),
                 tooltip=[
                     "gene",
@@ -1363,11 +1477,28 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "directional_scoring_method"
-        significant_label = "Filter: pass"
-        non_significant_label = "Filter: don't pass"
+
+        # Define the score and score orientation
+        directional_scoring_method_score = float(
+            directional_scoring_method_score_widget.value
+        )
+        directional_scoring_method_score_orientation = (
+            directional_scoring_method_score_orientation_widget.value
+        )
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and score {get_pretty_orientation(directional_scoring_method_score_orientation)} {directional_scoring_method_score}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or score {get_pretty_orientation(get_reverse_orientation(directional_scoring_method_score_orientation))} {directional_scoring_method_score}"
+
+        # Define the highlight label
         highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
+
+        # Get the Directional Scoring Method results
         source = directional_scoring_method_data(
             comparison=comparison,
             control="",
@@ -1375,31 +1506,46 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
+
+        # Compute the default rank of the score
         source["default_rank"] = source["score"].rank(method="first")
-        source.loc[source.category.isin(["down", "up"]), "significant"] = (
-            significant_label
+
+        # Set the significant label to non-significant by default
+        source["significant"] = non_significant_label
+
+        # Filter the data based on the score threshold
+        source = filter_by_threshold(
+            source,
+            "score",
+            directional_scoring_method_score,
+            directional_scoring_method_score_orientation,
+            significant_label,
         )
-        source.loc[~source.category.isin(["down", "up"]), "significant"] = (
-            non_significant_label
-        )
+
+        # Highlight the elements of interest
         source.loc[source.Gene.isin(elements), "significant"] = highlight_label
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
-            alt.Chart(source, title="Directional Scoring Method (%s)" % comparison)
+            alt.Chart(source, title=f"Directional Scoring Method ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
-                y=alt.Y("score:Q", axis=alt.Axis(title="%s score" % treatment)),
+                y=alt.Y("score:Q", axis=alt.Axis(title=f"{treatment} score")),
                 tooltip=[
                     "Gene",
                     "up",
@@ -1438,11 +1584,24 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "SSREA"
-        significant_label = "FDR < %s" % fdr_cutoff
-        non_significant_label = "FDR ≥ %s" % fdr_cutoff
+
+        # Define the NES and NES orientation
+        ssrea_nes = float(ssrea_nes_widget.value)
+        ssrea_nes_orientation = ssrea_nes_orientation_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and NES {get_pretty_orientation(ssrea_nes_orientation)} {ssrea_nes}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or NES {get_pretty_orientation(get_reverse_orientation(ssrea_nes_orientation))} {ssrea_nes}"
+
+        # Define the highlight label
         highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
+
+        # Get the SSREA results
         source = SSREA_like_data(
             comparison=comparison,
             control="",
@@ -1450,29 +1609,48 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
+
+        # Compute the default rank of the NES
         source["default_rank"] = source[["NES"]].rank(method="dense")
-        source.loc[abs(source["padj"]) < fdr_cutoff, "significant"] = significant_label
-        source.loc[abs(source["padj"]) >= fdr_cutoff, "significant"] = (
-            non_significant_label
+
+        # Set the significant label to non-significant by default
+        source["significant"] = non_significant_label
+
+        # Filter the data based on the NES threshold
+        source = filter_by_threshold(
+            source,
+            "NES",
+            ssrea_nes,
+            ssrea_nes_orientation,
+            significant_label,
+            "padj",
+            fdr_cutoff,
         )
+
+        # Highlight the elements of interest
         source.loc[source.pathway.isin(elements), "significant"] = highlight_label
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
-            alt.Chart(source, title="SSREA method (%s)" % comparison)
+            alt.Chart(source, title=f"SSREA method ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
-                y=alt.Y("NES:Q", axis=alt.Axis(title="%s NES" % treatment)),
+                y=alt.Y("NES:Q", axis=alt.Axis(title=f"{treatment} NES")),
                 tooltip=[
                     "pathway",
                     "pval",
@@ -1512,11 +1690,24 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "BAGEL2"
-        significant_label = "BF > 0"
-        non_significant_label = "BF ≤ 0"
+
+        # Define the BAGEL2 BF cut-off and orientation
+        bagel_bf = float(bagel_bf_widget.value)
+        bagel_bf_orientation = bagel_bf_orientation_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and BF {get_pretty_orientation(bagel_bf_orientation)} {bagel_bf}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or BF {get_pretty_orientation(get_reverse_orientation(bagel_bf_orientation))} {bagel_bf}"
+
+        # Define the highlight label
         highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
+
+        # Get the BAGEL2 results
         source = BAGEL_data(
             comparison=comparison,
             control="",
@@ -1524,27 +1715,46 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
+
+        # Compute the default rank of the BF scores
         source["default_rank"] = source["BF"].rank(method="dense", ascending=False)
-        source.loc[source["BF"] > fdr_cutoff, "significant"] = significant_label
-        source.loc[source["BF"] <= fdr_cutoff, "significant"] = non_significant_label
+
+        # Set the significant label to non-significant by default
+        source["significant"] = non_significant_label
+
+        # Filter the data based on the BF threshold
+        source = filter_by_threshold(
+            source,
+            "BF",
+            bagel_bf,
+            bagel_bf_orientation,
+            significant_label,
+        )
+
+        # Highlight the elements of interest
         source.loc[source.Gene.isin(elements), "significant"] = highlight_label
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
-            alt.Chart(source, title="BAGEL2 (%s)" % comparison)
+            alt.Chart(source, title=f"BAGEL2 ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
-                y=alt.Y("BF:Q", axis=alt.Axis(title="%s Bayesian Factor" % treatment)),
+                y=alt.Y("BF:Q", axis=alt.Axis(title="Bayesian Factor")),
                 tooltip=["Gene", "BF", "FDR", "significant", "default_rank"],
                 color=alt.Color(
                     "significant",
@@ -1667,32 +1877,44 @@ def tool_results(results_directory, tools_available, token):
     display(HTML("<h3>Highlight features:</h3>"))
     display(fdr_widget)
 
-    display(HTML("<h4>BAGEL2:</h4>"))
-    display(widgets.HBox([bagel_bf_widget, bagel_bf_orientation_widget]))
+    if "BAGEL2" in tools:
+        display(HTML("<h4>BAGEL2:</h4>"))
+        display(widgets.HBox([bagel_bf_widget, bagel_bf_orientation_widget]))
 
-    display(HTML("<h4>SSREA:</h4>"))
-    display(widgets.HBox([ssrea_nes_widget, ssrea_nes_orientation_widget]))
+    if "SSREA" in tools:
+        display(HTML("<h4>SSREA:</h4>"))
+        display(widgets.HBox([ssrea_nes_widget, ssrea_nes_orientation_widget]))
 
-    display(HTML("<h4>DSM:</h4>"))
-    display(
-        widgets.HBox(
-            [
-                directional_scoring_method_score_widget,
-                directional_scoring_method_score_orientation_widget,
-            ]
+    if "directional_scoring_method" in tools:
+        display(HTML("<h4>DSM:</h4>"))
+        display(
+            widgets.HBox(
+                [
+                    directional_scoring_method_score_widget,
+                    directional_scoring_method_score_orientation_widget,
+                ]
+            )
         )
-    )
 
-    display(HTML("<h4>CRISPhieRmix:</h4>"))
-    display(
-        widgets.HBox([crisphiermix_logfc_widget, crisphiermix_logfc_orientation_widget])
-    )
+    if "CRISPhieRmix" in tools:
+        display(HTML("<h4>CRISPhieRmix:</h4>"))
+        display(
+            widgets.HBox(
+                [crisphiermix_logfc_widget, crisphiermix_logfc_orientation_widget]
+            )
+        )
 
-    display(HTML("<h4>MAGeCK MLE:</h4>"))
-    display(widgets.HBox([mageck_mle_beta_widget, mageck_mle_beta_orientation_widget]))
+    if "MAGeCK_MLE" in tools:
+        display(HTML("<h4>MAGeCK MLE:</h4>"))
+        display(
+            widgets.HBox([mageck_mle_beta_widget, mageck_mle_beta_orientation_widget])
+        )
 
-    display(HTML("<h4>MAGeCK RRA:</h4>"))
-    display(widgets.HBox([mageck_rra_lfc_widget, mageck_rra_lfc_orientation_widget]))
+    if "MAGeCK_RRA" in tools:
+        display(HTML("<h4>MAGeCK RRA:</h4>"))
+        display(
+            widgets.HBox([mageck_rra_lfc_widget, mageck_rra_lfc_orientation_widget])
+        )
 
     display(HTML("<h3>Color:</h3>"))
     display(color_sig_widget)
@@ -2070,9 +2292,11 @@ def tool_results_by_element(results_directory, tools_available, token):
         gene.options = list(set(elements_list))
         gene.value = elements_list[0]
 
-    config = "config/%s.yaml" % token
+    # Set configuration
+    config = f"config/{token}.yaml"
+
+    # Open configuration file
     content = open_yaml(config)
-    # cts_file = "results/%s/normalized.filtered.counts.txt" % token
     design_file = content["tsv_file"]
     design = pd.read_csv(design_file, sep="\t")
 
@@ -2094,8 +2318,128 @@ def tool_results_by_element(results_directory, tools_available, token):
         value=conditions_list, allowed_tags=conditions_list, allow_duplicates=False
     )
 
-    fdr_cutoff = widgets.FloatSlider(
-        description="FDR:", min=0.0, max=1.0, step=0.01, value=0.05
+    fdr_widget = widgets.FloatSlider(
+        min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
+    )
+
+    # Add a widget to define the BAGEL2 minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    bagel_bf_widget = widgets.FloatText(
+        value=0,
+        description="BAGEL2 BF cut-off:",
+        # If BAGEL2 is not available, the widget is disabled
+        disabled="BAGEL2" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the BAGEL2 BF cut-off. Default is ">=".
+    bagel_bf_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<="],
+        value=">=",
+        description="",
+        # If BAGEL2 is not available, the widget is disabled
+        disabled="BAGEL2" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the SSREA minimum NES cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    ssrea_nes_widget = widgets.FloatText(
+        value=0,
+        description="SSREA NES cut-off:",
+        # If SSREA is not available, the widget is disabled
+        disabled="SSREA" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the SSREA NES cut-off. Default is ">=". Using Dropdown widget.
+    ssrea_nes_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<="],
+        value="abs>=",
+        description="",
+        # If SSREA is not available, the widget is disabled
+        disabled="SSREA" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the directional_scoring_method minimum score cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    directional_scoring_method_score_widget = widgets.FloatText(
+        value=0,
+        description="DSM score cut-off:",
+        # If directional_scoring_method is not available, the widget is disabled
+        disabled="directional_scoring_method" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the directional_scoring_method score cut-off. Default is ">=". Using Dropdown widget.
+    directional_scoring_method_score_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<=", "abs>", "abs<"],
+        value="abs>",
+        description="",
+        # If directional_scoring_method is not available, the widget is disabled
+        disabled="directional_scoring_method" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the CRISPhieRmix minimum mean logFC cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    crisphiermix_logfc_widget = widgets.FloatText(
+        value=0,
+        description="CRISPhieRmix logFC cut-off:",
+        # If CRISPhieRmix is not available, the widget is disabled
+        disabled="CRISPhieRmix" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the CRISPhieRmix mean logFC cut-off. Default is ">=". Using Dropdown widget.
+    crisphiermix_logfc_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<="],
+        value="abs>=",
+        description="",
+        # If CRISPhieRmix is not available, the widget is disabled
+        disabled="CRISPhieRmix" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the MAGeCK_MLE minimum beta cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    mageck_mle_beta_widget = widgets.FloatText(
+        value=0,
+        description="MAGeCK MLE beta cut-off:",
+        # If MAGeCK_MLE is not available, the widget is disabled
+        disabled="MAGeCK_MLE" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the MAGeCK_MLE beta cut-off. Default is ">=". Using Dropdown widget.
+    mageck_mle_beta_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<="],
+        value="abs>=",
+        description="",
+        # If MAGeCK_MLE is not available, the widget is disabled
+        disabled="MAGeCK_MLE" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the MAGeCK_RRA minimum LFC cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    mageck_rra_lfc_widget = widgets.FloatText(
+        value=0,
+        description="MAGeCK RRA LFC cut-off:",
+        # If MAGeCK_RRA is not available, the widget is disabled
+        disabled="MAGeCK_RRA" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the MAGeCK_RRA LFC cut-off. Default is ">=". Using Dropdown widget.
+    mageck_rra_lfc_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs>=", "abs<="],
+        value="abs>=",
+        description="",
+        # If MAGeCK_RRA is not available, the widget is disabled
+        disabled="MAGeCK_RRA" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
     )
 
     elements_list = get_genes_list(results_directory, tools_available, tools_list[0])
@@ -2107,15 +2451,66 @@ def tool_results_by_element(results_directory, tools_available, token):
         ensure_option=False,
     )
 
-    display(widgets.VBox([control, gene, fdr_cutoff, conditions]))
+    # Display all widgets
+    display(control)
+    display(gene)
+    display(fdr_widget)
+
+    if "BAGEL2" in tools_list:
+        display(widgets.HBox([bagel_bf_widget, bagel_bf_orientation_widget]))
+
+    if "SSREA" in tools_list:
+        display(widgets.HBox([ssrea_nes_widget, ssrea_nes_orientation_widget]))
+
+    if "directional_scoring_method" in tools_list:
+        display(
+            widgets.HBox(
+                [
+                    directional_scoring_method_score_widget,
+                    directional_scoring_method_score_orientation_widget,
+                ]
+            )
+        )
+
+    if "CRISPhieRmix" in tools_list:
+        display(
+            widgets.HBox(
+                [crisphiermix_logfc_widget, crisphiermix_logfc_orientation_widget]
+            )
+        )
+
+    if "MAGeCK_MLE" in tools_list:
+        display(
+            widgets.HBox([mageck_mle_beta_widget, mageck_mle_beta_orientation_widget])
+        )
+
+    if "MAGeCK_RRA" in tools_list:
+        display(
+            widgets.HBox([mageck_rra_lfc_widget, mageck_rra_lfc_orientation_widget])
+        )
 
     def CRISPhieRmix_results(result, fdr_cutoff, control, gene, sort_cols):
-        significant_label = "Yes"
-        non_significant_label = "No"
-        result.loc[result["locfdr"] < fdr_cutoff, "significant"] = significant_label
-        result.loc[result["locfdr"] >= fdr_cutoff, "significant"] = (
-            non_significant_label
+        # Define the orientation of the logFC cut-off and its value
+        crisphiermix_logfc_orientation = crisphiermix_logfc_orientation_widget.value
+        crisphiermix_logfc = crisphiermix_logfc_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and logFC {get_pretty_orientation(crisphiermix_logfc_orientation)} {crisphiermix_logfc}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or logFC {get_pretty_orientation(get_reverse_orientation(crisphiermix_logfc_orientation))} {crisphiermix_logfc}"
+
+        #  Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the logFC threshold
+        result = filter_by_threshold(
+            result,
+            "mean_log2FoldChange",
+            crisphiermix_logfc,
+            crisphiermix_logfc_orientation,
+            significant_label,
         )
+
+        # Add a new row to the dataframe to display the baseline
         new_row = {
             "gene": gene,
             "condition": control,
@@ -2123,25 +2518,36 @@ def tool_results_by_element(results_directory, tools_available, token):
             "locfdr": 1,
             "mean_log2FoldChange": 0,
         }
+
+        # Append the new row to the dataframe
         result = result.append(new_row, ignore_index=True)
+
+        # Filter the dataframe to keep only the conditions in sort_cols
         res = result.loc[result.gene == gene]
+
         # filter res to keep 'condition' in sort_cols
         if control not in sort_cols:
             sort_cols.append(control)
+
+        # Filter the dataframe to keep only the conditions in sort_cols
         res = res[res["condition"].isin(sort_cols)]
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
+
+        # Create the plot
         plot = (
             alt.Chart(res)
             .transform_fold(sort_cols)
             .mark_circle(size=60)
-            .mark_point(filled=True, size=100)
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y=alt.Y(
                     "mean_log2FoldChange",
                     axis=alt.Axis(title="sgRNAs log2FoldChange average"),
                 ),
-                x=alt.X("condition:O", sort=sort_cols),
+                x=alt.X("condition:N", sort=sort_cols),
                 color=alt.Color(
                     "significant",
                     scale=alt.Scale(domain=domain, range=range_),
@@ -2154,22 +2560,29 @@ def tool_results_by_element(results_directory, tools_available, token):
         return plot
 
     def MAGeCK_RRA_results(result, fdr_cutoff, control, gene, sort_cols):
-        significant_label = "Yes"
-        non_significant_label = "No"
+        # Define the threshold for the score and its orientation
+        mageck_rra_lfc_orientation = mageck_rra_lfc_orientation_widget.value
+        mageck_rra_lfc = mageck_rra_lfc_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and LFC {get_pretty_orientation(mageck_rra_lfc_orientation)} {mageck_rra_lfc}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or LFC {get_pretty_orientation(get_reverse_orientation(mageck_rra_lfc_orientation))} {mageck_rra_lfc}"
 
         # Use numpy.where to conditionally assign the FDR based on the sign of LFC
         result["selected_fdr"] = np.where(
             result["neg|lfc"] < 0, result["neg|fdr"], result["pos|fdr"]
         )
 
-        result.loc[result["selected_fdr"] < fdr_cutoff, "significant"] = (
-            significant_label
-        )
-        result.loc[result["selected_fdr"] < fdr_cutoff, "significant"] = (
-            significant_label
-        )
-        result.loc[result["selected_fdr"] >= fdr_cutoff, "significant"] = (
-            non_significant_label
+        # Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the LFC threshold
+        result = filter_by_threshold(
+            result,
+            "neg|lfc",
+            mageck_rra_lfc,
+            mageck_rra_lfc_orientation,
+            significant_label,
         )
 
         new_row = {
@@ -2201,10 +2614,7 @@ def tool_results_by_element(results_directory, tools_available, token):
         plot = (
             alt.Chart(res)
             .mark_circle(size=60)
-            .mark_point(
-                filled=True,
-                size=100,
-            )
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y=alt.Y(f"score", axis=alt.Axis(title="RRA Score")),
                 x=alt.X("condition:N", sort=sort_cols),
@@ -2233,10 +2643,28 @@ def tool_results_by_element(results_directory, tools_available, token):
         return plot
 
     def MAGeCK_MLE_results(result, fdr_cutoff, control, gene, sort_cols):
-        significant_label = "Yes"
-        non_significant_label = "No"
-        result.loc[result["fdr"] < fdr_cutoff, "significant"] = significant_label
-        result.loc[result["fdr"] >= fdr_cutoff, "significant"] = non_significant_label
+
+        # Define the threshold for the beta and its orientation
+        mageck_mle_beta_orientation = mageck_mle_beta_orientation_widget.value
+        mageck_mle_beta = mageck_mle_beta_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and beta {get_pretty_orientation(mageck_mle_beta_orientation)} {mageck_mle_beta}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or beta {get_pretty_orientation(get_reverse_orientation(mageck_mle_beta_orientation))} {mageck_mle_beta}"
+
+        # Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the beta threshold
+        result = filter_by_threshold(
+            result,
+            "beta",
+            mageck_mle_beta,
+            mageck_mle_beta_orientation,
+            significant_label,
+        )
+
+        # Add a new row to the dataframe to display the baseline
         new_row = {
             "Gene": gene,
             "condition": control,
@@ -2245,20 +2673,21 @@ def tool_results_by_element(results_directory, tools_available, token):
             "beta": 0,
         }
         result = result.append(new_row, ignore_index=True)
+
+        # Filter the dataframe to keep only the conditions in sort_cols
         res = result.loc[result.Gene == gene]
-        # filter res to keep 'condition' in sort_cols
+
+        # Filter the dataframe to keep only the conditions in sort_cols
         if control not in sort_cols:
             sort_cols.append(control)
+
         res = res[res["condition"].isin(sort_cols)]
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
         plot = (
             alt.Chart(res)
             .mark_circle(size=60)
-            .mark_point(
-                filled=True,
-                size=100,
-            )
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y=alt.Y("beta", axis=alt.Axis(title="Beta")),
                 x=alt.X("condition:N", sort=sort_cols),
@@ -2274,10 +2703,24 @@ def tool_results_by_element(results_directory, tools_available, token):
         return plot
 
     def SSREA_like_results(result, fdr_cutoff, control, gene, sort_cols):
-        significant_label = "Yes"
-        non_significant_label = "No"
-        result.loc[result["padj"] < fdr_cutoff, "significant"] = significant_label
-        result.loc[result["padj"] >= fdr_cutoff, "significant"] = non_significant_label
+
+        # Define the threshold for the NES and its orientation
+        ssrea_nes_orientation = ssrea_nes_orientation_widget.value
+        ssrea_nes = ssrea_nes_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and NES {get_pretty_orientation(ssrea_nes_orientation)} {ssrea_nes}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or NES {get_pretty_orientation(get_reverse_orientation(ssrea_nes_orientation))} {ssrea_nes}"
+
+        # Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the NES threshold
+        result = filter_by_threshold(
+            result, "NES", ssrea_nes, ssrea_nes_orientation, significant_label
+        )
+
+        # Add a new row to the dataframe to display the baseline
         new_row = {
             "pathway": gene,
             "condition": control,
@@ -2288,6 +2731,8 @@ def tool_results_by_element(results_directory, tools_available, token):
             "NES": 0,
             "size": None,
         }
+
+        # Append the new row to the dataframe
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.pathway == gene]
         # filter res to keep 'condition' in sort_cols
@@ -2299,10 +2744,7 @@ def tool_results_by_element(results_directory, tools_available, token):
         plot = (
             alt.Chart(res)
             .mark_circle(size=60)
-            .mark_point(
-                filled=True,
-                size=100,
-            )
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y=alt.Y("NES", axis=alt.Axis(title="NES")),
                 x=alt.X("condition:N", sort=sort_cols),
@@ -2318,10 +2760,25 @@ def tool_results_by_element(results_directory, tools_available, token):
         return plot
 
     def BAGEL_results(result, fdr_cutoff, control, gene, sort_cols):
-        significant_label = "Yes"
-        non_significant_label = "No"
-        result.loc[result["BF"] > fdr_cutoff, "significant"] = significant_label
-        result.loc[result["BF"] <= fdr_cutoff, "significant"] = non_significant_label
+
+        # Define the threshold for the BF and its orientation
+        bagel_bf_orientation = bagel_bf_orientation_widget.value
+        bagel_bf = bagel_bf_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = (
+            f"BF {get_pretty_orientation(bagel_bf_orientation)} {bagel_bf}"
+        )
+        non_significant_label = f"BF {get_pretty_orientation(get_reverse_orientation(bagel_bf_orientation))} {bagel_bf}"
+
+        # Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the BF threshold
+        result = filter_by_threshold(
+            result, "BF", bagel_bf, bagel_bf_orientation, significant_label
+        )
+
         new_row = {
             "Gene": gene,
             "condition": control,
@@ -2340,10 +2797,7 @@ def tool_results_by_element(results_directory, tools_available, token):
         plot = (
             alt.Chart(res)
             .mark_circle(size=60)
-            .mark_point(
-                filled=True,
-                size=100,
-            )
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y=alt.Y("BF", axis=alt.Axis(title="Bayesian factor")),
                 x=alt.X("condition:N", sort=sort_cols),
@@ -2361,14 +2815,29 @@ def tool_results_by_element(results_directory, tools_available, token):
     def directional_scoring_method_results(
         result, fdr_cutoff, control, gene, sort_cols
     ):
-        significant_label = "Yes"
-        non_significant_label = "No"
-        result.loc[result.category.isin(["down", "up"]), "significant"] = (
-            significant_label
+
+        # Define the threshold for the score and its orientation
+        directional_scoring_method_score_orientation = (
+            directional_scoring_method_score_orientation_widget.value
         )
-        result.loc[~result.category.isin(["down", "up"]), "significant"] = (
-            non_significant_label
+        directional_scoring_method_score = directional_scoring_method_score_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"score {get_pretty_orientation(directional_scoring_method_score_orientation)} {directional_scoring_method_score}"
+        non_significant_label = f"score {get_pretty_orientation(get_reverse_orientation(directional_scoring_method_score_orientation))} {directional_scoring_method_score}"
+
+        # Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the score threshold
+        result = filter_by_threshold(
+            result,
+            "score",
+            directional_scoring_method_score,
+            directional_scoring_method_score_orientation,
+            significant_label,
         )
+
         new_row = {
             "Gene": gene,
             "condition": control,
@@ -2390,10 +2859,7 @@ def tool_results_by_element(results_directory, tools_available, token):
         plot = (
             alt.Chart(res)
             .mark_circle(size=60)
-            .mark_point(
-                filled=True,
-                size=100,
-            )
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y="score",
                 x=alt.X("condition:N", sort=sort_cols),
@@ -2425,7 +2891,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 if tool == "CRISPhieRmix":
                     plot = CRISPhieRmix_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
@@ -2433,7 +2899,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 elif tool == "MAGeCK_MLE":
                     plot = MAGeCK_MLE_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
@@ -2441,7 +2907,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 elif tool == "SSREA":
                     plot = SSREA_like_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
@@ -2449,7 +2915,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 elif tool == "directional_scoring_method":
                     plot = directional_scoring_method_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
@@ -2457,7 +2923,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 elif tool == "MAGeCK_RRA":
                     plot = MAGeCK_RRA_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
@@ -2465,12 +2931,15 @@ def tool_results_by_element(results_directory, tools_available, token):
                 elif tool == "BAGEL2":
                     plot = BAGEL_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
                     )
                 chart |= plot
+            chart = chart.resolve_legend(
+                color="independent", size="independent"
+            ).resolve_scale(color="independent", size="independent")
             display(chart)
 
     button = widgets.Button(description="Show plot")
