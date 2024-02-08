@@ -26,11 +26,17 @@ from rpy2.rinterface import RRuntimeWarning
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
 from rpy2.robjects.packages import importr
+from rpy2.rinterface_lib.embedded import RRuntimeError
 from scipy import stats
 from scipy.stats import zscore
 from sklearn import decomposition
 
 from IPython.display import Markdown as md
+
+import upsetplot
+from upsetplot import from_memberships
+
+import matplotlib.pyplot as plt
 
 
 buf = []
@@ -3409,6 +3415,7 @@ def ranking(treatment, control, token, tools_available, params):
 
 
 def plot_venn(occurences):
+    """Plot a venn diagram from the occurences dataframe"""
     venn_lib = importr("venn")
     grdevices = importr("grDevices")
     with localconverter(ro.default_converter + pandas2ri.converter):
@@ -3431,6 +3438,21 @@ def plot_venn(occurences):
             IPython.display.Image(data=img.getvalue(), format="png", embed=True)
         )
     )
+
+
+def plot_upset(occurences):
+    """Plot an upset plot from the occurences dataframe"""
+    # Convert 0 and 1 to False and True
+    occurences = occurences.astype(bool)
+
+    occurences = occurences.groupby(occurences.columns.tolist()).size()
+
+    # Create the upset plot
+    upset = upsetplot.UpSet(occurences)
+
+    # Display the upset plot in the notebook
+    upset.plot()
+    plt.show()
 
 
 def reset_params():
@@ -3978,28 +4000,69 @@ def multiple_tools_results(tools_available, token):
     def venn_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
         ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        if selection_widgets.value == "Intersection":
-            df = pd.DataFrame(
-                occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
-                columns=["intersection"],
-            )
-            genes_list = df.loc[df.intersection == True].index
-        else:
-            df = pd.DataFrame(
-                occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
-            )
-            genes_list = df.loc[df.union == True].index
+        # if selection_widgets.value == "Intersection":
+        df = pd.DataFrame(
+            occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
+            columns=["intersection"],
+        )
+        genes_list_at_intersection = df.loc[df.intersection == True].index
+        # else:
+        df = pd.DataFrame(
+            occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
+        )
+        genes_list_at_union = df.loc[df.union == True].index
         display(
             HTML(
                 """<p style="color:white;font-weight: bold;background-color: orange;padding: 0.5em;">Venn diagram: %s</p>"""
                 % selection_widgets.value
             )
         )
+
         show_parameters(params)
         plot_venn(occurences)
-        print("Genes at %s of all methods:" % selection_widgets.value)
-        for gene in genes_list:
-            print(gene)
+        plot_upset(occurences)
+
+        textarea_intersection = widgets.Textarea(
+            value="\n".join(genes_list_at_intersection),
+            description=f"List of genes at intersection of all methods (n = {len(genes_list_at_intersection)}):",
+            disabled=True,
+            # Increase the height of the textarea (default is 6 rows)
+            layout=widgets.Layout(height="200px", width="60%"),
+            style={"description_width": "400px"},
+        )
+        display(textarea_intersection)
+
+        textarea_union = widgets.Textarea(
+            value="\n".join(genes_list_at_union),
+            description=f"List of genes at union of all methods (n = {len(genes_list_at_union)}):",
+            disabled=True,
+            # Increase the height of the textarea (default is 6 rows)
+            layout=widgets.Layout(height="200px", width="60%"),
+            style={"description_width": "400px"},
+        )
+
+        display(textarea_union)
+
+        # Utilisez du HTML et du JavaScript pour changer la couleur du texte
+        display(
+            HTML(
+                """
+            <style>
+                .widget-textarea textarea:disabled {
+                    color: black !important;
+                    opacity: 1 !important;
+                }
+            </style>
+            <script>
+                require(["base/js/namespace"], function(Jupyter) {
+                    Jupyter.notebook.events.one("kernel_ready.Kernel", function() {
+                        Jupyter.notebook.execute_cells([Jupyter.notebook.get_cell_index(Jupyter.notebook.get_selected_cell())]);
+                    });
+                });
+            </script>
+        """
+            )
+        )
 
     def rra_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
