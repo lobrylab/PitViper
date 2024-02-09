@@ -4517,3 +4517,302 @@ def multiple_tools_results(tools_available, token):
         )
 
     ranking_button.on_click(ranking_button_clicked)
+
+
+def condition_comparison(results_directory, tools_available, token):
+    """This function let user choose a tool and two conditions and plot them against each other."""
+
+    def get_data(tool, comparison_1, comparison_2, results_directory):
+        """Get the data for the plot."""
+        functions = {
+            "MAGeCK_MLE": MAGeCK_MLE_data,
+            "MAGeCK_RRA": MAGeCK_RRA_data,
+            "CRISPhieRmix": CRISPhieRmix_data,
+            "SSREA": SSREA_like_data,
+            "directional_scoring_method": directional_scoring_method_data,
+        }
+        data_function = functions[tool]
+        comparison_1_data = data_function(
+            comparison=comparison_1,
+            control="",
+            tool=tool,
+            results_directory=results_directory,
+            tools_available=tools_available,
+        )
+        comparison_2_data = data_function(
+            comparison=comparison_2,
+            control="",
+            tool=tool,
+            results_directory=results_directory,
+            tools_available=tools_available,
+        )
+        return comparison_1_data, comparison_2_data
+
+    def parameters_widgets():
+        """Create widgets for the parameters."""
+        # Define widgets's options
+        tools_options = list(tools_available.keys())
+        # Remove DESeq2
+        tools_options.remove("DESeq2")
+        comparisons_options = list(tools_available[tools_options[0]].keys())
+        comparisons_options.sort()
+
+        # Create a gene/element selection widget with Text input
+        gene_selection_widget = widgets.Text(
+            value="",
+            placeholder="Type gene names separated by a comma",
+            description="Gene/Element:",
+            disabled=False,
+        )
+
+        # Define widgets
+        # Create a condition 1 widget
+        comparison_1_widget = widgets.Dropdown(
+            options=comparisons_options, description="Comparison 1:"
+        )
+        # Create a condition 2 widget
+        comparison_2_widget = widgets.Dropdown(
+            options=comparisons_options, description="Comparison 2:"
+        )
+        # Create a tool widget
+        tools_widget = widgets.Dropdown(options=tools_options, description="Tool:")
+
+        return (
+            tools_widget,
+            comparison_1_widget,
+            comparison_2_widget,
+            gene_selection_widget,
+        )
+
+    parameters_widgets = widgets.VBox(parameters_widgets())
+
+    # Display the widgets
+    display(parameters_widgets)
+
+    # Create a button to plot the data
+    plot_button = widgets.Button(description="Plot")
+    display(plot_button)
+
+    # Create an output widget to display the results
+    output = widgets.Output()
+    display(output)
+
+    # On button click, plot the data
+    @plot_button.on_click
+    def plot_button_clicked(b):
+        """Plot the data."""
+
+        def plot_comparison(data, column_1, column_2, elements_column):
+            """Plot the comparison using altair."""
+
+            # print(f"Plotting {tool} data for {comparison_1} and {comparison_2}.")
+            # print(f"Column 1: {column_1}")
+            # print(f"Column 2: {column_2}")
+
+            # Définir les limites de vos données
+            min_value = min(data[column_1].min(), data[column_2].min())
+            max_value = max(data[column_1].max(), data[column_2].max())
+
+            # Créer une échelle avec les mêmes limites pour les axes x et y
+            scale = alt.Scale(domain=(min_value, max_value))
+
+            # Superposer les lignes sur le graphique
+            chart = (
+                (
+                    alt.Chart(data)
+                    .mark_circle()
+                    .encode(
+                        x=alt.X(column_1, scale=scale, title=column_1),
+                        y=alt.Y(column_2, scale=scale, title=column_2),
+                        tooltip=[elements_column, column_1, column_2],
+                        # Color the points in blue if they are selected
+                        color=alt.Color(
+                            "selected:N",
+                            scale=alt.Scale(
+                                range=["grey", "red"], domain=[False, True]
+                            ),
+                            # Set the legend title
+                            legend=alt.Legend(title="Selected genes"),
+                        ),
+                    )
+                    .interactive()
+                )
+                # Add diagonal line
+                + alt.Chart(pd.DataFrame({"x": [min_value * 2, max_value * 2]}))
+                .mark_line(color="black")
+                .encode(x="x", y="x")
+                # Add a vertical line to highlight the x = 0 line, in black
+                + alt.Chart(pd.DataFrame({"x": [0, 0]}))
+                .mark_rule(color="black")
+                .encode(x="x")
+                # Add a horizontal line to highlight the y = 0 line, in black
+                + alt.Chart(pd.DataFrame({"y": [0, 0]}))
+                .mark_rule(color="black")
+                .encode(y="y")
+                + alt.Chart(data.query("selected == True"))
+                .mark_text(dy=10, dx=20, color="red")
+                .encode(
+                    x=column_1,
+                    y=column_2,
+                    text=elements_column,
+                )
+            )
+
+            display(chart)
+
+        def _get_elements_name_column_by_tool(tool):
+            """Get the column name for the elements by tool."""
+            columns_by_tool = {
+                "MAGeCK_MLE": "Gene",
+                "MAGeCK_RRA": "id",
+                "CRISPhieRmix": "gene",
+                "SSREA": "pathway",
+                "directional_scoring_method": "Gene",
+            }
+            return columns_by_tool[tool]
+
+        def _get_score_columns_by_tool(tool, condition):
+            """Get the columns to plot by tool."""
+            columns_by_tool = {
+                "MAGeCK_MLE": f"{condition}|beta",
+                "MAGeCK_RRA": "neg|lfc",
+                "CRISPhieRmix": "mean_log2FoldChange",
+                "SSREA": "NES",
+                "directional_scoring_method": "score",
+            }
+            return columns_by_tool[tool]
+
+        with output:
+            # Clear the output
+            output.clear_output()
+            # Get the parameters
+            tool = parameters_widgets.children[0].value
+            comparison_1 = parameters_widgets.children[1].value
+            comparison_2 = parameters_widgets.children[2].value
+            comparison_1_data, comparison_2_data = get_data(
+                tool, comparison_1, comparison_2, results_directory
+            )
+
+            # If both comparisons are the same, display an error message
+            if comparison_1 == comparison_2:
+                print("Please choose two different comparisons.")
+                return
+
+            selected_genes = parameters_widgets.children[3].value.split(",")
+
+            # print(f"Selected genes: {selected_genes}")
+
+            # Get the columns to plot
+            column_1 = _get_score_columns_by_tool(tool, comparison_1.split("_vs_")[0])
+            column_2 = _get_score_columns_by_tool(tool, comparison_2.split("_vs_")[0])
+            # Get column with elements name
+            elements_column = _get_elements_name_column_by_tool(tool)
+
+            # Combine the data: name, comparison_1, comparison_2
+            combined_data = comparison_1_data[[elements_column, column_1]].merge(
+                comparison_2_data[[elements_column, column_2]],
+                on=elements_column,
+                suffixes=("_" + comparison_1, "_" + comparison_2),
+                # Force suffixes to be added to the columns
+                how="outer",
+            )
+
+            if not column_1 + "_" + comparison_1 in combined_data.columns:
+                # Add a suffix to the column name
+                combined_data[column_1 + "_" + comparison_1] = comparison_1_data[
+                    column_1
+                ]
+            column_1 = column_1 + "_" + comparison_1
+            if not column_2 + "_" + comparison_2 in combined_data.columns:
+                # Add a suffix to the column name
+                combined_data[column_2 + "_" + comparison_2] = comparison_2_data[
+                    column_2
+                ]
+            column_2 = column_2 + "_" + comparison_2
+
+            # Add an annotation column to distinguish the elements selected by the user
+            combined_data["selected"] = combined_data[elements_column].isin(
+                selected_genes
+            )
+
+            # print(f"Plotting {tool} data for {comparison_1} and {comparison_2}.")
+            # print(f"Column 1: {column_1}")
+            # print(f"Column 2: {column_2}")
+
+            # # Display both dataframes with the columns to plot
+            # display(comparison_1_data)
+            # display(comparison_2_data)
+
+            # # Display the combined data
+            # display(combined_data)
+
+            # Plot the data
+            plot_comparison(combined_data, column_1, column_2, elements_column)
+
+            # Retrieve genes from each cadrant: upper left, upper right, lower left, lower right
+            upper_left_genes = combined_data[
+                (combined_data[column_1] < 0) & (combined_data[column_2] > 0)
+            ][elements_column]
+
+            upper_right_genes = combined_data[
+                (combined_data[column_1] > 0) & (combined_data[column_2] > 0)
+            ][elements_column]
+
+            lower_left_genes = combined_data[
+                (combined_data[column_1] < 0) & (combined_data[column_2] < 0)
+            ][elements_column]
+
+            lower_right_genes = combined_data[
+                (combined_data[column_1] > 0) & (combined_data[column_2] < 0)
+            ][elements_column]
+
+            # Display the genes in each cadrant in a text area, disabled
+            upper_left_textarea = widgets.Textarea(
+                value="\n".join(upper_left_genes),
+                description="Upper left \ngenes:",
+                disabled=True,
+                layout=widgets.Layout(height="200px", width="30%"),
+                style={"description_width": "150px"},
+            )
+
+            upper_right_textarea = widgets.Textarea(
+                value="\n".join(upper_right_genes),
+                description="Upper right genes:",
+                disabled=True,
+                layout=widgets.Layout(height="200px", width="30%"),
+                style={"description_width": "150px"},
+            )
+
+            lower_left_textarea = widgets.Textarea(
+                value="\n".join(lower_left_genes),
+                description="Lower left genes:",
+                disabled=True,
+                layout=widgets.Layout(height="200px", width="30%"),
+                style={"description_width": "150px"},
+            )
+
+            lower_right_textarea = widgets.Textarea(
+                value="\n".join(lower_right_genes),
+                description="Lower right genes:",
+                disabled=True,
+                layout=widgets.Layout(height="200px", width="30%"),
+                style={"description_width": "150px"},
+            )
+
+            # Display the text in black
+            display(
+                HTML(
+                    """
+                <style>
+                    .widget-textarea textarea:disabled {
+                        color: black !important;
+                        opacity: 1 !important;
+                    }
+                </style>
+                """
+                )
+            )
+
+            # Display the text areas in a Hbox
+            display(widgets.HBox([upper_left_textarea, upper_right_textarea]))
+            display(widgets.HBox([lower_left_textarea, lower_right_textarea]))
