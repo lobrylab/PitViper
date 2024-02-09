@@ -37,5 +37,5 @@ rule fastqc:
     shell:
         """
         mkdir -p {output} && \
-        fastqc -o {output} -t 10 {params.input} &> {log}
+        fastqc -o {output} {params.input} &> {log}
         """
