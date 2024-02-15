@@ -547,7 +547,7 @@ def pca_counts(token: str):
     return pca_2d
 
 
-def getEnrichrResults(genes: list, description: str, gene_set_library: list):
+def get_enrichr_results(genes: list, description: str, gene_set_library: list):
     """Get and return EnrichR results for a given list of genes.
 
     Args:
@@ -555,41 +555,58 @@ def getEnrichrResults(genes: list, description: str, gene_set_library: list):
         description (str): Description of the genes list.
         gene_set_library (list): List of genes set to use.
 
-    Raises:
-        Exception: Error analyzing gene list.
-        Exception: Error fetching enrichment results.
-
     Returns:
-        dict: EnrichR results
+        dict: EnrichR results, or None in case of errors
     """
-    ENRICHR_URL = "http://maayanlab.cloud/Enrichr/addList"
+    enrichr_url_addlist = "http://maayanlab.cloud/Enrichr/addList"
     genes_str = "\n".join(genes)
-    description = description
     payload = {"list": (None, genes_str), "description": (None, description)}
 
-    response = requests.post(ENRICHR_URL, files=payload)
-    if not response.ok:
-        raise Exception("Error analyzing gene list")
+    try:
+        # Send POST request to EnrichR API
+        response = requests.post(enrichr_url_addlist, files=payload, timeout=10)
+        response.raise_for_status()  # Will raise an exception for HTTP errors
+    except requests.exceptions.RequestException as e:
+        # Print error message and return None
+        print("Error analyzing gene list: %s", e)
+        return None
 
-    data = json.loads(response.text)
+    try:
+        # Parse JSON response
+        data = response.json()
+    except json.JSONDecodeError:
+        print("Invalid JSON response")
+        return None
 
-    userListId = data["userListId"]
+    if "userListId" not in data:
+        # Print error message and return None
+        print("Missing 'userListId' in response")
+        return None
 
-    ENRICHR_URL = "http://maayanlab.cloud/Enrichr/enrich"
+    user_list_id = data["userListId"]
+
+    enrichr_url_addlist = "http://maayanlab.cloud/Enrichr/enrich"
     query_string = "?userListId=%s&backgroundType=%s"
-    user_list_id = userListId
-    gene_set_library = gene_set_library[:-1]
-    response = requests.get(
-        ENRICHR_URL + query_string % (user_list_id, gene_set_library)
-    )
-    if not response.ok:
-        raise Exception("Error fetching enrichment results")
+    try:
+        response = requests.get(
+            enrichr_url_addlist + query_string % (user_list_id, gene_set_library),
+            timeout=10,
+        )
+        response.raise_for_status()  # Will raise an exception for HTTP errors
+    except requests.exceptions.RequestException as e:
+        print("Error fetching enrichment results: %s", e)
+        return None
 
-    data = json.loads(response.text)
+    try:
+        data = response.json()
+    except json.JSONDecodeError:
+        print("Invalid JSON response")
+        return None
+
     return data
 
 
-def createEnrichrTable(enrichrResults: dict):
+def create_enrichr_table(enrichrResults: dict):
     """Convert enrichr results dict to a pandas DataFrame.
 
     Args:
@@ -652,7 +669,7 @@ def enrichmentBarPlot(source, n, description, col_1, col_2, base):
             ),
         )
         .properties(
-            title=description + " (%s)" % base[:-1],
+            title=f"{description} ({base})",
         )
     )
 
@@ -920,10 +937,10 @@ def filter_by_threshold(
     orientation = {
         ">=": lambda x: x > threshold,
         "<=": lambda x: x <= threshold,
-        "abs>=": lambda x: abs(x) >= threshold,
-        "abs<=": lambda x: abs(x) <= threshold,
-        "abs>": lambda x: abs(x) > threshold,
-        "abs<": lambda x: abs(x) < threshold,
+        "abs() >=": lambda x: abs(x) >= threshold,
+        "abs() <=": lambda x: abs(x) <= threshold,
+        "abs() >": lambda x: abs(x) > threshold,
+        "abs() <": lambda x: abs(x) < threshold,
     }[orientation]
 
     if fdr_cutoff and fdr_column:
@@ -941,14 +958,14 @@ def get_reverse_orientation(orientation):
         return "<="
     elif orientation == "<=":
         return ">="
-    elif orientation == "abs>=":
-        return "abs<"
-    elif orientation == "abs<=":
-        return "abs>"
-    elif orientation == "abs>":
-        return "abs<="
-    elif orientation == "abs<":
-        return "abs>="
+    elif orientation == "abs() >=":
+        return "abs() <"
+    elif orientation == "abs() <=":
+        return "abs() >"
+    elif orientation == "abs() >":
+        return "abs() <="
+    elif orientation == "abs() <":
+        return "abs() >="
 
 
 def get_pretty_orientation(orientation):
@@ -957,14 +974,14 @@ def get_pretty_orientation(orientation):
         return "≥"
     elif orientation == "<=":
         return "≤"
-    elif orientation == "abs>=":
+    elif orientation == "abs() >=":
         return "abs≥"
-    elif orientation == "abs<=":
+    elif orientation == "abs() <=":
         return "abs≤"
-    elif orientation == "abs>":
-        return "abs>"
-    elif orientation == "abs<":
-        return "abs<"
+    elif orientation == "abs() >":
+        return "abs() >"
+    elif orientation == "abs() <":
+        return "abs() <"
 
 
 def tool_results(results_directory, tools_available, token):
@@ -1016,7 +1033,7 @@ def tool_results(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the BAGEL2 BF cut-off. Default is ">=".
     bagel_bf_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<="],
+        options=[">=", "<=", "abs() >=", "abs() <="],
         value=">=",
         description="",
         # If BAGEL2 is not available, the widget is disabled
@@ -1036,8 +1053,8 @@ def tool_results(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the SSREA NES cut-off. Default is ">=". Using Dropdown widget.
     ssrea_nes_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<="],
-        value="abs>=",
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
         description="",
         # If SSREA is not available, the widget is disabled
         disabled="SSREA" not in tools,
@@ -1056,8 +1073,8 @@ def tool_results(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the directional_scoring_method score cut-off. Default is ">=". Using Dropdown widget.
     directional_scoring_method_score_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<=", "abs>", "abs<"],
-        value="abs>",
+        options=[">=", "<=", "abs() >=", "abs() <=", "abs() >", "abs() <"],
+        value="abs() >",
         description="",
         # If directional_scoring_method is not available, the widget is disabled
         disabled="directional_scoring_method" not in tools,
@@ -1076,8 +1093,8 @@ def tool_results(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the CRISPhieRmix mean logFC cut-off. Default is ">=". Using Dropdown widget.
     crisphiermix_logfc_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<="],
-        value="abs>=",
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
         description="",
         # If CRISPhieRmix is not available, the widget is disabled
         disabled="CRISPhieRmix" not in tools,
@@ -1096,8 +1113,8 @@ def tool_results(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the MAGeCK_MLE beta cut-off. Default is ">=". Using Dropdown widget.
     mageck_mle_beta_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<="],
-        value="abs>=",
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
         description="",
         # If MAGeCK_MLE is not available, the widget is disabled
         disabled="MAGeCK_MLE" not in tools,
@@ -1116,8 +1133,8 @@ def tool_results(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the MAGeCK_RRA LFC cut-off. Default is ">=". Using Dropdown widget.
     mageck_rra_lfc_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<="],
-        value="abs>=",
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
         description="",
         # If MAGeCK_RRA is not available, the widget is disabled
         disabled="MAGeCK_RRA" not in tools,
@@ -2339,7 +2356,7 @@ def tool_results_by_element(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the BAGEL2 BF cut-off. Default is ">=".
     bagel_bf_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<="],
+        options=[">=", "<=", "abs() >=", "abs() <="],
         value=">=",
         description="",
         # If BAGEL2 is not available, the widget is disabled
@@ -2359,8 +2376,8 @@ def tool_results_by_element(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the SSREA NES cut-off. Default is ">=". Using Dropdown widget.
     ssrea_nes_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<="],
-        value="abs>=",
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
         description="",
         # If SSREA is not available, the widget is disabled
         disabled="SSREA" not in tools_list,
@@ -2379,8 +2396,8 @@ def tool_results_by_element(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the directional_scoring_method score cut-off. Default is ">=". Using Dropdown widget.
     directional_scoring_method_score_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<=", "abs>", "abs<"],
-        value="abs>",
+        options=[">=", "<=", "abs() >=", "abs() <=", "abs() >", "abs() <"],
+        value="abs() >",
         description="",
         # If directional_scoring_method is not available, the widget is disabled
         disabled="directional_scoring_method" not in tools_list,
@@ -2399,8 +2416,8 @@ def tool_results_by_element(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the CRISPhieRmix mean logFC cut-off. Default is ">=". Using Dropdown widget.
     crisphiermix_logfc_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<="],
-        value="abs>=",
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
         description="",
         # If CRISPhieRmix is not available, the widget is disabled
         disabled="CRISPhieRmix" not in tools_list,
@@ -2419,8 +2436,8 @@ def tool_results_by_element(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the MAGeCK_MLE beta cut-off. Default is ">=". Using Dropdown widget.
     mageck_mle_beta_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<="],
-        value="abs>=",
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
         description="",
         # If MAGeCK_MLE is not available, the widget is disabled
         disabled="MAGeCK_MLE" not in tools_list,
@@ -2439,8 +2456,8 @@ def tool_results_by_element(results_directory, tools_available, token):
 
     # Add a widget to define the orientation of the MAGeCK_RRA LFC cut-off. Default is ">=". Using Dropdown widget.
     mageck_rra_lfc_orientation_widget = widgets.Dropdown(
-        options=[">=", "<=", "abs>=", "abs<="],
-        value="abs>=",
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
         description="",
         # If MAGeCK_RRA is not available, the widget is disabled
         disabled="MAGeCK_RRA" not in tools_list,
@@ -2953,141 +2970,170 @@ def tool_results_by_element(results_directory, tools_available, token):
     button.on_click(on_button_clicked)
 
 
-def enrichr_plots(token, pitviper_res):
-    config = "./config/%s.yaml" % token
-    content = open_yaml(config)
-    if content["screen_type"] == "not_gene":
-        return HTML(
-            """<p style="color:red;background-color: white;padding: 0.5em;">This module is available only if genes symbol are available.</p>"""
-        )
-        # return "This module is available only if genes symbol are used."
+def get_enrichr_bases():
+    """Get the list of available libraries in EnrichR"""
+    link = "https://maayanlab.cloud/Enrichr/datasetStatistics"
 
-    def update_conditions(update):
-        conditions_list = list(pitviper_res[tool.value].keys())
-        conditions.options = conditions_list
-        conditions.value = conditions_list[0]
+    try:
+        response = requests.get(link, timeout=5)
+        response.raise_for_status()  # Will raise an exception for HTTP errors
+    except requests.exceptions.Timeout:
+        print("The request timed out")
+        return []
+    except requests.exceptions.RequestException as err:
+        print("Something went wrong: %s", err)
+        return []
 
-    BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
-    TOOLS = [tool for tool in pitviper_res.keys() if tool != "DESeq2"]
+    try:
+        data = response.json()
+    except json.JSONDecodeError:
+        print("Invalid JSON response")
+        return []
 
-    tool = widgets.Dropdown(options=TOOLS, value=TOOLS[0], description="Tool:")
-    tool.observe(update_conditions, "value")
+    if "statistics" not in data:
+        print("Missing 'statistics' in response")
+        return []
 
-    conditions_list = list(pitviper_res[tool.value].keys())
-    conditions = widgets.Dropdown(
-        options=conditions_list, value=conditions_list[0], description="Condition:"
-    )
+    bases = [entry["libraryName"] for entry in data["statistics"]]
+    bases.sort()
+    return bases
 
-    description = widgets.Text(
-        value="My gene list", placeholder="Description", description="Description:"
-    )
-    bases = widgets.SelectMultiple(options=BASES)
 
-    col_2 = widgets.ColorPicker(concise=False, description="Top color", value="blue")
-    col_1 = widgets.ColorPicker(concise=False, description="Bottom color", value="red")
-    plot_type = widgets.Dropdown(
-        options=["Circle", "Bar"], value="Circle", description="Plot type:"
-    )
-    size = widgets.Dropdown(
-        options=[5, 10, 20, 50, 100, 200, "max"], value=5, description="Size:"
-    )
-    fdr_cutoff = widgets.FloatSlider(
-        min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
-    )
-    score_cutoff = widgets.IntText(value=0, placeholder=0, description="Score cut-off:")
-    button = widgets.Button(description="EnrichR!")
+# def enrichr_plots(token, pitviper_res):
+#     config = "./config/%s.yaml" % token
+#     content = open_yaml(config)
+#     if content["screen_type"] == "not_gene":
+#         return HTML(
+#             """<p style="color:red;background-color: white;padding: 0.5em;">This module is available only if genes symbol are available.</p>"""
+#         )
+#         # return "This module is available only if genes symbol are used."
 
-    display(
-        widgets.VBox(
-            [
-                tool,
-                conditions,
-                description,
-                bases,
-                fdr_cutoff,
-                score_cutoff,
-                plot_type,
-                size,
-                col_2,
-                col_1,
-                button,
-            ]
-        )
-    )
+#     def update_conditions(update):
+#         conditions_list = list(pitviper_res[tool.value].keys())
+#         conditions.options = conditions_list
+#         conditions.value = conditions_list[0]
 
-    def on_button_clicked(b):
-        charts = []
-        tool_res = pitviper_res[tool.value]
-        treatment, baseline = conditions.value.split("_vs_")
-        for base in bases.value:
-            if tool.value == "MAGeCK_MLE":
-                info = tool_res[conditions.value][
-                    conditions.value + ".gene_summary.txt"
-                ]
-                info = info.loc[info[treatment + "|fdr"] < fdr_cutoff.value]
-                if score_cutoff.value < 0:
-                    info = info.loc[info[treatment + "|beta"] < score_cutoff.value]
-                elif score_cutoff.value > 0:
-                    info = info.loc[info[treatment + "|beta"] > score_cutoff.value]
-                genes = info["Gene"].to_list()
+#     BASES = get_enrichr_bases()
+#     TOOLS = [tool for tool in pitviper_res.keys() if tool != "DESeq2"]
 
-            if tool.value == "MAGeCK_RRA":
-                info = tool_res[conditions.value][
-                    conditions.value + ".gene_summary.txt"
-                ]
-                info = info.loc[info["neg|fdr"] < fdr_cutoff.value]
-                genes = info["id"]
+#     tool = widgets.Dropdown(options=TOOLS, value=TOOLS[0], description="Tool:")
+#     tool.observe(update_conditions, "value")
 
-            if tool.value == "BAGEL2":
-                info = tool_res[conditions.value][conditions.value + "_BAGEL_output.pr"]
-                info = info.loc[info["BF"] > score_cutoff.value]
-                genes = info["Gene"]
+#     conditions_list = list(pitviper_res[tool.value].keys())
+#     conditions = widgets.Dropdown(
+#         options=conditions_list, value=conditions_list[0], description="Condition:"
+#     )
 
-            if tool.value == "directional_scoring_method":
-                info = tool_res[conditions.value][
-                    conditions.value + "_all-elements_directional_scoring_method.txt"
-                ]
-                if score_cutoff.value > 0:
-                    info = info.loc[info["score"] > score_cutoff.value]
-                else:
-                    info = info.loc[info["score"] < score_cutoff.value]
-                genes = info["Gene"]
+#     description = widgets.Text(
+#         value="My gene list", placeholder="Description", description="Description:"
+#     )
+#     bases = widgets.SelectMultiple(options=BASES)
 
-            if tool.value == "SSREA":
-                info = tool_res[conditions.value][
-                    conditions.value + "_all-elements_SSREA.txt"
-                ]
-                if score_cutoff.value > 0:
-                    info = info.loc[info["NES"] > score_cutoff.value]
-                elif score_cutoff.value < 0:
-                    info = info.loc[info["NES"] < score_cutoff.value]
-                info = info.loc[info["padj"] < fdr_cutoff.value]
-                genes = info["pathway"]
+#     col_2 = widgets.ColorPicker(concise=False, description="Top color", value="blue")
+#     col_1 = widgets.ColorPicker(concise=False, description="Bottom color", value="red")
+#     plot_type = widgets.Dropdown(
+#         options=["Circle", "Bar"], value="Circle", description="Plot type:"
+#     )
+#     size = widgets.Dropdown(
+#         options=[5, 10, 20, 50, 100, 200, "max"], value=5, description="Size:"
+#     )
+#     fdr_cutoff = widgets.FloatSlider(
+#         min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
+#     )
+#     score_cutoff = widgets.IntText(value=0, placeholder=0, description="Score cut-off:")
+#     button = widgets.Button(description="EnrichR!")
 
-            if tool.value == "CRISPhieRmix":
-                info = tool_res[conditions.value][conditions.value + ".txt"]
-                info = info.loc[info["locfdr"] < fdr_cutoff.value]
-                if score_cutoff.value > 0:
-                    info = info.loc[info["mean_log2FoldChange"] > score_cutoff.value]
-                elif score_cutoff.value <= 0:
-                    info = info.loc[info["mean_log2FoldChange"] < score_cutoff.value]
-                genes = info["gene"]
+#     display(
+#         widgets.VBox(
+#             [
+#                 tool,
+#                 conditions,
+#                 description,
+#                 bases,
+#                 fdr_cutoff,
+#                 score_cutoff,
+#                 plot_type,
+#                 size,
+#                 col_2,
+#                 col_1,
+#                 button,
+#             ]
+#         )
+#     )
 
-            enrichr_res = getEnrichrResults(genes, description.value, base)
-            table = createEnrichrTable(enrichr_res)
-            if plot_type.value == "Bar":
-                chart = enrichmentBarPlot(
-                    table, size.value, description.value, col_1.value, col_2.value, base
-                )
-            else:
-                chart = enrichmentCirclePlot(
-                    table, size.value, description.value, col_1.value, col_2.value, base
-                )
-            charts.append(chart)
-        for chart in charts:
-            display(chart)
+#     def on_button_clicked(b):
+#         charts = []
+#         tool_res = pitviper_res[tool.value]
+#         treatment, baseline = conditions.value.split("_vs_")
+#         for base in bases.value:
+#             if tool.value == "MAGeCK_MLE":
+#                 info = tool_res[conditions.value][
+#                     conditions.value + ".gene_summary.txt"
+#                 ]
+#                 info = info.loc[info[treatment + "|fdr"] < fdr_cutoff.value]
+#                 if score_cutoff.value < 0:
+#                     info = info.loc[info[treatment + "|beta"] < score_cutoff.value]
+#                 elif score_cutoff.value > 0:
+#                     info = info.loc[info[treatment + "|beta"] > score_cutoff.value]
+#                 genes = info["Gene"].to_list()
 
-    button.on_click(on_button_clicked)
+#             if tool.value == "MAGeCK_RRA":
+#                 info = tool_res[conditions.value][
+#                     conditions.value + ".gene_summary.txt"
+#                 ]
+#                 info = info.loc[info["neg|fdr"] < fdr_cutoff.value]
+#                 genes = info["id"]
+
+#             if tool.value == "BAGEL2":
+#                 info = tool_res[conditions.value][conditions.value + "_BAGEL_output.pr"]
+#                 info = info.loc[info["BF"] > score_cutoff.value]
+#                 genes = info["Gene"]
+
+#             if tool.value == "directional_scoring_method":
+#                 info = tool_res[conditions.value][
+#                     conditions.value + "_all-elements_directional_scoring_method.txt"
+#                 ]
+#                 if score_cutoff.value > 0:
+#                     info = info.loc[info["score"] > score_cutoff.value]
+#                 else:
+#                     info = info.loc[info["score"] < score_cutoff.value]
+#                 genes = info["Gene"]
+
+#             if tool.value == "SSREA":
+#                 info = tool_res[conditions.value][
+#                     conditions.value + "_all-elements_SSREA.txt"
+#                 ]
+#                 if score_cutoff.value > 0:
+#                     info = info.loc[info["NES"] > score_cutoff.value]
+#                 elif score_cutoff.value < 0:
+#                     info = info.loc[info["NES"] < score_cutoff.value]
+#                 info = info.loc[info["padj"] < fdr_cutoff.value]
+#                 genes = info["pathway"]
+
+#             if tool.value == "CRISPhieRmix":
+#                 info = tool_res[conditions.value][conditions.value + ".txt"]
+#                 info = info.loc[info["locfdr"] < fdr_cutoff.value]
+#                 if score_cutoff.value > 0:
+#                     info = info.loc[info["mean_log2FoldChange"] > score_cutoff.value]
+#                 elif score_cutoff.value <= 0:
+#                     info = info.loc[info["mean_log2FoldChange"] < score_cutoff.value]
+#                 genes = info["gene"]
+
+#             enrichr_res = get_enrichr_results(genes, description.value, base)
+#             table = create_enrichr_table(enrichr_res)
+#             if plot_type.value == "Bar":
+#                 chart = enrichmentBarPlot(
+#                     table, size.value, description.value, col_1.value, col_2.value, base
+#                 )
+#             else:
+#                 chart = enrichmentCirclePlot(
+#                     table, size.value, description.value, col_1.value, col_2.value, base
+#                 )
+#             charts.append(chart)
+#         for chart in charts:
+#             display(chart)
+
+#     button.on_click(on_button_clicked)
 
 
 def run_rra(ranks):
@@ -3168,7 +3214,6 @@ def genemania_link_results(token, tools_available):
         link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes)
         print(link)
 
-    BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
     TOOLS = [tool for tool in tools_available.keys() if tool != "DESeq2"]
 
     tool = widgets.Dropdown(options=TOOLS, value=TOOLS[0], description="Tool:")
@@ -4103,30 +4148,35 @@ def multiple_tools_results(tools_available, token):
 
     def enrichr_button_clicked(b):
         def show_enrichr_plots(
-            b, genes, bases, size, plot_type, col_2, col_1, description
+            b, genes, bases, size, plot_type, col_2, col_1, description, output
         ):
-            show_parameters(params)
             charts = []
             title = description.value + " (%s)" % selection_widgets.value
-            for base in bases.value:
-                enrichr_res = getEnrichrResults(genes, description.value, base)
-                table = createEnrichrTable(enrichr_res)
-                if plot_type.value == "Bar":
-                    chart = enrichmentBarPlot(
-                        table, size.value, title, col_1.value, col_2.value, base
-                    )
-                else:
-                    chart = enrichmentCirclePlot(
-                        table, size.value, title, col_1.value, col_2.value, base
-                    )
-                charts.append(chart)
-            for chart in charts:
-                display(chart)
+            with output:
+                show_parameters(params)
+                for base in bases.value:
+                    enrichr_res = get_enrichr_results(genes, description.value, base)
+                    table = create_enrichr_table(enrichr_res)
+                    if plot_type.value == "Bar":
+                        chart = enrichmentBarPlot(
+                            table, size.value, title, col_1.value, col_2.value, base
+                        )
+                    else:
+                        chart = enrichmentCirclePlot(
+                            table, size.value, title, col_1.value, col_2.value, base
+                        )
+                    charts.append(chart)
+                for chart in charts:
+                    display(chart)
 
         display(
             HTML(
-                """<p style="color:white;font-weight: bold;background-color: purple;padding: 0.5em;">EnrichR for genes at %s</p>"""
-                % selection_widgets.value
+                f"""
+                <p style="color:white;
+                          font-weight: bold;
+                          background-color: purple;
+                          padding: 0.5em;">EnrichR for genes at {selection_widgets.value}</p>
+                """
             )
         )
         treatment, control = conditions_widget.value.split("_vs_")
@@ -4143,7 +4193,7 @@ def multiple_tools_results(tools_available, token):
             )
             genes_list = df.loc[df.union == True].index
         genes_list = regions2genes(token, genes_list)
-        BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
+        BASES = get_enrichr_bases()
         bases = widgets.SelectMultiple(options=BASES, description="Gene sets:", rows=10)
         col_2 = widgets.ColorPicker(
             concise=False, description="Top color", value="blue"
@@ -4160,13 +4210,18 @@ def multiple_tools_results(tools_available, token):
         description = widgets.Text(
             value="My gene list", placeholder="Description", description="Description:"
         )
-        button_enrichr = widgets.Button(description="EnrichR!")
+        button_enrichr = widgets.Button(description="Plot!")
 
         display(
             widgets.VBox(
                 [description, bases, plot_type, size, col_2, col_1, button_enrichr]
             )
         )
+
+        output_enrichr = widgets.Output()
+
+        display(output_enrichr)
+
         button_enrichr.on_click(
             partial(
                 show_enrichr_plots,
@@ -4177,24 +4232,26 @@ def multiple_tools_results(tools_available, token):
                 col_2=col_2,
                 col_1=col_1,
                 description=description,
+                output=output_enrichr,
             )
         )
 
     def depmap_button_clicked(b):
         display(
             HTML(
-                """<p style="color:white;font-weight: bold;background-color: #A52A2A;padding: 0.5em;">depmap vizualisation module</p>"""
+                """<p style="color:white;font-weight: bold;background-color: #A52A2A;padding: 0.5em;">DepMap vizualisation module</p>"""
             )
         )
         data_types_widget = widgets.RadioButtons(
             options=["crispr", "proteomic", "rnai", "tpm", "mutations"],
             value="crispr",
-            description="Data type:",
+            description="Choose a data type:",
             disabled=False,
         )
 
         def download_depmap_file(data_type, release):
-            target_file = "resources/depmap/%s_%s.txt" % (release, data_type)
+            """Determine if the file is already downloaded or not."""
+            target_file = f"resources/depmap/{release}_{data_type}.txt"
             for file_name in listdir("resources/depmap/"):
                 if ("metadata" in file_name) and (not release in file_name):
                     os.remove(file_name)
@@ -4208,18 +4265,24 @@ def multiple_tools_results(tools_available, token):
                         return False
             return True
 
-        def getRelease():
+        def get_release():
+            """Get the release of the depmap data."""
             depmap_release = depmap.depmap_release()
             return str(depmap_release).rstrip()[5:-1]
 
         def depmap_query_button_clicked(b):
-            depmap_release = getRelease()
-            save_path = "resources/depmap/%s_%s.txt" % (
-                depmap_release,
-                data_types_widget.value,
+            """Query the depmap data."""
+            # Get the release of the depmap data
+            depmap_release = get_release()
+            # Set the path to save the file
+            save_path = (
+                f"resources/depmap/{depmap_release}_{data_types_widget.value}.txt"
             )
+            # Create the directory if it does not exist
             Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
+            # Get the treatment and control conditions
             treatment, control = conditions_widget.value.split("_vs_")
+            # Get the ranking
             ranks, occurences = ranking(
                 treatment, control, token, tools_available, params
             )
@@ -4275,7 +4338,7 @@ def multiple_tools_results(tools_available, token):
                         )
                     )
                 if not os.path.isfile(
-                    "resources/depmap/%s_metadata.txt" % depmap_release
+                    f"resources/depmap/{depmap_release}_metadata.txt"
                 ):
                     depmap_metadata = dplyr.select(
                         depmap.depmap_metadata(),
@@ -4290,7 +4353,7 @@ def multiple_tools_results(tools_available, token):
                     print("Saving metadata...")
                     utils.write_table(
                         depmap_metadata,
-                        "resources/depmap/%s_metadata.txt" % depmap_release,
+                        "resources/depmap/{depmap_release}_metadata.txt",
                         row_names=False,
                         quote=False,
                         sep="\t",
@@ -4298,23 +4361,23 @@ def multiple_tools_results(tools_available, token):
                 else:
                     print("Import metadata...")
                     depmap_metadata = readr.read_delim(
-                        "resources/depmap/%s_metadata.txt" % depmap_release, delim="\t"
+                        f"resources/depmap/{depmap_release}_metadata.txt", delim="\t"
                     )
                 depmap_data = base_package.merge(
                     depmap_data, depmap_metadata, by="depmap_id"
                 )
-                print("Saving %s" % save_path)
+                print(f"Saving {save_path}")
                 utils.write_table(
                     depmap_data, save_path, row_names=False, quote=False, sep="\t"
                 )
-            print("Opening %s" % save_path)
+            print(f"Opening {save_path}")
             data = pd.read_table(save_path, sep="\t")
 
             tissues_init = list(set(data.cell_line))
             tissues = [
                 "_".join(str(tissu).split("_")[1:])
                 for tissu in tissues_init
-                if not str(tissu) in ["nan", ""]
+                if str(tissu) not in ["nan", ""]
             ]
             tissues = list(set(tissues))
             tissues.insert(0, "All")
@@ -4324,7 +4387,7 @@ def multiple_tools_results(tools_available, token):
 
             cell_lines_init = list(set(data.cell_line_name))
             cell_lines = [
-                tissu for tissu in cell_lines_init if not str(tissu) in ["nan", ""]
+                tissu for tissu in cell_lines_init if str(tissu) not in ["nan", ""]
             ]
             cell_lines = natural_sort(cell_lines)
             cell_lines.insert(0, "All")
@@ -4554,34 +4617,120 @@ def condition_comparison(results_directory, tools_available, token):
         tools_options = list(tools_available.keys())
         # Remove DESeq2
         tools_options.remove("DESeq2")
+        tools_options.remove("directional_scoring_method")
+        tools_options.remove("SSREA")
         comparisons_options = list(tools_available[tools_options[0]].keys())
         comparisons_options.sort()
 
         # Create a gene/element selection widget with Text input
         gene_selection_widget = widgets.Text(
             value="",
-            placeholder="Type gene names separated by a comma",
+            placeholder="Comma-separated list",
             description="Gene/Element:",
             disabled=False,
+            style={"description_width": "100px"},
+        )
+        # Create a color widget for the gene/element selection
+        color_gene_widget = widgets.ColorPicker(
+            concise=True, description="", value="green"
         )
 
         # Define widgets
         # Create a condition 1 widget
         comparison_1_widget = widgets.Dropdown(
-            options=comparisons_options, description="Comparison 1:"
+            options=comparisons_options,
+            description="Comparison 1:",
+            layout=widgets.Layout(width="30%"),
+            style={"description_width": "100px"},
         )
+        # Create a widget to define the selection: <=, >=, <, >, abs() >=, abs() <=
+        orientation_1_widget = widgets.Dropdown(
+            options=["<=", ">=", "<", ">", "abs() >=", "abs() <="],
+            description="",
+            value=">=",
+            layout=widgets.Layout(width="10%"),
+        )
+        # Create a widget to define the value of the selection
+        value_1_widget = widgets.FloatText(
+            value=0,
+            description="",
+            layout=widgets.Layout(width="10%"),
+        )
+        # Create a color widget for the condition 1
+        color_1_widget = widgets.ColorPicker(
+            concise=True,
+            description="",
+            value="blue",
+            # layout=widgets.Layout(width="10%"),
+        )
+        # Create a checkbox to let user decide if they want to highlight genes with a specific value for the condition 1
+        highlight_1_widget = widgets.Checkbox(
+            value=False,
+            description="Highlight genes?",
+        )
+
         # Create a condition 2 widget
         comparison_2_widget = widgets.Dropdown(
-            options=comparisons_options, description="Comparison 2:"
+            options=comparisons_options,
+            description="Comparison 2:",
+            layout=widgets.Layout(width="30%"),
+            style={"description_width": "100px"},
         )
+        # Create a widget to define the selection: <=, >=, <, >, abs() >=, abs() <=
+        orientation_2_widget = widgets.Dropdown(
+            options=["<=", ">=", "<", ">", "abs() >=", "abs() <="],
+            description="",
+            value=">=",
+            layout=widgets.Layout(width="10%"),
+        )
+        # Create a widget to define the value of the selection
+        value_2_widget = widgets.FloatText(
+            value=0,
+            description="",
+            layout=widgets.Layout(width="10%"),
+        )
+        # Create a color widget for the condition 2
+        color_2_widget = widgets.ColorPicker(concise=True, description="", value="red")
+        # Create a checkbox to let user decide if they want to highlight genes with a specific value for the condition 1
+        highlight_2_widget = widgets.Checkbox(
+            value=False,
+            description="Highlight genes?",
+        )
+
+        # Create a color widget for elements identified for both conditions
+        color_intersection_widget = widgets.ColorPicker(
+            concise=True, description="Intersection", value="purple"
+        )
+
         # Create a tool widget
-        tools_widget = widgets.Dropdown(options=tools_options, description="Tool:")
+        tools_widget = widgets.Dropdown(
+            options=tools_options,
+            description="Tool:",
+            style={"description_width": "100px"},
+        )
 
         return (
             tools_widget,
-            comparison_1_widget,
-            comparison_2_widget,
-            gene_selection_widget,
+            widgets.HBox(
+                [
+                    comparison_1_widget,
+                    orientation_1_widget,
+                    value_1_widget,
+                    color_1_widget,
+                    highlight_1_widget,
+                ]
+            ),
+            widgets.HBox(
+                [
+                    comparison_2_widget,
+                    orientation_2_widget,
+                    value_2_widget,
+                    color_2_widget,
+                    highlight_2_widget,
+                ]
+            ),
+            color_intersection_widget,
+            widgets.HBox([gene_selection_widget, color_gene_widget]),
         )
 
     parameters_widgets = widgets.VBox(parameters_widgets())
@@ -4602,12 +4751,8 @@ def condition_comparison(results_directory, tools_available, token):
     def plot_button_clicked(b):
         """Plot the data."""
 
-        def plot_comparison(data, column_1, column_2, elements_column):
+        def plot_comparison(data, column_1, column_2, elements_column, color_dict):
             """Plot the comparison using altair."""
-
-            # print(f"Plotting {tool} data for {comparison_1} and {comparison_2}.")
-            # print(f"Column 1: {column_1}")
-            # print(f"Column 2: {column_2}")
 
             # Définir les limites de vos données
             min_value = min(data[column_1].min(), data[column_2].min())
@@ -4616,10 +4761,20 @@ def condition_comparison(results_directory, tools_available, token):
             # Créer une échelle avec les mêmes limites pour les axes x et y
             scale = alt.Scale(domain=(min_value, max_value))
 
+            range_color = list(color_dict.values())
+            domain_color = list(color_dict.keys())
+
+            # Add none to the range color
+            range_color.append("grey")
+            domain_color.append("Others")
+
             # Superposer les lignes sur le graphique
             chart = (
                 (
                     alt.Chart(data)
+                    .transform_calculate(
+                        order="datum.color == 'Others' ? 0 : (datum.color == 'Selection' ? 2 : 1)"
+                    )
                     .mark_circle()
                     .encode(
                         x=alt.X(column_1, scale=scale, title=column_1),
@@ -4627,13 +4782,18 @@ def condition_comparison(results_directory, tools_available, token):
                         tooltip=[elements_column, column_1, column_2],
                         # Color the points in blue if they are selected
                         color=alt.Color(
-                            "selected:N",
+                            "color:N",
                             scale=alt.Scale(
-                                range=["grey", "red"], domain=[False, True]
+                                range=range_color,
+                                domain=domain_color,
                             ),
+                            sort="ascending",
                             # Set the legend title
-                            legend=alt.Legend(title="Selected genes"),
+                            legend=alt.Legend(title="Highlighted elements:"),
                         ),
+                        order="order:O",
+                        # Set opacity to 1.0 for all points
+                        opacity=alt.value(1.0),
                     )
                     .interactive()
                 )
@@ -4650,7 +4810,7 @@ def condition_comparison(results_directory, tools_available, token):
                 .mark_rule(color="black")
                 .encode(y="y")
                 + alt.Chart(data.query("selected == True"))
-                .mark_text(dy=10, dx=20, color="red")
+                .mark_text(dy=10, dx=20, color=selected_genes_color)
                 .encode(
                     x=column_1,
                     y=column_2,
@@ -4687,8 +4847,25 @@ def condition_comparison(results_directory, tools_available, token):
             output.clear_output()
             # Get the parameters
             tool = parameters_widgets.children[0].value
-            comparison_1 = parameters_widgets.children[1].value
-            comparison_2 = parameters_widgets.children[2].value
+
+            # Comparison 1 parameters
+            comparison_1 = parameters_widgets.children[1].children[0].value
+            orientation_1 = parameters_widgets.children[1].children[1].value
+            value_1 = parameters_widgets.children[1].children[2].value
+            color_1 = parameters_widgets.children[1].children[3].value
+            highlight_1 = parameters_widgets.children[1].children[4].value
+
+            # Comparison 2 parameters
+            comparison_2 = parameters_widgets.children[2].children[0].value
+            orientation_2 = parameters_widgets.children[2].children[1].value
+            value_2 = parameters_widgets.children[2].children[2].value
+            color_2 = parameters_widgets.children[2].children[3].value
+            highlight_2 = parameters_widgets.children[2].children[4].value
+
+            # Get the color for the intersection
+            color_intersection = parameters_widgets.children[3].value
+
+            # Get the data
             comparison_1_data, comparison_2_data = get_data(
                 tool, comparison_1, comparison_2, results_directory
             )
@@ -4698,9 +4875,9 @@ def condition_comparison(results_directory, tools_available, token):
                 print("Please choose two different comparisons.")
                 return
 
-            selected_genes = parameters_widgets.children[3].value.split(",")
-
-            # print(f"Selected genes: {selected_genes}")
+            # Get the selected genes and their color
+            selected_genes = parameters_widgets.children[4].children[0].value.split(",")
+            selected_genes_color = parameters_widgets.children[4].children[1].value
 
             # Get the columns to plot
             column_1 = _get_score_columns_by_tool(tool, comparison_1.split("_vs_")[0])
@@ -4735,69 +4912,160 @@ def condition_comparison(results_directory, tools_available, token):
                 selected_genes
             )
 
-            # print(f"Plotting {tool} data for {comparison_1} and {comparison_2}.")
-            # print(f"Column 1: {column_1}")
-            # print(f"Column 2: {column_2}")
+            def mask_condition(data, column, orientation, value):
+                """Mask the data based on the condition."""
+                if orientation == "<=":
+                    mask = data[column] <= value
+                elif orientation == ">=":
+                    mask = data[column] >= value
+                elif orientation == "<":
+                    mask = data[column] < value
+                elif orientation == ">":
+                    mask = data[column] > value
+                elif orientation == "abs() <=":
+                    mask = abs(data[column]) <= value
+                elif orientation == "abs() >=":
+                    mask = abs(data[column]) >= value
+                return mask
 
-            # # Display both dataframes with the columns to plot
-            # display(comparison_1_data)
-            # display(comparison_2_data)
+            # If user selected to highlight genes, add a column to the dataframe for the genes passing the threshold
+            combined_data["highlight_1"] = mask_condition(
+                combined_data, column_1, orientation_1, value_1
+            )
+            combined_data["highlight_2"] = mask_condition(
+                combined_data, column_2, orientation_2, value_2
+            )
 
-            # # Display the combined data
+            conditions = [
+                combined_data["selected"],
+                combined_data["highlight_1"] & combined_data["highlight_2"],
+                combined_data["highlight_1"],
+                combined_data["highlight_2"],
+            ]
+
+            label_1 = f"{comparison_1} {orientation_1} {value_1}"
+            label_2 = f"{comparison_2} {orientation_2} {value_2}"
+
+            outputs = [
+                "Selection",
+                "Intersection",
+                label_1,
+                label_2,
+            ]
+
+            # If no highlight is selected, remove the first element of the lists
+            to_remove = []
+            if not highlight_1 or not highlight_2:
+                to_remove.append(1)
+            if not highlight_1:
+                to_remove.append(2)
+            if not highlight_2:
+                to_remove.append(3)
+
+            conditions = [
+                conditions[i] for i in range(len(conditions)) if i not in to_remove
+            ]
+            outputs = [outputs[i] for i in range(len(outputs)) if i not in to_remove]
+
+            # Create a 'color' column.
+            # If highlight_1 is True, set the color to color_1
+            # If highlight_2 is True, set the color to color_2
+            # If both are True, set the color to color_intersection
+            # If selected is True, set the color to selected_genes_color
+            # Else, set the color to grey
+            combined_data["color"] = np.select(
+                conditions,
+                outputs,
+                default="Others",
+            )
+
             # display(combined_data)
 
+            # display(combined_data.groupby("color").size())
+
+            color_dict = {
+                # Highlight the genes passing the threshold 1
+                label_1: color_1,
+                # Highlight the genes passing the threshold 2
+                label_2: color_2,
+                # Highlight the genes in the intersection
+                "Intersection": color_intersection,
+                # Genes selected by the user
+                "Selection": selected_genes_color,
+                # Others genes
+                "Others": "grey",
+            }
+
             # Plot the data
-            plot_comparison(combined_data, column_1, column_2, elements_column)
-
-            # Retrieve genes from each cadrant: upper left, upper right, lower left, lower right
-            upper_left_genes = combined_data[
-                (combined_data[column_1] < 0) & (combined_data[column_2] > 0)
-            ][elements_column]
-
-            upper_right_genes = combined_data[
-                (combined_data[column_1] > 0) & (combined_data[column_2] > 0)
-            ][elements_column]
-
-            lower_left_genes = combined_data[
-                (combined_data[column_1] < 0) & (combined_data[column_2] < 0)
-            ][elements_column]
-
-            lower_right_genes = combined_data[
-                (combined_data[column_1] > 0) & (combined_data[column_2] < 0)
-            ][elements_column]
-
-            # Display the genes in each cadrant in a text area, disabled
-            upper_left_textarea = widgets.Textarea(
-                value="\n".join(upper_left_genes),
-                description="Upper left \ngenes:",
-                disabled=True,
-                layout=widgets.Layout(height="200px", width="30%"),
-                style={"description_width": "150px"},
+            plot_comparison(
+                combined_data, column_1, column_2, elements_column, color_dict
             )
 
-            upper_right_textarea = widgets.Textarea(
-                value="\n".join(upper_right_genes),
-                description="Upper right genes:",
-                disabled=True,
-                layout=widgets.Layout(height="200px", width="30%"),
-                style={"description_width": "150px"},
+            # Create a dropdown to select the gene sets
+            enrichr_bases = get_enrichr_bases()
+            enrichr_bases_widget = widgets.SelectMultiple(
+                options=enrichr_bases,
+                description="EnrichR gene sets:",
+                rows=12,
+                layout=widgets.Layout(width="400px"),
+                style={"description_width": "initial"},
             )
 
-            lower_left_textarea = widgets.Textarea(
-                value="\n".join(lower_left_genes),
-                description="Lower left genes:",
-                disabled=True,
-                layout=widgets.Layout(height="200px", width="30%"),
-                style={"description_width": "150px"},
-            )
+            display(enrichr_bases_widget)
 
-            lower_right_textarea = widgets.Textarea(
-                value="\n".join(lower_right_genes),
-                description="Lower right genes:",
-                disabled=True,
-                layout=widgets.Layout(height="200px", width="30%"),
-                style={"description_width": "150px"},
-            )
+            # Retrieve genes from each 'color' category and create a text area for each category
+            for category in color_dict:
+                genes = combined_data[combined_data["color"] == category][
+                    elements_column
+                ]
+                textarea = widgets.Textarea(
+                    value="\n".join(genes),
+                    description=f"{category} genes:",
+                    disabled=True,
+                    layout=widgets.Layout(height="200px", width="auto"),
+                    style={"description_width": "200px"},
+                )
+
+                # Create a button to run enrichr on the genes
+                enrichr_button = widgets.Button(
+                    description=f"Run EnrichR on {category}",
+                    # Increase button width to match description width
+                    layout=widgets.Layout(width="auto"),
+                )
+                display(widgets.HBox([textarea, enrichr_button]))
+
+                def enrichr_button_clicked(b):
+                    """Run enrichr on the genes."""
+                    category = b.description[15:]
+                    genes = combined_data[combined_data["color"] == category][
+                        elements_column
+                    ]
+                    if len(genes) == 0:
+                        print(f"No genes in the category {category}.")
+                        return
+                    print(f"Running EnrichR on <{category}> genes.")
+                    print(f"Number of genes: {len(genes)}")
+                    if not enrichr_bases_widget.value:
+                        print("Please select at least one gene set.")
+                        return
+                    for base in enrichr_bases_widget.value:
+                        enrichr_res = get_enrichr_results(
+                            genes,
+                            category,
+                            base,
+                        )
+                        table = create_enrichr_table(enrichr_res)
+                        chart = enrichmentBarPlot(
+                            table,
+                            10,
+                            f"EnrichR results for {category} genes",
+                            "red",
+                            "blue",
+                            base,
+                        )
+                        display(chart)
+
+                enrichr_button.on_click(enrichr_button_clicked)
 
             # Display the text in black
             display(
@@ -4813,6 +5081,6 @@ def condition_comparison(results_directory, tools_available, token):
                 )
             )
 
-            # Display the text areas in a Hbox
-            display(widgets.HBox([upper_left_textarea, upper_right_textarea]))
-            display(widgets.HBox([lower_left_textarea, lower_right_textarea]))
+            # # Display the text areas in a Hbox
+            # display(widgets.HBox([upper_left_textarea, upper_right_textarea]))
+            # display(widgets.HBox([lower_left_textarea, lower_right_textarea]))
