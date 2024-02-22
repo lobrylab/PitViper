@@ -68,6 +68,34 @@ layout = widgets.Layout(width="auto", height="40px")  # set width and height
 style = {"description_width": "initial"}
 
 
+def display_warning(message):
+    """Display a warning message in the notebook."""
+    warning_html = """
+    <div style='background-color: lightyellow; 
+                border-left: 5px solid yellow; 
+                padding: 10px; 
+                margin-bottom: 10px;'>
+        <p style='color: #f5aa42; 
+                  font-weight: bold;'>{}</p>
+    </div>
+    """.format(message)
+    display(HTML(warning_html))
+    
+    
+def display_error(message):
+    """Display an error message in the notebook."""
+    error_html = """
+    <div style='background-color: #ffdddd; 
+                border-left: 5px solid red; 
+                padding: 10px; 
+                margin-bottom: 10px;'>
+        <p style='color: red; 
+                  font-weight: bold;'>{}</p>
+    </div>
+    """.format(message)
+    display(HTML(error_html))
+    
+
 def natural_sort(l: list):
     """Do a natural sorting on the input list l.
 
@@ -151,7 +179,8 @@ def download_config(token: str):
             content=config_yaml_str, filename=config_name, label="Download config file!"
         )
     else:
-        print("Error: Config file could not be loaded.")
+        # print("Error: Config file could not be loaded.")
+        display_error("Error: Config file could not be loaded.")
 
 
 def download_raw_counts(token):
@@ -344,7 +373,8 @@ def show_mapping_qc(token: str):
     """
     path_qc = "./resources/%s/screen.countsummary.txt" % token
     if not path.exists(path_qc):
-        print("No mapping QC file to show.")
+        display_warning("No mapping QC file to show.")
+        # print("No mapping QC file to show.")
         return 0
     table = pd.read_csv(path_qc, sep="\t")
     table = table[["Label", "Reads", "Mapped", "Percentage", "Zerocounts", "GiniIndex"]]
@@ -437,7 +467,8 @@ def download_file(content, label, filename):
         # Display the HTML and JavaScript
         display(HTML(html_script))
     except Exception as e:
-        print(f"An error occurred: {e}")
+        display_error(f"An error occurred: {e}")
+        # print(f"An error occurred: {e}")
 
 
 def show_read_count_distribution(token: str, width=800, height=400):
@@ -455,7 +486,8 @@ def show_read_count_distribution(token: str, width=800, height=400):
     content = open_yaml(config)
     path_qc = content["normalized_count_table"]
     if not path.exists(path_qc):
-        print("No count file to show.")
+        display_warning("No count file to show.")
+        # print("No count file to show.")
         return 0
     table = pd.read_csv(path_qc, sep="\t")
 
@@ -568,19 +600,22 @@ def get_enrichr_results(genes: list, description: str, gene_set_library: list):
         response.raise_for_status()  # Will raise an exception for HTTP errors
     except requests.exceptions.RequestException as e:
         # Print error message and return None
-        print("Error analyzing gene list: %s", e)
+        display_error(f"Error analyzing gene list: {e}")
+        # print("Error analyzing gene list: %s", e)
         return None
 
     try:
         # Parse JSON response
         data = response.json()
     except json.JSONDecodeError:
-        print("Invalid JSON response")
+        display_error("Invalid JSON response")
+        # print("Invalid JSON response")
         return None
 
     if "userListId" not in data:
         # Print error message and return None
-        print("Missing 'userListId' in response")
+        # print("Missing 'userListId' in response")
+        display_error("Missing 'userListId' in response")
         return None
 
     user_list_id = data["userListId"]
@@ -594,13 +629,15 @@ def get_enrichr_results(genes: list, description: str, gene_set_library: list):
         )
         response.raise_for_status()  # Will raise an exception for HTTP errors
     except requests.exceptions.RequestException as e:
-        print("Error fetching enrichment results: %s", e)
+        # print("Error fetching enrichment results: %s", e)
+        display_error(f"Error fetching enrichment results: {e}")
         return None
 
     try:
         data = response.json()
     except json.JSONDecodeError:
-        print("Invalid JSON response")
+        # print("Invalid JSON response")
+        display_error("Invalid JSON response")
         return None
 
     return data
@@ -806,7 +843,7 @@ def MAGeCK_RRA_data(
     elif comparison != "" and control == "":
         mode = False
     else:
-        print("ERROR.")
+        display_error("Error, please check your inputs.")
     for _comparison in os.listdir(os.path.join(results_directory, tool)):
         if check(comparison, _comparison, control, mode):
             keys_list = list(tools_available[tool][_comparison].keys())
@@ -885,7 +922,7 @@ def BAGEL_data(
     elif comparison != "" and control == "":
         mode = False
     else:
-        print("ERROR.")
+        display_error("Error, please check your inputs.")
     for _comparison in os.listdir(os.path.join(results_directory, tool)):
         if _comparison.split("_vs_")[-1] == control:
             keys_list = list(tools_available[tool][_comparison].keys())
@@ -1819,7 +1856,7 @@ def tool_results(results_directory, tools_available, token):
             download(
                 tools_available, tool="MAGeCK_RRA", treatment=treatment, control=control
             )
-        if "MAGeCK_MLE" in tool:
+        elif "MAGeCK_MLE" in tool:
             _MAGeCK_MLE_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1832,7 +1869,7 @@ def tool_results(results_directory, tools_available, token):
             download(
                 tools_available, tool="MAGeCK_MLE", treatment=treatment, control=control
             )
-        if "CRISPhieRmix" in tool:
+        elif "CRISPhieRmix" in tool:
             _CRISPhieRmix_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1848,7 +1885,7 @@ def tool_results(results_directory, tools_available, token):
                 treatment=treatment,
                 control=control,
             )
-        if "directional_scoring_method" in tool:
+        elif "directional_scoring_method" in tool:
             _directional_scoring_method_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1864,7 +1901,7 @@ def tool_results(results_directory, tools_available, token):
                 treatment=treatment,
                 control=control,
             )
-        if "SSREA" in tool:
+        elif "SSREA" in tool:
             _SSREA_like_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1877,7 +1914,7 @@ def tool_results(results_directory, tools_available, token):
             download(
                 tools_available, tool="SSREA", treatment=treatment, control=control
             )
-        if "BAGEL2" in tool:
+        elif "BAGEL2" in tool:
             _BAGEL_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1999,7 +2036,8 @@ def show_sgRNA_counts(token):
         genes = element.value.split(",")
         for gene in genes:
             if not gene in list(cts.Gene):
-                print("%s was not found in %s." % (gene, cts_file))
+                # print("%s was not found in %s." % (gene, cts_file))
+                display_warning(f"Gene '{gene}' was not found in {cts_file}.")
             else:
                 gene_cts = cts.loc[cts.Gene == gene]
                 gene_cts = gene_cts.loc[gene_cts.variable.isin(conditions.value)]
@@ -2108,7 +2146,7 @@ def show_sgRNA_counts_lines(token):
         genes = element.value.split(",")
         for gene in genes:
             if not gene in list(cts.Gene):
-                print("Element '%s' was not found in %s." % (gene, cts_file))
+                display_warning(f"Gene '{gene}' was not found in {cts_file}.")
             else:
                 sort_cols = conditions.value
                 gene_cts = cts.loc[cts.Gene == gene]
@@ -2979,19 +3017,23 @@ def get_enrichr_bases():
         response.raise_for_status()  # Will raise an exception for HTTP errors
     except requests.exceptions.Timeout:
         print("The request timed out")
+        display_error("The request timed out")
         return []
     except requests.exceptions.RequestException as err:
-        print("Something went wrong: %s", err)
+        # print("Something went wrong: %s", err)
+        display_error("Something went wrong: %s", err)
         return []
 
     try:
         data = response.json()
     except json.JSONDecodeError:
-        print("Invalid JSON response")
+        display_error("Invalid JSON response")
+        # print("Invalid JSON response")
         return []
 
     if "statistics" not in data:
-        print("Missing 'statistics' in response")
+        display_error("Missing 'statistics' in response")
+        # print("Missing 'statistics' in response")
         return []
 
     bases = [entry["libraryName"] for entry in data["statistics"]]
@@ -3727,7 +3769,7 @@ def multiple_tools_results(tools_available, token):
     conditions_widget = widgets.Dropdown(
         options=conditions_options, description="Conditions:"
     )
-    tools_widget = widgets.SelectMultiple(options=tools_options, description="Tool:")
+    tools_widget = widgets.SelectMultiple(options=tools_options, description="Tool:", )
     selection_widgets = widgets.ToggleButtons(
         options=["Intersection", "Union"],
         description="Selection mode:",
@@ -4043,71 +4085,78 @@ def multiple_tools_results(tools_available, token):
             )
 
     def venn_button_clicked(b):
-        treatment, control = conditions_widget.value.split("_vs_")
-        ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        # if selection_widgets.value == "Intersection":
-        df = pd.DataFrame(
-            occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
-            columns=["intersection"],
-        )
-        genes_list_at_intersection = df.loc[df.intersection == True].index
-        # else:
-        df = pd.DataFrame(
-            occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
-        )
-        genes_list_at_union = df.loc[df.union == True].index
-        display(
-            HTML(
-                """<p style="color:white;font-weight: bold;background-color: orange;padding: 0.5em;">Venn diagram: %s</p>"""
-                % selection_widgets.value
+        # If at least one tool is selected
+        if len(tools_widget.value) > 0:
+            treatment, control = conditions_widget.value.split("_vs_")
+            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            # if selection_widgets.value == "Intersection":
+            df = pd.DataFrame(
+                occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
+                columns=["intersection"],
             )
-        )
+            genes_list_at_intersection = df.loc[df.intersection == True].index
+            # else:
+            df = pd.DataFrame(
+                occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
+            )
+            genes_list_at_union = df.loc[df.union == True].index
+            display(
+                HTML(
+                    """<p style="color:white;font-weight: bold;background-color: orange;padding: 0.5em;">Venn diagram: %s</p>"""
+                    % selection_widgets.value
+                )
+            )
 
-        show_parameters(params)
-        plot_venn(occurences)
-        plot_upset(occurences)
+            show_parameters(params)
+            plot_venn(occurences)
+            # If more than one tool is selected, display the upset plot
+            if len(tools_widget.value) > 1:
+                plot_upset(occurences)
 
-        textarea_intersection = widgets.Textarea(
-            value="\n".join(genes_list_at_intersection),
-            description=f"List of genes at intersection of all methods (n = {len(genes_list_at_intersection)}):",
-            disabled=True,
-            # Increase the height of the textarea (default is 6 rows)
-            layout=widgets.Layout(height="200px", width="60%"),
-            style={"description_width": "400px"},
-        )
-        display(textarea_intersection)
 
-        textarea_union = widgets.Textarea(
-            value="\n".join(genes_list_at_union),
-            description=f"List of genes at union of all methods (n = {len(genes_list_at_union)}):",
-            disabled=True,
-            # Increase the height of the textarea (default is 6 rows)
-            layout=widgets.Layout(height="200px", width="60%"),
-            style={"description_width": "400px"},
-        )
+            textarea_intersection = widgets.Textarea(
+                value="\n".join(genes_list_at_intersection),
+                description=f"List of genes at intersection of all methods (n = {len(genes_list_at_intersection)}):",
+                disabled=True,
+                # Increase the height of the textarea (default is 6 rows)
+                layout=widgets.Layout(height="200px", width="60%"),
+                style={"description_width": "400px"},
+            )
+            display(textarea_intersection)
 
-        display(textarea_union)
+            textarea_union = widgets.Textarea(
+                value="\n".join(genes_list_at_union),
+                description=f"List of genes at union of all methods (n = {len(genes_list_at_union)}):",
+                disabled=True,
+                # Increase the height of the textarea (default is 6 rows)
+                layout=widgets.Layout(height="200px", width="60%"),
+                style={"description_width": "400px"},
+            )
 
-        # Utilisez du HTML et du JavaScript pour changer la couleur du texte
-        display(
-            HTML(
-                """
-            <style>
-                .widget-textarea textarea:disabled {
-                    color: black !important;
-                    opacity: 1 !important;
-                }
-            </style>
-            <script>
-                require(["base/js/namespace"], function(Jupyter) {
-                    Jupyter.notebook.events.one("kernel_ready.Kernel", function() {
-                        Jupyter.notebook.execute_cells([Jupyter.notebook.get_cell_index(Jupyter.notebook.get_selected_cell())]);
+            display(textarea_union)
+
+            # Utilisez du HTML et du JavaScript pour changer la couleur du texte
+            display(
+                HTML(
+                    """
+                <style>
+                    .widget-textarea textarea:disabled {
+                        color: black !important;
+                        opacity: 1 !important;
+                    }
+                </style>
+                <script>
+                    require(["base/js/namespace"], function(Jupyter) {
+                        Jupyter.notebook.events.one("kernel_ready.Kernel", function() {
+                            Jupyter.notebook.execute_cells([Jupyter.notebook.get_cell_index(Jupyter.notebook.get_selected_cell())]);
+                        });
                     });
-                });
-            </script>
-        """
+                </script>
+            """
+                )
             )
-        )
+        else:
+            display_warning("Please select at least one tool above.")
 
     def rra_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
@@ -4148,26 +4197,27 @@ def multiple_tools_results(tools_available, token):
 
     def enrichr_button_clicked(b):
         def show_enrichr_plots(
-            b, genes, bases, size, plot_type, col_2, col_1, description, output
+            b, genes, bases, size, plot_type, col_2, col_1, description, 
+            # output
         ):
             charts = []
             title = description.value + " (%s)" % selection_widgets.value
-            with output:
-                show_parameters(params)
-                for base in bases.value:
-                    enrichr_res = get_enrichr_results(genes, description.value, base)
-                    table = create_enrichr_table(enrichr_res)
-                    if plot_type.value == "Bar":
-                        chart = enrichmentBarPlot(
-                            table, size.value, title, col_1.value, col_2.value, base
-                        )
-                    else:
-                        chart = enrichmentCirclePlot(
-                            table, size.value, title, col_1.value, col_2.value, base
-                        )
-                    charts.append(chart)
-                for chart in charts:
-                    display(chart)
+            # with output:
+            show_parameters(params)
+            for base in bases.value:
+                enrichr_res = get_enrichr_results(genes, description.value, base)
+                table = create_enrichr_table(enrichr_res)
+                if plot_type.value == "Bar":
+                    chart = enrichmentBarPlot(
+                        table, size.value, title, col_1.value, col_2.value, base
+                    )
+                else:
+                    chart = enrichmentCirclePlot(
+                        table, size.value, title, col_1.value, col_2.value, base
+                    )
+                charts.append(chart)
+            for chart in charts:
+                display(chart)
 
         display(
             HTML(
@@ -4214,13 +4264,14 @@ def multiple_tools_results(tools_available, token):
 
         display(
             widgets.VBox(
-                [description, bases, plot_type, size, col_2, col_1, button_enrichr]
+                [description, bases, plot_type, size, col_2, col_1, button_enrichr
+                 ]
             )
         )
 
-        output_enrichr = widgets.Output()
+        # output_enrichr = widgets.Output()
 
-        display(output_enrichr)
+        # display(output_enrichr)
 
         button_enrichr.on_click(
             partial(
@@ -4232,7 +4283,7 @@ def multiple_tools_results(tools_available, token):
                 col_2=col_2,
                 col_1=col_1,
                 description=description,
-                output=output_enrichr,
+                # output=output_enrichr,
             )
         )
 
@@ -4616,9 +4667,12 @@ def condition_comparison(results_directory, tools_available, token):
         # Define widgets's options
         tools_options = list(tools_available.keys())
         # Remove DESeq2
-        tools_options.remove("DESeq2")
-        tools_options.remove("directional_scoring_method")
-        tools_options.remove("SSREA")
+        if "DESeq2" in tools_options:
+            tools_options.remove("DESeq2")
+        if "directional_scoring_method" in tools_options:
+            tools_options.remove("directional_scoring_method")
+        if "SSREA" in tools_options:
+            tools_options.remove("SSREA")
         comparisons_options = list(tools_available[tools_options[0]].keys())
         comparisons_options.sort()
 
@@ -4640,6 +4694,7 @@ def condition_comparison(results_directory, tools_available, token):
         comparison_1_widget = widgets.Dropdown(
             options=comparisons_options,
             description="Comparison 1:",
+            value=comparisons_options[0],
             layout=widgets.Layout(width="30%"),
             style={"description_width": "100px"},
         )
@@ -4665,7 +4720,7 @@ def condition_comparison(results_directory, tools_available, token):
         )
         # Create a checkbox to let user decide if they want to highlight genes with a specific value for the condition 1
         highlight_1_widget = widgets.Checkbox(
-            value=False,
+            value=True,
             description="Highlight genes?",
         )
 
@@ -4673,6 +4728,7 @@ def condition_comparison(results_directory, tools_available, token):
         comparison_2_widget = widgets.Dropdown(
             options=comparisons_options,
             description="Comparison 2:",
+            value=comparisons_options[1],
             layout=widgets.Layout(width="30%"),
             style={"description_width": "100px"},
         )
@@ -4693,7 +4749,7 @@ def condition_comparison(results_directory, tools_available, token):
         color_2_widget = widgets.ColorPicker(concise=True, description="", value="red")
         # Create a checkbox to let user decide if they want to highlight genes with a specific value for the condition 1
         highlight_2_widget = widgets.Checkbox(
-            value=False,
+            value=True,
             description="Highlight genes?",
         )
 
@@ -4743,8 +4799,8 @@ def condition_comparison(results_directory, tools_available, token):
     display(plot_button)
 
     # Create an output widget to display the results
-    output = widgets.Output()
-    display(output)
+    # output = widgets.Output()
+    # display(output)
 
     # On button click, plot the data
     @plot_button.on_click
@@ -4842,245 +4898,248 @@ def condition_comparison(results_directory, tools_available, token):
             }
             return columns_by_tool[tool]
 
-        with output:
+        # with output:
             # Clear the output
-            output.clear_output()
-            # Get the parameters
-            tool = parameters_widgets.children[0].value
+            # output.clear_output()
+        # Get the parameters
+        tool = parameters_widgets.children[0].value
 
-            # Comparison 1 parameters
-            comparison_1 = parameters_widgets.children[1].children[0].value
-            orientation_1 = parameters_widgets.children[1].children[1].value
-            value_1 = parameters_widgets.children[1].children[2].value
-            color_1 = parameters_widgets.children[1].children[3].value
-            highlight_1 = parameters_widgets.children[1].children[4].value
+        # Comparison 1 parameters
+        comparison_1 = parameters_widgets.children[1].children[0].value
+        orientation_1 = parameters_widgets.children[1].children[1].value
+        value_1 = parameters_widgets.children[1].children[2].value
+        color_1 = parameters_widgets.children[1].children[3].value
+        highlight_1 = parameters_widgets.children[1].children[4].value
 
-            # Comparison 2 parameters
-            comparison_2 = parameters_widgets.children[2].children[0].value
-            orientation_2 = parameters_widgets.children[2].children[1].value
-            value_2 = parameters_widgets.children[2].children[2].value
-            color_2 = parameters_widgets.children[2].children[3].value
-            highlight_2 = parameters_widgets.children[2].children[4].value
+        # Comparison 2 parameters
+        comparison_2 = parameters_widgets.children[2].children[0].value
+        orientation_2 = parameters_widgets.children[2].children[1].value
+        value_2 = parameters_widgets.children[2].children[2].value
+        color_2 = parameters_widgets.children[2].children[3].value
+        highlight_2 = parameters_widgets.children[2].children[4].value
 
-            # Get the color for the intersection
-            color_intersection = parameters_widgets.children[3].value
+        # Get the color for the intersection
+        color_intersection = parameters_widgets.children[3].value
 
-            # Get the data
-            comparison_1_data, comparison_2_data = get_data(
-                tool, comparison_1, comparison_2, results_directory
-            )
+        # Get the data
+        comparison_1_data, comparison_2_data = get_data(
+            tool, comparison_1, comparison_2, results_directory
+        )
 
-            # If both comparisons are the same, display an error message
-            if comparison_1 == comparison_2:
-                print("Please choose two different comparisons.")
-                return
+        # If both comparisons are the same, display an error message
+        if comparison_1 == comparison_2:
+            display_warning("Please choose two different comparisons.")
+            # print("Please choose two different comparisons.")
+            return
 
-            # Get the selected genes and their color
-            selected_genes = parameters_widgets.children[4].children[0].value.split(",")
-            selected_genes_color = parameters_widgets.children[4].children[1].value
+        # Get the selected genes and their color
+        selected_genes = parameters_widgets.children[4].children[0].value.split(",")
+        selected_genes_color = parameters_widgets.children[4].children[1].value
 
-            # Get the columns to plot
-            column_1 = _get_score_columns_by_tool(tool, comparison_1.split("_vs_")[0])
-            column_2 = _get_score_columns_by_tool(tool, comparison_2.split("_vs_")[0])
-            # Get column with elements name
-            elements_column = _get_elements_name_column_by_tool(tool)
+        # Get the columns to plot
+        column_1 = _get_score_columns_by_tool(tool, comparison_1.split("_vs_")[0])
+        column_2 = _get_score_columns_by_tool(tool, comparison_2.split("_vs_")[0])
+        # Get column with elements name
+        elements_column = _get_elements_name_column_by_tool(tool)
 
-            # Combine the data: name, comparison_1, comparison_2
-            combined_data = comparison_1_data[[elements_column, column_1]].merge(
-                comparison_2_data[[elements_column, column_2]],
-                on=elements_column,
-                suffixes=("_" + comparison_1, "_" + comparison_2),
-                # Force suffixes to be added to the columns
-                how="outer",
-            )
+        # Combine the data: name, comparison_1, comparison_2
+        combined_data = comparison_1_data[[elements_column, column_1]].merge(
+            comparison_2_data[[elements_column, column_2]],
+            on=elements_column,
+            suffixes=("_" + comparison_1, "_" + comparison_2),
+            # Force suffixes to be added to the columns
+            how="outer",
+        )
 
-            if not column_1 + "_" + comparison_1 in combined_data.columns:
-                # Add a suffix to the column name
-                combined_data[column_1 + "_" + comparison_1] = comparison_1_data[
-                    column_1
-                ]
-            column_1 = column_1 + "_" + comparison_1
-            if not column_2 + "_" + comparison_2 in combined_data.columns:
-                # Add a suffix to the column name
-                combined_data[column_2 + "_" + comparison_2] = comparison_2_data[
-                    column_2
-                ]
-            column_2 = column_2 + "_" + comparison_2
-
-            # Add an annotation column to distinguish the elements selected by the user
-            combined_data["selected"] = combined_data[elements_column].isin(
-                selected_genes
-            )
-
-            def mask_condition(data, column, orientation, value):
-                """Mask the data based on the condition."""
-                if orientation == "<=":
-                    mask = data[column] <= value
-                elif orientation == ">=":
-                    mask = data[column] >= value
-                elif orientation == "<":
-                    mask = data[column] < value
-                elif orientation == ">":
-                    mask = data[column] > value
-                elif orientation == "abs() <=":
-                    mask = abs(data[column]) <= value
-                elif orientation == "abs() >=":
-                    mask = abs(data[column]) >= value
-                return mask
-
-            # If user selected to highlight genes, add a column to the dataframe for the genes passing the threshold
-            combined_data["highlight_1"] = mask_condition(
-                combined_data, column_1, orientation_1, value_1
-            )
-            combined_data["highlight_2"] = mask_condition(
-                combined_data, column_2, orientation_2, value_2
-            )
-
-            conditions = [
-                combined_data["selected"],
-                combined_data["highlight_1"] & combined_data["highlight_2"],
-                combined_data["highlight_1"],
-                combined_data["highlight_2"],
+        if not column_1 + "_" + comparison_1 in combined_data.columns:
+            # Add a suffix to the column name
+            combined_data[column_1 + "_" + comparison_1] = comparison_1_data[
+                column_1
             ]
-
-            label_1 = f"{comparison_1} {orientation_1} {value_1}"
-            label_2 = f"{comparison_2} {orientation_2} {value_2}"
-
-            outputs = [
-                "Selection",
-                "Intersection",
-                label_1,
-                label_2,
+        column_1 = column_1 + "_" + comparison_1
+        if not column_2 + "_" + comparison_2 in combined_data.columns:
+            # Add a suffix to the column name
+            combined_data[column_2 + "_" + comparison_2] = comparison_2_data[
+                column_2
             ]
+        column_2 = column_2 + "_" + comparison_2
 
-            # If no highlight is selected, remove the first element of the lists
-            to_remove = []
-            if not highlight_1 or not highlight_2:
-                to_remove.append(1)
-            if not highlight_1:
-                to_remove.append(2)
-            if not highlight_2:
-                to_remove.append(3)
+        # Add an annotation column to distinguish the elements selected by the user
+        combined_data["selected"] = combined_data[elements_column].isin(
+            selected_genes
+        )
 
-            conditions = [
-                conditions[i] for i in range(len(conditions)) if i not in to_remove
+        def mask_condition(data, column, orientation, value):
+            """Mask the data based on the condition."""
+            if orientation == "<=":
+                mask = data[column] <= value
+            elif orientation == ">=":
+                mask = data[column] >= value
+            elif orientation == "<":
+                mask = data[column] < value
+            elif orientation == ">":
+                mask = data[column] > value
+            elif orientation == "abs() <=":
+                mask = abs(data[column]) <= value
+            elif orientation == "abs() >=":
+                mask = abs(data[column]) >= value
+            return mask
+
+        # If user selected to highlight genes, add a column to the dataframe for the genes passing the threshold
+        combined_data["highlight_1"] = mask_condition(
+            combined_data, column_1, orientation_1, value_1
+        )
+        combined_data["highlight_2"] = mask_condition(
+            combined_data, column_2, orientation_2, value_2
+        )
+
+        conditions = [
+            combined_data["selected"],
+            combined_data["highlight_1"] & combined_data["highlight_2"],
+            combined_data["highlight_1"],
+            combined_data["highlight_2"],
+        ]
+
+        label_1 = f"{comparison_1} {orientation_1} {value_1}"
+        label_2 = f"{comparison_2} {orientation_2} {value_2}"
+
+        outputs = [
+            "Selection",
+            "Intersection",
+            label_1,
+            label_2,
+        ]
+
+        # If no highlight is selected, remove the first element of the lists
+        to_remove = []
+        if not highlight_1 or not highlight_2:
+            to_remove.append(1)
+        if not highlight_1:
+            to_remove.append(2)
+        if not highlight_2:
+            to_remove.append(3)
+
+        conditions = [
+            conditions[i] for i in range(len(conditions)) if i not in to_remove
+        ]
+        outputs = [outputs[i] for i in range(len(outputs)) if i not in to_remove]
+
+        # Create a 'color' column.
+        # If highlight_1 is True, set the color to color_1
+        # If highlight_2 is True, set the color to color_2
+        # If both are True, set the color to color_intersection
+        # If selected is True, set the color to selected_genes_color
+        # Else, set the color to grey
+        combined_data["color"] = np.select(
+            conditions,
+            outputs,
+            default="Others",
+        )
+
+        # display(combined_data)
+
+        # display(combined_data.groupby("color").size())
+
+        color_dict = {
+            # Highlight the genes passing the threshold 1
+            label_1: color_1,
+            # Highlight the genes passing the threshold 2
+            label_2: color_2,
+            # Highlight the genes in the intersection
+            "Intersection": color_intersection,
+            # Genes selected by the user
+            "Selection": selected_genes_color,
+            # Others genes
+            "Others": "grey",
+        }
+
+        # Plot the data
+        plot_comparison(
+            combined_data, column_1, column_2, elements_column, color_dict
+        )
+
+        # Create a dropdown to select the gene sets
+        enrichr_bases = get_enrichr_bases()
+        enrichr_bases_widget = widgets.SelectMultiple(
+            options=enrichr_bases,
+            description="EnrichR gene sets:",
+            rows=12,
+            layout=widgets.Layout(width="400px"),
+            style={"description_width": "initial"},
+        )
+
+        display(enrichr_bases_widget)
+
+        # Retrieve genes from each 'color' category and create a text area for each category
+        for category in color_dict:
+            genes = combined_data[combined_data["color"] == category][
+                elements_column
             ]
-            outputs = [outputs[i] for i in range(len(outputs)) if i not in to_remove]
-
-            # Create a 'color' column.
-            # If highlight_1 is True, set the color to color_1
-            # If highlight_2 is True, set the color to color_2
-            # If both are True, set the color to color_intersection
-            # If selected is True, set the color to selected_genes_color
-            # Else, set the color to grey
-            combined_data["color"] = np.select(
-                conditions,
-                outputs,
-                default="Others",
+            textarea = widgets.Textarea(
+                value="\n".join(genes),
+                description=f"{category} genes:",
+                disabled=True,
+                layout=widgets.Layout(height="200px", width="auto"),
+                style={"description_width": "200px"},
             )
 
-            # display(combined_data)
-
-            # display(combined_data.groupby("color").size())
-
-            color_dict = {
-                # Highlight the genes passing the threshold 1
-                label_1: color_1,
-                # Highlight the genes passing the threshold 2
-                label_2: color_2,
-                # Highlight the genes in the intersection
-                "Intersection": color_intersection,
-                # Genes selected by the user
-                "Selection": selected_genes_color,
-                # Others genes
-                "Others": "grey",
-            }
-
-            # Plot the data
-            plot_comparison(
-                combined_data, column_1, column_2, elements_column, color_dict
+            # Create a button to run enrichr on the genes
+            enrichr_button = widgets.Button(
+                description=f"Run EnrichR on {category}",
+                # Increase button width to match description width
+                layout=widgets.Layout(width="auto"),
             )
+            display(widgets.HBox([textarea, enrichr_button]))
 
-            # Create a dropdown to select the gene sets
-            enrichr_bases = get_enrichr_bases()
-            enrichr_bases_widget = widgets.SelectMultiple(
-                options=enrichr_bases,
-                description="EnrichR gene sets:",
-                rows=12,
-                layout=widgets.Layout(width="400px"),
-                style={"description_width": "initial"},
-            )
-
-            display(enrichr_bases_widget)
-
-            # Retrieve genes from each 'color' category and create a text area for each category
-            for category in color_dict:
+            def enrichr_button_clicked(b):
+                """Run enrichr on the genes."""
+                category = b.description[15:]
                 genes = combined_data[combined_data["color"] == category][
                     elements_column
                 ]
-                textarea = widgets.Textarea(
-                    value="\n".join(genes),
-                    description=f"{category} genes:",
-                    disabled=True,
-                    layout=widgets.Layout(height="200px", width="auto"),
-                    style={"description_width": "200px"},
-                )
+                if len(genes) == 0:
+                    display_warning(f"No genes in the category {category}.")
+                    # print(f"No genes in the category {category}.")
+                    return
+                print(f"Running EnrichR on <{category}> genes.")
+                print(f"Number of genes: {len(genes)}")
+                if not enrichr_bases_widget.value:
+                    display_warning("Please select at least one gene set above.")
+                    # print("Please select at least one gene set.")
+                    return
+                for base in enrichr_bases_widget.value:
+                    enrichr_res = get_enrichr_results(
+                        genes,
+                        category,
+                        base,
+                    )
+                    table = create_enrichr_table(enrichr_res)
+                    chart = enrichmentBarPlot(
+                        table,
+                        10,
+                        f"EnrichR results for {category} genes",
+                        "red",
+                        "blue",
+                        base,
+                    )
+                    display(chart)
 
-                # Create a button to run enrichr on the genes
-                enrichr_button = widgets.Button(
-                    description=f"Run EnrichR on {category}",
-                    # Increase button width to match description width
-                    layout=widgets.Layout(width="auto"),
-                )
-                display(widgets.HBox([textarea, enrichr_button]))
+            enrichr_button.on_click(enrichr_button_clicked)
 
-                def enrichr_button_clicked(b):
-                    """Run enrichr on the genes."""
-                    category = b.description[15:]
-                    genes = combined_data[combined_data["color"] == category][
-                        elements_column
-                    ]
-                    if len(genes) == 0:
-                        print(f"No genes in the category {category}.")
-                        return
-                    print(f"Running EnrichR on <{category}> genes.")
-                    print(f"Number of genes: {len(genes)}")
-                    if not enrichr_bases_widget.value:
-                        print("Please select at least one gene set.")
-                        return
-                    for base in enrichr_bases_widget.value:
-                        enrichr_res = get_enrichr_results(
-                            genes,
-                            category,
-                            base,
-                        )
-                        table = create_enrichr_table(enrichr_res)
-                        chart = enrichmentBarPlot(
-                            table,
-                            10,
-                            f"EnrichR results for {category} genes",
-                            "red",
-                            "blue",
-                            base,
-                        )
-                        display(chart)
-
-                enrichr_button.on_click(enrichr_button_clicked)
-
-            # Display the text in black
-            display(
-                HTML(
-                    """
-                <style>
-                    .widget-textarea textarea:disabled {
-                        color: black !important;
-                        opacity: 1 !important;
-                    }
-                </style>
+        # Display the text in black
+        display(
+            HTML(
                 """
-                )
+            <style>
+                .widget-textarea textarea:disabled {
+                    color: black !important;
+                    opacity: 1 !important;
+                }
+            </style>
+            """
             )
+        )
 
-            # # Display the text areas in a Hbox
-            # display(widgets.HBox([upper_left_textarea, upper_right_textarea]))
-            # display(widgets.HBox([lower_left_textarea, lower_right_textarea]))
+        # # Display the text areas in a Hbox
+        # display(widgets.HBox([upper_left_textarea, upper_right_textarea]))
+        # display(widgets.HBox([lower_left_textarea, lower_right_textarea]))
