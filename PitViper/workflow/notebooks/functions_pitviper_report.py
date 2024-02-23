@@ -78,10 +78,12 @@ def display_warning(message):
         <p style='color: #f5aa42; 
                   font-weight: bold;'>{}</p>
     </div>
-    """.format(message)
+    """.format(
+        message
+    )
     display(HTML(warning_html))
-    
-    
+
+
 def display_error(message):
     """Display an error message in the notebook."""
     error_html = """
@@ -92,9 +94,28 @@ def display_error(message):
         <p style='color: red; 
                   font-weight: bold;'>{}</p>
     </div>
-    """.format(message)
+    """.format(
+        message
+    )
     display(HTML(error_html))
-    
+
+
+def display_info(message, bold=True):
+    """Display an information message in the notebook."""
+    font_weight = "bold" if bold else "normal"
+    info_html = """
+    <div style='background-color: #d0e7ff; 
+                border-left: 5px solid blue; 
+                padding: 10px; 
+                margin: -0.4em;'>
+        <p style='color: blue; 
+                  font-weight: {};'>{}</p>
+    </div>
+    """.format(
+        font_weight, message
+    )
+    display(HTML(info_html))
+
 
 def natural_sort(l: list):
     """Do a natural sorting on the input list l.
@@ -179,7 +200,6 @@ def download_config(token: str):
             content=config_yaml_str, filename=config_name, label="Download config file!"
         )
     else:
-        # print("Error: Config file could not be loaded.")
         display_error("Error: Config file could not be loaded.")
 
 
@@ -486,7 +506,7 @@ def show_read_count_distribution(token: str, width=800, height=400):
     content = open_yaml(config)
     path_qc = content["normalized_count_table"]
     if not path.exists(path_qc):
-        display_warning("No count file to show.")
+        display_info("No count file to show.")
         # print("No count file to show.")
         return 0
     table = pd.read_csv(path_qc, sep="\t")
@@ -1843,7 +1863,9 @@ def tool_results(results_directory, tools_available, token):
         elements = element.value.split(",")
         treatment = comparison.split("_vs_")[0]
         control = comparison.split("_vs_")[1]
+        at_least_one_tool = False
         if "MAGeCK_RRA" in tool:
+            at_least_one_tool = True
             _MAGeCK_RRA_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1856,7 +1878,8 @@ def tool_results(results_directory, tools_available, token):
             download(
                 tools_available, tool="MAGeCK_RRA", treatment=treatment, control=control
             )
-        elif "MAGeCK_MLE" in tool:
+        if "MAGeCK_MLE" in tool:
+            at_least_one_tool = True
             _MAGeCK_MLE_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1869,7 +1892,8 @@ def tool_results(results_directory, tools_available, token):
             download(
                 tools_available, tool="MAGeCK_MLE", treatment=treatment, control=control
             )
-        elif "CRISPhieRmix" in tool:
+        if "CRISPhieRmix" in tool:
+            at_least_one_tool = True
             _CRISPhieRmix_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1885,7 +1909,8 @@ def tool_results(results_directory, tools_available, token):
                 treatment=treatment,
                 control=control,
             )
-        elif "directional_scoring_method" in tool:
+        if "directional_scoring_method" in tool:
+            at_least_one_tool = True
             _directional_scoring_method_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1901,7 +1926,8 @@ def tool_results(results_directory, tools_available, token):
                 treatment=treatment,
                 control=control,
             )
-        elif "SSREA" in tool:
+        if "SSREA" in tool:
+            at_least_one_tool = True
             _SSREA_like_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1914,7 +1940,8 @@ def tool_results(results_directory, tools_available, token):
             download(
                 tools_available, tool="SSREA", treatment=treatment, control=control
             )
-        elif "BAGEL2" in tool:
+        if "BAGEL2" in tool:
+            at_least_one_tool = True
             _BAGEL_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1927,8 +1954,9 @@ def tool_results(results_directory, tools_available, token):
             download(
                 tools_available, tool="BAGEL2", treatment=treatment, control=control
             )
-        else:
-            print("Choose a tool.")
+        if not at_least_one_tool:
+            # print("Choose a tool.")
+            display_warning("Choose at least one tool.")
 
     display(tools_widget)
     display(element)
@@ -3016,12 +3044,12 @@ def get_enrichr_bases():
         response = requests.get(link, timeout=5)
         response.raise_for_status()  # Will raise an exception for HTTP errors
     except requests.exceptions.Timeout:
-        print("The request timed out")
+        # print("The request timed out")
         display_error("The request timed out")
         return []
     except requests.exceptions.RequestException as err:
         # print("Something went wrong: %s", err)
-        display_error("Something went wrong: %s", err)
+        display_error(f"Something went wrong: {err}")
         return []
 
     try:
@@ -3252,7 +3280,7 @@ def genemania_link_results(token, tools_available):
             info = info.loc[info["padj"] < fdr_cutoff.value]
             genes = info["pathway"]
 
-        print("Size (gene set):", len(genes))
+        print("Size geneset:", len(genes))
         link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes)
         print(link)
 
@@ -3769,7 +3797,10 @@ def multiple_tools_results(tools_available, token):
     conditions_widget = widgets.Dropdown(
         options=conditions_options, description="Conditions:"
     )
-    tools_widget = widgets.SelectMultiple(options=tools_options, description="Tool:", )
+    tools_widget = widgets.SelectMultiple(
+        options=tools_options,
+        description="Tool:",
+    )
     selection_widgets = widgets.ToggleButtons(
         options=["Intersection", "Union"],
         description="Selection mode:",
@@ -3961,9 +3992,15 @@ def multiple_tools_results(tools_available, token):
         def download_button_clicked(b):
             heatmap_name = f"results/{token}/{column_to_plot}_heatmap.pdf"
             fig.write_image(heatmap_name)
-            from IPython.display import FileLink
+            # Get the base name of the heatmap
+            base_name = os.path.basename(heatmap_name)
 
-            display(FileLink(heatmap_name))
+            # Display a clickable link to the image
+            display(
+                HTML(
+                    f'<a href="{base_name}" target="_blank">Open {column_to_plot} heatmap</a>'
+                )
+            )
 
         display(download_button)
 
@@ -3981,7 +4018,7 @@ def multiple_tools_results(tools_available, token):
 
     disabled = disable_widgets(token)
     venn_button = widgets.Button(
-        description="Venn diagram", style=dict(button_color="#707070")
+        description="Venn/Upset plots", style=dict(button_color="#707070")
     )
     rra_button = widgets.Button(
         description="RRA ranking", style=dict(button_color="#707070")
@@ -4088,7 +4125,9 @@ def multiple_tools_results(tools_available, token):
         # If at least one tool is selected
         if len(tools_widget.value) > 0:
             treatment, control = conditions_widget.value.split("_vs_")
-            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            ranks, occurences = ranking(
+                treatment, control, token, tools_available, params
+            )
             # if selection_widgets.value == "Intersection":
             df = pd.DataFrame(
                 occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
@@ -4112,7 +4151,6 @@ def multiple_tools_results(tools_available, token):
             # If more than one tool is selected, display the upset plot
             if len(tools_widget.value) > 1:
                 plot_upset(occurences)
-
 
             textarea_intersection = widgets.Textarea(
                 value="\n".join(genes_list_at_intersection),
@@ -4197,7 +4235,14 @@ def multiple_tools_results(tools_available, token):
 
     def enrichr_button_clicked(b):
         def show_enrichr_plots(
-            b, genes, bases, size, plot_type, col_2, col_1, description, 
+            b,
+            genes,
+            bases,
+            size,
+            plot_type,
+            col_2,
+            col_1,
+            description,
             # output
         ):
             charts = []
@@ -4244,7 +4289,7 @@ def multiple_tools_results(tools_available, token):
             genes_list = df.loc[df.union == True].index
         genes_list = regions2genes(token, genes_list)
         BASES = get_enrichr_bases()
-        bases = widgets.SelectMultiple(options=BASES, description="Gene sets:", rows=10)
+        bases = widgets.SelectMultiple(options=BASES, description="Genesets:", rows=10)
         col_2 = widgets.ColorPicker(
             concise=False, description="Top color", value="blue"
         )
@@ -4264,8 +4309,7 @@ def multiple_tools_results(tools_available, token):
 
         display(
             widgets.VBox(
-                [description, bases, plot_type, size, col_2, col_1, button_enrichr
-                 ]
+                [description, bases, plot_type, size, col_2, col_1, button_enrichr]
             )
         )
 
@@ -4338,8 +4382,10 @@ def multiple_tools_results(tools_available, token):
                 treatment, control, token, tools_available, params
             )
             if download_depmap_file(data_types_widget.value, depmap_release):
-                print("This step can take some time.")
-                print("Querying: %s..." % data_types_widget.value)
+                # print("This step can take some time.")
+                display_info("This step can take some time.")
+                # print("Querying: %s..." % data_types_widget.value)
+                display_info(f"Querying: {data_types_widget.value}...", bold=False)
                 eh = experimentHub.ExperimentHub()
                 base_package = importr("base")
                 dplyr = importr("dplyr")
@@ -4899,8 +4945,8 @@ def condition_comparison(results_directory, tools_available, token):
             return columns_by_tool[tool]
 
         # with output:
-            # Clear the output
-            # output.clear_output()
+        # Clear the output
+        # output.clear_output()
         # Get the parameters
         tool = parameters_widgets.children[0].value
 
@@ -4953,21 +4999,15 @@ def condition_comparison(results_directory, tools_available, token):
 
         if not column_1 + "_" + comparison_1 in combined_data.columns:
             # Add a suffix to the column name
-            combined_data[column_1 + "_" + comparison_1] = comparison_1_data[
-                column_1
-            ]
+            combined_data[column_1 + "_" + comparison_1] = comparison_1_data[column_1]
         column_1 = column_1 + "_" + comparison_1
         if not column_2 + "_" + comparison_2 in combined_data.columns:
             # Add a suffix to the column name
-            combined_data[column_2 + "_" + comparison_2] = comparison_2_data[
-                column_2
-            ]
+            combined_data[column_2 + "_" + comparison_2] = comparison_2_data[column_2]
         column_2 = column_2 + "_" + comparison_2
 
         # Add an annotation column to distinguish the elements selected by the user
-        combined_data["selected"] = combined_data[elements_column].isin(
-            selected_genes
-        )
+        combined_data["selected"] = combined_data[elements_column].isin(selected_genes)
 
         def mask_condition(data, column, orientation, value):
             """Mask the data based on the condition."""
@@ -5054,15 +5094,13 @@ def condition_comparison(results_directory, tools_available, token):
         }
 
         # Plot the data
-        plot_comparison(
-            combined_data, column_1, column_2, elements_column, color_dict
-        )
+        plot_comparison(combined_data, column_1, column_2, elements_column, color_dict)
 
         # Create a dropdown to select the gene sets
         enrichr_bases = get_enrichr_bases()
         enrichr_bases_widget = widgets.SelectMultiple(
             options=enrichr_bases,
-            description="EnrichR gene sets:",
+            description="EnrichR genesets:",
             rows=12,
             layout=widgets.Layout(width="400px"),
             style={"description_width": "initial"},
@@ -5072,9 +5110,7 @@ def condition_comparison(results_directory, tools_available, token):
 
         # Retrieve genes from each 'color' category and create a text area for each category
         for category in color_dict:
-            genes = combined_data[combined_data["color"] == category][
-                elements_column
-            ]
+            genes = combined_data[combined_data["color"] == category][elements_column]
             textarea = widgets.Textarea(
                 value="\n".join(genes),
                 description=f"{category} genes:",
@@ -5104,7 +5140,7 @@ def condition_comparison(results_directory, tools_available, token):
                 print(f"Running EnrichR on <{category}> genes.")
                 print(f"Number of genes: {len(genes)}")
                 if not enrichr_bases_widget.value:
-                    display_warning("Please select at least one gene set above.")
+                    display_warning("Please select at least one geneset above.")
                     # print("Please select at least one gene set.")
                     return
                 for base in enrichr_bases_widget.value:
