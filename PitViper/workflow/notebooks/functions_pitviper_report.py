@@ -515,24 +515,28 @@ def show_read_count_distribution(token: str, width=800, height=400):
     table.iloc[:, 2:] = table.iloc[:, 2:].apply(np.log2)
 
     chart = (
-        alt.Chart(table)
-        .transform_fold(list(table.columns[2:]), as_=["Replicate", "counts"])
-        .transform_density(
-            density="counts",
-            bandwidth=0.3,
-            groupby=["Replicate"],
-            extent=[0, 20],
-            counts=True,
-            steps=200,
+        (
+            alt.Chart(table)
+            .transform_fold(list(table.columns[2:]), as_=["Replicate", "counts"])
+            .transform_density(
+                density="counts",
+                bandwidth=0.3,
+                groupby=["Replicate"],
+                extent=[0, 20],
+                counts=True,
+                steps=200,
+            )
+            .mark_line()
+            .encode(
+                alt.X("value:Q", axis=alt.Axis(title="log2(read count)")),
+                alt.Y("density:Q", axis=alt.Axis(title="Density")),
+                alt.Color("Replicate:N"),
+                tooltip=["Replicate:N", "value:Q", "density:Q"],
+            )
+            .properties(width=width, height=height)
         )
-        .mark_line()
-        .encode(
-            alt.X("value:Q", axis=alt.Axis(title="log2(read count)")),
-            alt.Y("density:Q", axis=alt.Axis(title="Density")),
-            alt.Color("Replicate:N"),
-            tooltip=["Replicate:N", "value:Q", "density:Q"],
-        )
-        .properties(width=width, height=height)
+        .configure_axis(grid=False)
+        .configure_view(stroke=None)
     )
 
     return chart
@@ -575,25 +579,29 @@ def pca_counts(token: str):
     PC2_explained_variance_ratio = round(pca.explained_variance_ratio_[1] * 100, 2)
 
     pca_2d = (
-        alt.Chart(source)
-        .mark_circle(size=60)
-        .encode(
-            x=alt.X(
-                "PC1:Q",
-                axis=alt.Axis(
-                    title="PC1 ({p}%)".format(p=PC1_explained_variance_ratio)
+        (
+            alt.Chart(source)
+            .mark_circle(size=60)
+            .encode(
+                x=alt.X(
+                    "PC1:Q",
+                    axis=alt.Axis(
+                        title="PC1 ({p}%)".format(p=PC1_explained_variance_ratio)
+                    ),
                 ),
-            ),
-            y=alt.X(
-                "PC2:Q",
-                axis=alt.Axis(
-                    title="PC2 ({p}%)".format(p=PC2_explained_variance_ratio)
+                y=alt.X(
+                    "PC2:Q",
+                    axis=alt.Axis(
+                        title="PC2 ({p}%)".format(p=PC2_explained_variance_ratio)
+                    ),
                 ),
-            ),
-            color="condition:N",
-            tooltip=["PC1", "PC2", "condition", "replicate"],
+                color="condition:N",
+                tooltip=["PC1", "PC2", "condition", "replicate"],
+            )
+            .interactive()
         )
-        .interactive()
+        .configure_axis(grid=False)
+        .configure_view(stroke=None)
     )
 
     return pca_2d
@@ -1320,7 +1328,9 @@ def tool_results(results_directory, tools_available, token):
                 text=alt.Text("Gene"),
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _MAGeCK_RRA_snake_plot(
@@ -1438,7 +1448,9 @@ def tool_results(results_directory, tools_available, token):
             )
         )
 
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _CRISPhieRmix_snake_plot(
@@ -1545,7 +1557,9 @@ def tool_results(results_directory, tools_available, token):
                 text=alt.Text("gene"),
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _directional_scoring_method_snake_plot(
@@ -1652,7 +1666,9 @@ def tool_results(results_directory, tools_available, token):
                 x=alt.X("default_rank:Q"), y=alt.Y("score:Q"), text=alt.Text("Gene")
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _SSREA_like_snake_plot(
@@ -1758,7 +1774,9 @@ def tool_results(results_directory, tools_available, token):
                 x=alt.X("default_rank:Q"), y=alt.Y("NES:Q"), text=alt.Text("pathway")
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _BAGEL_snake_plot(
@@ -1851,7 +1869,9 @@ def tool_results(results_directory, tools_available, token):
             .mark_text(dy=10, dx=20, color="blue")
             .encode(x=alt.X("default_rank:Q"), y=alt.Y("BF:Q"), text=alt.Text("Gene"))
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _plot(event):
@@ -3067,143 +3087,6 @@ def get_enrichr_bases():
     bases = [entry["libraryName"] for entry in data["statistics"]]
     bases.sort()
     return bases
-
-
-# def enrichr_plots(token, pitviper_res):
-#     config = "./config/%s.yaml" % token
-#     content = open_yaml(config)
-#     if content["screen_type"] == "not_gene":
-#         return HTML(
-#             """<p style="color:red;background-color: white;padding: 0.5em;">This module is available only if genes symbol are available.</p>"""
-#         )
-#         # return "This module is available only if genes symbol are used."
-
-#     def update_conditions(update):
-#         conditions_list = list(pitviper_res[tool.value].keys())
-#         conditions.options = conditions_list
-#         conditions.value = conditions_list[0]
-
-#     BASES = get_enrichr_bases()
-#     TOOLS = [tool for tool in pitviper_res.keys() if tool != "DESeq2"]
-
-#     tool = widgets.Dropdown(options=TOOLS, value=TOOLS[0], description="Tool:")
-#     tool.observe(update_conditions, "value")
-
-#     conditions_list = list(pitviper_res[tool.value].keys())
-#     conditions = widgets.Dropdown(
-#         options=conditions_list, value=conditions_list[0], description="Condition:"
-#     )
-
-#     description = widgets.Text(
-#         value="My gene list", placeholder="Description", description="Description:"
-#     )
-#     bases = widgets.SelectMultiple(options=BASES)
-
-#     col_2 = widgets.ColorPicker(concise=False, description="Top color", value="blue")
-#     col_1 = widgets.ColorPicker(concise=False, description="Bottom color", value="red")
-#     plot_type = widgets.Dropdown(
-#         options=["Circle", "Bar"], value="Circle", description="Plot type:"
-#     )
-#     size = widgets.Dropdown(
-#         options=[5, 10, 20, 50, 100, 200, "max"], value=5, description="Size:"
-#     )
-#     fdr_cutoff = widgets.FloatSlider(
-#         min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
-#     )
-#     score_cutoff = widgets.IntText(value=0, placeholder=0, description="Score cut-off:")
-#     button = widgets.Button(description="EnrichR!")
-
-#     display(
-#         widgets.VBox(
-#             [
-#                 tool,
-#                 conditions,
-#                 description,
-#                 bases,
-#                 fdr_cutoff,
-#                 score_cutoff,
-#                 plot_type,
-#                 size,
-#                 col_2,
-#                 col_1,
-#                 button,
-#             ]
-#         )
-#     )
-
-#     def on_button_clicked(b):
-#         charts = []
-#         tool_res = pitviper_res[tool.value]
-#         treatment, baseline = conditions.value.split("_vs_")
-#         for base in bases.value:
-#             if tool.value == "MAGeCK_MLE":
-#                 info = tool_res[conditions.value][
-#                     conditions.value + ".gene_summary.txt"
-#                 ]
-#                 info = info.loc[info[treatment + "|fdr"] < fdr_cutoff.value]
-#                 if score_cutoff.value < 0:
-#                     info = info.loc[info[treatment + "|beta"] < score_cutoff.value]
-#                 elif score_cutoff.value > 0:
-#                     info = info.loc[info[treatment + "|beta"] > score_cutoff.value]
-#                 genes = info["Gene"].to_list()
-
-#             if tool.value == "MAGeCK_RRA":
-#                 info = tool_res[conditions.value][
-#                     conditions.value + ".gene_summary.txt"
-#                 ]
-#                 info = info.loc[info["neg|fdr"] < fdr_cutoff.value]
-#                 genes = info["id"]
-
-#             if tool.value == "BAGEL2":
-#                 info = tool_res[conditions.value][conditions.value + "_BAGEL_output.pr"]
-#                 info = info.loc[info["BF"] > score_cutoff.value]
-#                 genes = info["Gene"]
-
-#             if tool.value == "directional_scoring_method":
-#                 info = tool_res[conditions.value][
-#                     conditions.value + "_all-elements_directional_scoring_method.txt"
-#                 ]
-#                 if score_cutoff.value > 0:
-#                     info = info.loc[info["score"] > score_cutoff.value]
-#                 else:
-#                     info = info.loc[info["score"] < score_cutoff.value]
-#                 genes = info["Gene"]
-
-#             if tool.value == "SSREA":
-#                 info = tool_res[conditions.value][
-#                     conditions.value + "_all-elements_SSREA.txt"
-#                 ]
-#                 if score_cutoff.value > 0:
-#                     info = info.loc[info["NES"] > score_cutoff.value]
-#                 elif score_cutoff.value < 0:
-#                     info = info.loc[info["NES"] < score_cutoff.value]
-#                 info = info.loc[info["padj"] < fdr_cutoff.value]
-#                 genes = info["pathway"]
-
-#             if tool.value == "CRISPhieRmix":
-#                 info = tool_res[conditions.value][conditions.value + ".txt"]
-#                 info = info.loc[info["locfdr"] < fdr_cutoff.value]
-#                 if score_cutoff.value > 0:
-#                     info = info.loc[info["mean_log2FoldChange"] > score_cutoff.value]
-#                 elif score_cutoff.value <= 0:
-#                     info = info.loc[info["mean_log2FoldChange"] < score_cutoff.value]
-#                 genes = info["gene"]
-
-#             enrichr_res = get_enrichr_results(genes, description.value, base)
-#             table = create_enrichr_table(enrichr_res)
-#             if plot_type.value == "Bar":
-#                 chart = enrichmentBarPlot(
-#                     table, size.value, description.value, col_1.value, col_2.value, base
-#                 )
-#             else:
-#                 chart = enrichmentCirclePlot(
-#                     table, size.value, description.value, col_1.value, col_2.value, base
-#                 )
-#             charts.append(chart)
-#         for chart in charts:
-#             display(chart)
-
-#     button.on_click(on_button_clicked)
 
 
 def run_rra(ranks):
@@ -4873,52 +4756,110 @@ def condition_comparison(results_directory, tools_available, token):
             # Superposer les lignes sur le graphique
             chart = (
                 (
-                    alt.Chart(data)
-                    .transform_calculate(
-                        order="datum.color == 'Others' ? 0 : (datum.color == 'Selection' ? 2 : 1)"
-                    )
-                    .mark_circle()
-                    .encode(
-                        x=alt.X(column_1, scale=scale, title=column_1),
-                        y=alt.Y(column_2, scale=scale, title=column_2),
-                        tooltip=[elements_column, column_1, column_2],
-                        # Color the points in blue if they are selected
-                        color=alt.Color(
-                            "color:N",
-                            scale=alt.Scale(
-                                range=range_color,
-                                domain=domain_color,
+                    (
+                        alt.Chart(data)
+                        .transform_calculate(
+                            order="datum.color == 'Others' ? 0 : (datum.color == 'Selection' ? 2 : 1)"
+                        )
+                        .mark_circle()
+                        .encode(
+                            x=alt.X(
+                                column_1,
+                                scale=scale,
+                                title=column_1,
+                                axis=alt.Axis(
+                                    values=list(
+                                        np.arange(min_value, max_value + 0.5, 0.5)
+                                    )
+                                ),
                             ),
-                            sort="ascending",
-                            # Set the legend title
-                            legend=alt.Legend(title="Highlighted elements:"),
-                        ),
-                        order="order:O",
-                        # Set opacity to 1.0 for all points
-                        opacity=alt.value(1.0),
+                            y=alt.Y(
+                                column_2,
+                                scale=scale,
+                                title=column_2,
+                                axis=alt.Axis(
+                                    values=list(
+                                        np.arange(min_value, max_value + 0.5, 0.5)
+                                    )
+                                ),
+                            ),
+                            tooltip=[elements_column, column_1, column_2],
+                            # Color the points in blue if they are selected
+                            color=alt.Color(
+                                "color:N",
+                                scale=alt.Scale(
+                                    range=range_color,
+                                    domain=domain_color,
+                                ),
+                                sort="ascending",
+                                # Set the legend title
+                                legend=alt.Legend(title="Highlighted elements:"),
+                            ),
+                            order="order:O",
+                            # Set opacity to 1.0 for all points
+                            opacity=alt.value(1.0),
+                        )
+                        .interactive()
                     )
-                    .interactive()
+                    # Add diagonal line
+                    + alt.Chart(pd.DataFrame({"x": [min_value * 2, max_value * 2]}))
+                    .mark_line(color="#636363")
+                    .encode(x="x", y="x")
+                    # Add a vertical line to highlight the x = 0 line, in black
+                    + alt.Chart(pd.DataFrame({"x": [0, 0]}))
+                    .mark_rule(color="#636363")
+                    .encode(x="x")
+                    # Add a horizontal line to highlight the y = 0 line, in black
+                    + alt.Chart(pd.DataFrame({"y": [0, 0]}))
+                    .mark_rule(color="#636363")
+                    .encode(y="y")
+                    + alt.Chart(data.query("selected == True"))
+                    .mark_text(dy=10, dx=20, color=selected_genes_color)
+                    .encode(
+                        x=column_1,
+                        y=column_2,
+                        text=elements_column,
+                    )
                 )
-                # Add diagonal line
-                + alt.Chart(pd.DataFrame({"x": [min_value * 2, max_value * 2]}))
-                .mark_line(color="black")
-                .encode(x="x", y="x")
-                # Add a vertical line to highlight the x = 0 line, in black
-                + alt.Chart(pd.DataFrame({"x": [0, 0]}))
-                .mark_rule(color="black")
-                .encode(x="x")
-                # Add a horizontal line to highlight the y = 0 line, in black
-                + alt.Chart(pd.DataFrame({"y": [0, 0]}))
-                .mark_rule(color="black")
-                .encode(y="y")
-                + alt.Chart(data.query("selected == True"))
-                .mark_text(dy=10, dx=20, color=selected_genes_color)
-                .encode(
-                    x=column_1,
-                    y=column_2,
-                    text=elements_column,
-                )
+                .configure_axis(grid=False)
+                .configure_view(stroke=None)
+                .properties(width=500, height=500)
             )
+
+            if "abs" in parameters_widgets.children[1].children[1].value:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {
+                            "x": [
+                                parameters_widgets.children[1].children[2].value,
+                                -parameters_widgets.children[1].children[2].value,
+                            ]
+                        }
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(x="x")
+            else:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {"x": [parameters_widgets.children[1].children[2].value]}
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(x="x")
+            if "abs" in parameters_widgets.children[2].children[1].value:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {
+                            "y": [
+                                parameters_widgets.children[2].children[2].value,
+                                -parameters_widgets.children[2].children[2].value,
+                            ]
+                        }
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(y="y")
+            else:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {"y": [parameters_widgets.children[2].children[2].value]}
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(y="y")
 
             display(chart)
 
