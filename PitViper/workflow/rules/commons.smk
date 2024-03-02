@@ -133,6 +133,9 @@ def get_pipeline_outputs(wildcards):
     comparaisons = get_all_pairwise_comparisons()
     token = config['token']
     wanted_outputs.append(f"results/{config['token']}/Report.ipynb")
+    # If `fastq` or `bam` columns are present in the tsv file, we add "results/{token}/fastqc" to the list of outputs
+    if 'fastq' in samples_file.columns or 'bam' in samples_file.columns:
+        wanted_outputs.append(f"results/{config['token']}/fastqc")
     for comparaison in comparaisons:
         if (config['directional_scoring_method_activate'] == 'True'):
             wanted_outputs.append("results/{token}/directional_scoring_method/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_directional_scoring_method.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))

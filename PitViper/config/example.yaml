@@ -1,33 +1,98 @@
+# Set to 'True' to include BAGEL2 in the analysis.
 bagel_activate: 'False'
+
+# Path to the counts file. If not starting from an already existing count file, left blank.
 count_table_file: resources/test_env/all.count.txt
+
+# Set to 'True' to include CRISPhieRmix in the analysis.
 crisphiermix_activate: 'True'
+
+# Path to the file containing the list of essential guides. Mandatory if 'bagel_activate' is set to 'True'.
 essentials: ''
+
+# Set to 'True' to include the Directional Scoring Method in the analysis.
 filtering_activate: 'True'
+
+# Set to 'True' to include SSREA in the analysis.
 gsea_activate: 'True'
+
+# Path to the library file. See https://github.com/lobrylab/PitViper?tab=readme-ov-file#starting-from-raw-fastq-files
 library_file: ''
+
+# Set to 'True' to run MAGeCK count with '--count-n'.
 mageck_count_N: 'False'
+
+# Set to 'True' to run MAGeCK count with '--count-pair'.
 mageck_count_all_align: 'False'
+
+# Value of --sgrna-len used by MAGeCK count.
 mageck_count_length: '20'
+
+# Normalization method used by MAGeCK count with '--norm-method'.
 mageck_count_normalization: total
+
+# To remove?
 mageck_count_pdf: 'False'
+
+# Set to 'True' to run MAGeCK count with '--reverse-complement'.
 mageck_count_rev_comp: 'False'
+
+# Set to 'True' to include MAGeCK MLE in the analysis.
 mageck_mle_activate: 'True'
+
+# Value of --adjust-method used by MAGeCK MLE.
 mageck_mle_adj: fdr
+
+# Value of --genes-varmodeling used by MAGeCK MLE.
 mageck_mle_mean_var: '0'
+
+# Value of --norm-method used by MAGeCK MLE.
 mageck_mle_normalization: total
+
+# Set to 'True' to run MAGeCK MLE with '--remove-outliers'.
 mageck_mle_outliers: 'False'
+
+# Value of --permutation-round used by MAGeCK MLE.
 mageck_mle_perm_N: '2'
+
+# Set to 'True' to run MAGeCK MLE with '--no-permutation-by-group'.
 mageck_mle_perm_all: 'False'
+
+# Value of --gene-lfc-method used by MAGeCK RRA.
 mageck_rra_LFC: median
+
+# Set to 'True' to include MAGeCK RRA in the analysis.
 mageck_rra_activate: 'True'
+
+# Value of --adjust-method used by MAGeCK RRA.
 mageck_rra_adj: fdr
+
+# Value of --remove-zero-threshold used by MAGeCK RRA.
 mageck_rra_count_min: '0'
+
+# Value of --sort-criteria used by MAGeCK RRA.
 mageck_rra_criteria: neg
+
+# Value of --gene-test-fdr-threshold used by MAGeCK RRA.
 mageck_rra_pthreshold: '0.25'
+
+# Value of --remove-zero used by MAGeCK RRA.
 mageck_rra_remove: both
+
+# Path to the file containing the list of non-essential guides. Mandatory if 'bagel_activate' is set to 'True'.
 nonessentials: ''
+
+# Path to normalized counts file. Replace `test_env` by the value of `token`.
 normalized_count_table: resources/test_env/screen.count_normalized.txt
+
+# If features are genes: 'is_gene', else: 'not_gene'.
 screen_type: is_gene
+
+# 'fastq', 'bam' or 'count'. 
 start_from: count
+
+# Name of the analysis.
 token: test_env
+
+# Path to file containing the design of the analysis. See https://github.com/lobrylab/PitViper?tab=readme-ov-file#starting-from-raw-fastq-files
 tsv_file: resources/test_env/design.tsv

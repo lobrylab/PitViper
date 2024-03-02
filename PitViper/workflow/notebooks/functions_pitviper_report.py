@@ -26,11 +26,17 @@ from rpy2.rinterface import RRuntimeWarning
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
 from rpy2.robjects.packages import importr
+from rpy2.rinterface_lib.embedded import RRuntimeError
 from scipy import stats
 from scipy.stats import zscore
 from sklearn import decomposition
 
 from IPython.display import Markdown as md
+
+import upsetplot
+from upsetplot import from_memberships
+
+import matplotlib.pyplot as plt
 
 
 buf = []
@@ -59,6 +65,56 @@ pd.options.mode.chained_assignment = None
 
 # Define layout for widgets
 layout = widgets.Layout(width="auto", height="40px")  # set width and height
+style = {"description_width": "initial"}
+
+
+def display_warning(message):
+    """Display a warning message in the notebook."""
+    warning_html = """
+    <div style='background-color: lightyellow; 
+                border-left: 5px solid yellow; 
+                padding: 10px; 
+                margin-bottom: 10px;'>
+        <p style='color: #f5aa42; 
+                  font-weight: bold;'>{}</p>
+    </div>
+    """.format(
+        message
+    )
+    display(HTML(warning_html))
+
+
+def display_error(message):
+    """Display an error message in the notebook."""
+    error_html = """
+    <div style='background-color: #ffdddd; 
+                border-left: 5px solid red; 
+                padding: 10px; 
+                margin-bottom: 10px;'>
+        <p style='color: red; 
+                  font-weight: bold;'>{}</p>
+    </div>
+    """.format(
+        message
+    )
+    display(HTML(error_html))
+
+
+def display_info(message, bold=True):
+    """Display an information message in the notebook."""
+    font_weight = "bold" if bold else "normal"
+    info_html = """
+    <div style='background-color: #d0e7ff; 
+                border-left: 5px solid blue; 
+                padding: 10px; 
+                margin: -0.4em;'>
+        <p style='color: blue; 
+                  font-weight: {};'>{}</p>
+    </div>
+    """.format(
+        font_weight, message
+    )
+    display(HTML(info_html))
 
 
 def natural_sort(l: list):
@@ -144,7 +200,7 @@ def download_config(token: str):
             content=config_yaml_str, filename=config_name, label="Download config file!"
         )
     else:
-        print("Error: Config file could not be loaded.")
+        display_error("Error: Config file could not be loaded.")
 
 
 def download_raw_counts(token):
@@ -337,7 +393,8 @@ def show_mapping_qc(token: str):
     """
     path_qc = "./resources/%s/screen.countsummary.txt" % token
     if not path.exists(path_qc):
-        print("No mapping QC file to show.")
+        display_warning("No mapping QC file to show.")
+        # print("No mapping QC file to show.")
         return 0
     table = pd.read_csv(path_qc, sep="\t")
     table = table[["Label", "Reads", "Mapped", "Percentage", "Zerocounts", "GiniIndex"]]
@@ -430,7 +487,8 @@ def download_file(content, label, filename):
         # Display the HTML and JavaScript
         display(HTML(html_script))
     except Exception as e:
-        print(f"An error occurred: {e}")
+        display_error(f"An error occurred: {e}")
+        # print(f"An error occurred: {e}")
 
 
 def show_read_count_distribution(token: str, width=800, height=400):
@@ -448,7 +506,8 @@ def show_read_count_distribution(token: str, width=800, height=400):
     content = open_yaml(config)
     path_qc = content["normalized_count_table"]
     if not path.exists(path_qc):
-        print("No count file to show.")
+        display_info("No count file to show.")
+        # print("No count file to show.")
         return 0
     table = pd.read_csv(path_qc, sep="\t")
 
@@ -456,24 +515,28 @@ def show_read_count_distribution(token: str, width=800, height=400):
     table.iloc[:, 2:] = table.iloc[:, 2:].apply(np.log2)
 
     chart = (
-        alt.Chart(table)
-        .transform_fold(list(table.columns[2:]), as_=["Replicate", "counts"])
-        .transform_density(
-            density="counts",
-            bandwidth=0.3,
-            groupby=["Replicate"],
-            extent=[0, 20],
-            counts=True,
-            steps=200,
+        (
+            alt.Chart(table)
+            .transform_fold(list(table.columns[2:]), as_=["Replicate", "counts"])
+            .transform_density(
+                density="counts",
+                bandwidth=0.3,
+                groupby=["Replicate"],
+                extent=[0, 20],
+                counts=True,
+                steps=200,
+            )
+            .mark_line()
+            .encode(
+                alt.X("value:Q", axis=alt.Axis(title="log2(read count)")),
+                alt.Y("density:Q", axis=alt.Axis(title="Density")),
+                alt.Color("Replicate:N"),
+                tooltip=["Replicate:N", "value:Q", "density:Q"],
+            )
+            .properties(width=width, height=height)
         )
-        .mark_line()
-        .encode(
-            alt.X("value:Q", axis=alt.Axis(title="log2(read count)")),
-            alt.Y("density:Q", axis=alt.Axis(title="Density")),
-            alt.Color("Replicate:N"),
-            tooltip=["Replicate:N", "value:Q", "density:Q"],
-        )
-        .properties(width=width, height=height)
+        .configure_axis(grid=False)
+        .configure_view(stroke=None)
     )
 
     return chart
@@ -516,31 +579,35 @@ def pca_counts(token: str):
     PC2_explained_variance_ratio = round(pca.explained_variance_ratio_[1] * 100, 2)
 
     pca_2d = (
-        alt.Chart(source)
-        .mark_circle(size=60)
-        .encode(
-            x=alt.X(
-                "PC1:Q",
-                axis=alt.Axis(
-                    title="PC1 ({p}%)".format(p=PC1_explained_variance_ratio)
+        (
+            alt.Chart(source)
+            .mark_circle(size=60)
+            .encode(
+                x=alt.X(
+                    "PC1:Q",
+                    axis=alt.Axis(
+                        title="PC1 ({p}%)".format(p=PC1_explained_variance_ratio)
+                    ),
                 ),
-            ),
-            y=alt.X(
-                "PC2:Q",
-                axis=alt.Axis(
-                    title="PC2 ({p}%)".format(p=PC2_explained_variance_ratio)
+                y=alt.X(
+                    "PC2:Q",
+                    axis=alt.Axis(
+                        title="PC2 ({p}%)".format(p=PC2_explained_variance_ratio)
+                    ),
                 ),
-            ),
-            color="condition:N",
-            tooltip=["PC1", "PC2", "condition", "replicate"],
+                color="condition:N",
+                tooltip=["PC1", "PC2", "condition", "replicate"],
+            )
+            .interactive()
         )
-        .interactive()
+        .configure_axis(grid=False)
+        .configure_view(stroke=None)
     )
 
     return pca_2d
 
 
-def getEnrichrResults(genes: list, description: str, gene_set_library: list):
+def get_enrichr_results(genes: list, description: str, gene_set_library: list):
     """Get and return EnrichR results for a given list of genes.
 
     Args:
@@ -548,41 +615,63 @@ def getEnrichrResults(genes: list, description: str, gene_set_library: list):
         description (str): Description of the genes list.
         gene_set_library (list): List of genes set to use.
 
-    Raises:
-        Exception: Error analyzing gene list.
-        Exception: Error fetching enrichment results.
-
     Returns:
-        dict: EnrichR results
+        dict: EnrichR results, or None in case of errors
     """
-    ENRICHR_URL = "http://maayanlab.cloud/Enrichr/addList"
+    enrichr_url_addlist = "http://maayanlab.cloud/Enrichr/addList"
     genes_str = "\n".join(genes)
-    description = description
     payload = {"list": (None, genes_str), "description": (None, description)}
 
-    response = requests.post(ENRICHR_URL, files=payload)
-    if not response.ok:
-        raise Exception("Error analyzing gene list")
+    try:
+        # Send POST request to EnrichR API
+        response = requests.post(enrichr_url_addlist, files=payload, timeout=10)
+        response.raise_for_status()  # Will raise an exception for HTTP errors
+    except requests.exceptions.RequestException as e:
+        # Print error message and return None
+        display_error(f"Error analyzing gene list: {e}")
+        # print("Error analyzing gene list: %s", e)
+        return None
 
-    data = json.loads(response.text)
+    try:
+        # Parse JSON response
+        data = response.json()
+    except json.JSONDecodeError:
+        display_error("Invalid JSON response")
+        # print("Invalid JSON response")
+        return None
 
-    userListId = data["userListId"]
+    if "userListId" not in data:
+        # Print error message and return None
+        # print("Missing 'userListId' in response")
+        display_error("Missing 'userListId' in response")
+        return None
 
-    ENRICHR_URL = "http://maayanlab.cloud/Enrichr/enrich"
+    user_list_id = data["userListId"]
+
+    enrichr_url_addlist = "http://maayanlab.cloud/Enrichr/enrich"
     query_string = "?userListId=%s&backgroundType=%s"
-    user_list_id = userListId
-    gene_set_library = gene_set_library[:-1]
-    response = requests.get(
-        ENRICHR_URL + query_string % (user_list_id, gene_set_library)
-    )
-    if not response.ok:
-        raise Exception("Error fetching enrichment results")
+    try:
+        response = requests.get(
+            enrichr_url_addlist + query_string % (user_list_id, gene_set_library),
+            timeout=10,
+        )
+        response.raise_for_status()  # Will raise an exception for HTTP errors
+    except requests.exceptions.RequestException as e:
+        # print("Error fetching enrichment results: %s", e)
+        display_error(f"Error fetching enrichment results: {e}")
+        return None
 
-    data = json.loads(response.text)
+    try:
+        data = response.json()
+    except json.JSONDecodeError:
+        # print("Invalid JSON response")
+        display_error("Invalid JSON response")
+        return None
+
     return data
 
 
-def createEnrichrTable(enrichrResults: dict):
+def create_enrichr_table(enrichrResults: dict):
     """Convert enrichr results dict to a pandas DataFrame.
 
     Args:
@@ -645,7 +734,7 @@ def enrichmentBarPlot(source, n, description, col_1, col_2, base):
             ),
         )
         .properties(
-            title=description + " (%s)" % base[:-1],
+            title=f"{description} ({base})",
         )
     )
 
@@ -782,7 +871,7 @@ def MAGeCK_RRA_data(
     elif comparison != "" and control == "":
         mode = False
     else:
-        print("ERROR.")
+        display_error("Error, please check your inputs.")
     for _comparison in os.listdir(os.path.join(results_directory, tool)):
         if check(comparison, _comparison, control, mode):
             keys_list = list(tools_available[tool][_comparison].keys())
@@ -861,7 +950,7 @@ def BAGEL_data(
     elif comparison != "" and control == "":
         mode = False
     else:
-        print("ERROR.")
+        display_error("Error, please check your inputs.")
     for _comparison in os.listdir(os.path.join(results_directory, tool)):
         if _comparison.split("_vs_")[-1] == control:
             keys_list = list(tools_available[tool][_comparison].keys())
@@ -900,9 +989,69 @@ def CRISPhieRmix_data(
     return result
 
 
+def filter_by_threshold(
+    df,
+    score_column,
+    threshold,
+    orientation,
+    significant_label,
+    fdr_column=None,
+    fdr_cutoff=None,
+):
+    """Filter a dataframe based on a threshold and a column."""
+    orientation = {
+        ">=": lambda x: x > threshold,
+        "<=": lambda x: x <= threshold,
+        "abs() >=": lambda x: abs(x) >= threshold,
+        "abs() <=": lambda x: abs(x) <= threshold,
+        "abs() >": lambda x: abs(x) > threshold,
+        "abs() <": lambda x: abs(x) < threshold,
+    }[orientation]
+
+    if fdr_cutoff and fdr_column:
+        mask = (df[fdr_column] < fdr_cutoff) & (orientation(df[score_column]))
+    else:
+        mask = orientation(df[score_column])
+
+    df.loc[mask, "significant"] = significant_label
+    return df
+
+
+def get_reverse_orientation(orientation):
+    """Return the reverse orientation of a given orientation."""
+    if orientation == ">=":
+        return "<="
+    elif orientation == "<=":
+        return ">="
+    elif orientation == "abs() >=":
+        return "abs() <"
+    elif orientation == "abs() <=":
+        return "abs() >"
+    elif orientation == "abs() >":
+        return "abs() <="
+    elif orientation == "abs() <":
+        return "abs() >="
+
+
+def get_pretty_orientation(orientation):
+    """Return the pretty version of a given orientation."""
+    if orientation == ">=":
+        return "≥"
+    elif orientation == "<=":
+        return "≤"
+    elif orientation == "abs() >=":
+        return "abs≥"
+    elif orientation == "abs() <=":
+        return "abs≤"
+    elif orientation == "abs() >":
+        return "abs() >"
+    elif orientation == "abs() <":
+        return "abs() <"
+
+
 def tool_results(results_directory, tools_available, token):
     """Display selected method's results for all genes."""
-    config = "./config/%s.yaml" % token
+    config = f"./config/{token}.yaml"
     content = open_yaml(config)
     cts_file = "results/%s/normalized.filtered.counts.txt" % token
     cts = pd.read_csv(cts_file, sep="\t")
@@ -935,14 +1084,140 @@ def tool_results(results_directory, tools_available, token):
     )
 
     fdr_widget = widgets.FloatSlider(
-        min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off"
+        min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
+    )
+
+    # Add a widget to define the BAGEL2 minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    bagel_bf_widget = widgets.FloatText(
+        value=0,
+        description="BAGEL2 BF cut-off:",
+        # If BAGEL2 is not available, the widget is disabled
+        disabled="BAGEL2" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the BAGEL2 BF cut-off. Default is ">=".
+    bagel_bf_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value=">=",
+        description="",
+        # If BAGEL2 is not available, the widget is disabled
+        disabled="BAGEL2" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the SSREA minimum NES cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    ssrea_nes_widget = widgets.FloatText(
+        value=0,
+        description="SSREA NES cut-off:",
+        # If SSREA is not available, the widget is disabled
+        disabled="SSREA" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the SSREA NES cut-off. Default is ">=". Using Dropdown widget.
+    ssrea_nes_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
+        description="",
+        # If SSREA is not available, the widget is disabled
+        disabled="SSREA" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the directional_scoring_method minimum score cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    directional_scoring_method_score_widget = widgets.FloatText(
+        value=0,
+        description="DSM score cut-off:",
+        # If directional_scoring_method is not available, the widget is disabled
+        disabled="directional_scoring_method" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the directional_scoring_method score cut-off. Default is ">=". Using Dropdown widget.
+    directional_scoring_method_score_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <=", "abs() >", "abs() <"],
+        value="abs() >",
+        description="",
+        # If directional_scoring_method is not available, the widget is disabled
+        disabled="directional_scoring_method" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the CRISPhieRmix minimum mean logFC cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    crisphiermix_logfc_widget = widgets.FloatText(
+        value=0,
+        description="CRISPhieRmix logFC cut-off:",
+        # If CRISPhieRmix is not available, the widget is disabled
+        disabled="CRISPhieRmix" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the CRISPhieRmix mean logFC cut-off. Default is ">=". Using Dropdown widget.
+    crisphiermix_logfc_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
+        description="",
+        # If CRISPhieRmix is not available, the widget is disabled
+        disabled="CRISPhieRmix" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the MAGeCK_MLE minimum beta cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    mageck_mle_beta_widget = widgets.FloatText(
+        value=0,
+        description="MAGeCK MLE beta cut-off:",
+        # If MAGeCK_MLE is not available, the widget is disabled
+        disabled="MAGeCK_MLE" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the MAGeCK_MLE beta cut-off. Default is ">=". Using Dropdown widget.
+    mageck_mle_beta_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
+        description="",
+        # If MAGeCK_MLE is not available, the widget is disabled
+        disabled="MAGeCK_MLE" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the MAGeCK_RRA minimum LFC cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    mageck_rra_lfc_widget = widgets.FloatText(
+        value=0,
+        description="MAGeCK RRA LFC cut-off:",
+        # If MAGeCK_RRA is not available, the widget is disabled
+        disabled="MAGeCK_RRA" not in tools,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the MAGeCK_RRA LFC cut-off. Default is ">=". Using Dropdown widget.
+    mageck_rra_lfc_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
+        description="",
+        # If MAGeCK_RRA is not available, the widget is disabled
+        disabled="MAGeCK_RRA" not in tools,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
     )
 
     color_sig_widget = widgets.ColorPicker(
-        concise=False, description="Significant color:", value="red"
+        concise=False,
+        description="Significant color:",
+        value="red",
+        style=style,
     )
     color_non_widget = widgets.ColorPicker(
-        concise=False, description="Non-significant color:", value="gray"
+        concise=False,
+        description="Non-significant color:",
+        value="gray",
+        style=style,
     )
 
     def _MAGeCK_MLE_snake_plot(
@@ -954,11 +1229,26 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "MAGeCK_MLE"
-        significant_label = "FDR < %s" % fdr_cutoff
-        non_significant_label = "FDR ≥ %s" % fdr_cutoff
+
+        # Define the beta and beta orientation
+        mageck_mle_beta = float(mageck_mle_beta_widget.value)
+        mageck_mle_beta_orientation = mageck_mle_beta_orientation_widget.value
+
+        # Define the significant and non-significant labels using FDR and beta thresholds
+        significant_label = f"FDR < {fdr_cutoff} and beta {get_pretty_orientation(mageck_mle_beta_orientation)} {mageck_mle_beta}"
+
+        # Define the non-significant label
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or beta {get_pretty_orientation(get_reverse_orientation(mageck_mle_beta_orientation))} {mageck_mle_beta}"
+
+        # Define the highlight label
         highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
+
+        # Get the MAGeCK MLE results
         source = MAGeCK_MLE_data(
             comparison=comparison,
             control="",
@@ -966,32 +1256,49 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
+
+        # Compute the default rank of the beta scores
         source["default_rank"] = source[treatment + "|beta"].rank()
-        source.loc[
-            source[treatment + "|fdr"] < fdr_cutoff, "significant"
-        ] = significant_label
-        source.loc[
-            source[treatment + "|fdr"] >= fdr_cutoff, "significant"
-        ] = non_significant_label
+
+        # Set the significant label to non-significant by default
+        source["significant"] = non_significant_label
+
+        # Filter the data based on the beta and FDR thresholds
+        source = filter_by_threshold(
+            source,
+            treatment + "|beta",
+            mageck_mle_beta,
+            mageck_mle_beta_orientation,
+            significant_label,
+            treatment + "|fdr",
+            fdr_cutoff,
+        )
+
+        # Highlight the elements of interest
         source.loc[source.Gene.isin(elements), "significant"] = highlight_label
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
-            alt.Chart(source, title="MAGeCK MLE (%s)" % comparison)
+            alt.Chart(source, title=f"MAGeCK MLE ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
                 y=alt.Y(
-                    treatment + "|beta:Q", axis=alt.Axis(title="%s beta" % treatment)
+                    treatment + "|beta:Q", axis=alt.Axis(title=f"{treatment} beta")
                 ),
                 tooltip=[
                     "Gene",
@@ -1021,7 +1328,9 @@ def tool_results(results_directory, tools_available, token):
                 text=alt.Text("Gene"),
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _MAGeCK_RRA_snake_plot(
@@ -1033,11 +1342,24 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "MAGeCK_RRA"
-        significant_label = "FDR < %s" % fdr_cutoff
-        non_significant_label = "FDR ≥ %s" % fdr_cutoff
+
+        # Define the LFC and LFC orientation
+        mageck_rra_lfc = float(mageck_rra_lfc_widget.value)
+        mageck_rra_lfc_orientation = mageck_rra_lfc_orientation_widget.value
+
+        # Define the significant and non-significant labels using FDR threshold and LFC
+        significant_label = f"FDR < {fdr_cutoff} and LFC {get_pretty_orientation(mageck_rra_lfc_orientation)} {mageck_rra_lfc}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or LFC {get_pretty_orientation(get_reverse_orientation(mageck_rra_lfc_orientation))} {mageck_rra_lfc}"
+
+        # Define the highlight label
         highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
+
+        # Get the MAGeCK RRA results
         source = MAGeCK_RRA_data(
             comparison=comparison,
             control="",
@@ -1053,25 +1375,37 @@ def tool_results(results_directory, tools_available, token):
             source["neg|lfc"] < 0, source["neg|fdr"], source["pos|fdr"]
         )
 
-        source.loc[
-            source["selected_fdr"] < fdr_cutoff, "significant"
-        ] = significant_label
-        source.loc[
-            source["selected_fdr"] >= fdr_cutoff, "significant"
-        ] = non_significant_label
+        # Set the significant label to non-significant by default
+        source["significant"] = non_significant_label
+
+        source = filter_by_threshold(
+            source,
+            "neg|lfc",
+            mageck_rra_lfc,
+            mageck_rra_lfc_orientation,
+            significant_label,
+            "selected_fdr",
+            fdr_cutoff,
+        )
+
+        # Highlight the elements of interest
         source.loc[source.id.isin(elements), "significant"] = highlight_label
 
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
             alt.Chart(source, title="MAGeCK RRA (%s)" % comparison)
             .mark_circle(size=60)
@@ -1114,7 +1448,9 @@ def tool_results(results_directory, tools_available, token):
             )
         )
 
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _CRISPhieRmix_snake_plot(
@@ -1126,11 +1462,24 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "CRISPhieRmix"
-        significant_label = "FDR < %s" % fdr_cutoff
-        non_significant_label = "FDR ≥ %s" % fdr_cutoff
+
+        # Define the mean log2FoldChange and mean log2FoldChange orientation
+        crisphiermix_logfc = float(crisphiermix_logfc_widget.value)
+        crisphiermix_logfc_orientation = crisphiermix_logfc_orientation_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and logFC {get_pretty_orientation(crisphiermix_logfc_orientation)} {crisphiermix_logfc}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or logFC {get_pretty_orientation(get_reverse_orientation(crisphiermix_logfc_orientation))} {crisphiermix_logfc}"
+
+        # Define the highlight label
         highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
+
+        # Get the CRISPhieRmix results
         source = CRISPhieRmix_data(
             comparison=comparison,
             control="",
@@ -1138,31 +1487,48 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
+
+        # Compute the default rank of the mean log2FoldChange
         source["default_rank"] = source["mean_log2FoldChange"].rank(method="dense")
-        source.loc[source["locfdr"] < fdr_cutoff, "significant"] = significant_label
-        source.loc[
-            source["locfdr"] >= fdr_cutoff, "significant"
-        ] = non_significant_label
+
+        source["significant"] = non_significant_label
+
+        source = filter_by_threshold(
+            source,
+            "mean_log2FoldChange",
+            crisphiermix_logfc,
+            crisphiermix_logfc_orientation,
+            significant_label,
+            "FDR",
+            fdr_cutoff,
+        )
+
+        # Highlight the elements of interest
         source.loc[source.gene.isin(elements), "significant"] = highlight_label
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
-            alt.Chart(source, title="CRISPhieRmix (%s)" % comparison)
+            alt.Chart(source, title=f"CRISPhieRmix ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
                 y=alt.Y(
                     "mean_log2FoldChange:Q",
-                    axis=alt.Axis(title="%s sgRNAs log2FoldChange average" % treatment),
+                    axis=alt.Axis(title=f"{treatment} sgRNAs log2FoldChange average"),
                 ),
                 tooltip=[
                     "gene",
@@ -1191,7 +1557,9 @@ def tool_results(results_directory, tools_available, token):
                 text=alt.Text("gene"),
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _directional_scoring_method_snake_plot(
@@ -1203,11 +1571,28 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "directional_scoring_method"
-        significant_label = "Filter: pass"
-        non_significant_label = "Filter: don't pass"
+
+        # Define the score and score orientation
+        directional_scoring_method_score = float(
+            directional_scoring_method_score_widget.value
+        )
+        directional_scoring_method_score_orientation = (
+            directional_scoring_method_score_orientation_widget.value
+        )
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and score {get_pretty_orientation(directional_scoring_method_score_orientation)} {directional_scoring_method_score}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or score {get_pretty_orientation(get_reverse_orientation(directional_scoring_method_score_orientation))} {directional_scoring_method_score}"
+
+        # Define the highlight label
         highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
+
+        # Get the Directional Scoring Method results
         source = directional_scoring_method_data(
             comparison=comparison,
             control="",
@@ -1215,31 +1600,46 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
+
+        # Compute the default rank of the score
         source["default_rank"] = source["score"].rank(method="first")
-        source.loc[
-            source.category.isin(["down", "up"]), "significant"
-        ] = significant_label
-        source.loc[
-            ~source.category.isin(["down", "up"]), "significant"
-        ] = non_significant_label
+
+        # Set the significant label to non-significant by default
+        source["significant"] = non_significant_label
+
+        # Filter the data based on the score threshold
+        source = filter_by_threshold(
+            source,
+            "score",
+            directional_scoring_method_score,
+            directional_scoring_method_score_orientation,
+            significant_label,
+        )
+
+        # Highlight the elements of interest
         source.loc[source.Gene.isin(elements), "significant"] = highlight_label
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
-            alt.Chart(source, title="Directional Scoring Method (%s)" % comparison)
+            alt.Chart(source, title=f"Directional Scoring Method ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
-                y=alt.Y("score:Q", axis=alt.Axis(title="%s score" % treatment)),
+                y=alt.Y("score:Q", axis=alt.Axis(title=f"{treatment} score")),
                 tooltip=[
                     "Gene",
                     "up",
@@ -1266,7 +1666,9 @@ def tool_results(results_directory, tools_available, token):
                 x=alt.X("default_rank:Q"), y=alt.Y("score:Q"), text=alt.Text("Gene")
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _SSREA_like_snake_plot(
@@ -1278,11 +1680,24 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "SSREA"
-        significant_label = "FDR < %s" % fdr_cutoff
-        non_significant_label = "FDR ≥ %s" % fdr_cutoff
+
+        # Define the NES and NES orientation
+        ssrea_nes = float(ssrea_nes_widget.value)
+        ssrea_nes_orientation = ssrea_nes_orientation_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and NES {get_pretty_orientation(ssrea_nes_orientation)} {ssrea_nes}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or NES {get_pretty_orientation(get_reverse_orientation(ssrea_nes_orientation))} {ssrea_nes}"
+
+        # Define the highlight label
         highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
+
+        # Get the SSREA results
         source = SSREA_like_data(
             comparison=comparison,
             control="",
@@ -1290,29 +1705,48 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
+
+        # Compute the default rank of the NES
         source["default_rank"] = source[["NES"]].rank(method="dense")
-        source.loc[abs(source["padj"]) < fdr_cutoff, "significant"] = significant_label
-        source.loc[
-            abs(source["padj"]) >= fdr_cutoff, "significant"
-        ] = non_significant_label
+
+        # Set the significant label to non-significant by default
+        source["significant"] = non_significant_label
+
+        # Filter the data based on the NES threshold
+        source = filter_by_threshold(
+            source,
+            "NES",
+            ssrea_nes,
+            ssrea_nes_orientation,
+            significant_label,
+            "padj",
+            fdr_cutoff,
+        )
+
+        # Highlight the elements of interest
         source.loc[source.pathway.isin(elements), "significant"] = highlight_label
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
-            alt.Chart(source, title="SSREA method (%s)" % comparison)
+            alt.Chart(source, title=f"SSREA method ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
-                y=alt.Y("NES:Q", axis=alt.Axis(title="%s NES" % treatment)),
+                y=alt.Y("NES:Q", axis=alt.Axis(title=f"{treatment} NES")),
                 tooltip=[
                     "pathway",
                     "pval",
@@ -1340,7 +1774,9 @@ def tool_results(results_directory, tools_available, token):
                 x=alt.X("default_rank:Q"), y=alt.Y("NES:Q"), text=alt.Text("pathway")
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _BAGEL_snake_plot(
@@ -1352,11 +1788,24 @@ def tool_results(results_directory, tools_available, token):
         tools_available,
         elements,
     ):
+        # Define the tool
         tool = "BAGEL2"
-        significant_label = "BF > 0"
-        non_significant_label = "BF ≤ 0"
+
+        # Define the BAGEL2 BF cut-off and orientation
+        bagel_bf = float(bagel_bf_widget.value)
+        bagel_bf_orientation = bagel_bf_orientation_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and BF {get_pretty_orientation(bagel_bf_orientation)} {bagel_bf}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or BF {get_pretty_orientation(get_reverse_orientation(bagel_bf_orientation))} {bagel_bf}"
+
+        # Define the highlight label
         highlight_label = "Hit(s) of Interest"
+
+        # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
+
+        # Get the BAGEL2 results
         source = BAGEL_data(
             comparison=comparison,
             control="",
@@ -1364,27 +1813,46 @@ def tool_results(results_directory, tools_available, token):
             results_directory=results_directory,
             tools_available=tools_available,
         )
+
+        # Compute the default rank of the BF scores
         source["default_rank"] = source["BF"].rank(method="dense", ascending=False)
-        source.loc[source["BF"] > fdr_cutoff, "significant"] = significant_label
-        source.loc[source["BF"] <= fdr_cutoff, "significant"] = non_significant_label
+
+        # Set the significant label to non-significant by default
+        source["significant"] = non_significant_label
+
+        # Filter the data based on the BF threshold
+        source = filter_by_threshold(
+            source,
+            "BF",
+            bagel_bf,
+            bagel_bf_orientation,
+            significant_label,
+        )
+
+        # Highlight the elements of interest
         source.loc[source.Gene.isin(elements), "significant"] = highlight_label
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
         range_ = [sig, non_sig, "blue"]
 
+        # Define the color scale
         source["significant"] = pd.Categorical(
             source["significant"],
             categories=[non_significant_label, significant_label, highlight_label],
             ordered=True,
         )
+
         # Order rows by label 'significant' to have the highlighted genes on top
         source = source.sort_values(by="significant", ascending=True)
 
+        # Create the snake plot
         chart = (
-            alt.Chart(source, title="BAGEL2 (%s)" % comparison)
+            alt.Chart(source, title=f"BAGEL2 ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
-                y=alt.Y("BF:Q", axis=alt.Axis(title="%s Bayesian Factor" % treatment)),
+                y=alt.Y("BF:Q", axis=alt.Axis(title="Bayesian Factor")),
                 tooltip=["Gene", "BF", "FDR", "significant", "default_rank"],
                 color=alt.Color(
                     "significant",
@@ -1401,7 +1869,9 @@ def tool_results(results_directory, tools_available, token):
             .mark_text(dy=10, dx=20, color="blue")
             .encode(x=alt.X("default_rank:Q"), y=alt.Y("BF:Q"), text=alt.Text("Gene"))
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _plot(event):
@@ -1413,7 +1883,9 @@ def tool_results(results_directory, tools_available, token):
         elements = element.value.split(",")
         treatment = comparison.split("_vs_")[0]
         control = comparison.split("_vs_")[1]
+        at_least_one_tool = False
         if "MAGeCK_RRA" in tool:
+            at_least_one_tool = True
             _MAGeCK_RRA_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1427,6 +1899,7 @@ def tool_results(results_directory, tools_available, token):
                 tools_available, tool="MAGeCK_RRA", treatment=treatment, control=control
             )
         if "MAGeCK_MLE" in tool:
+            at_least_one_tool = True
             _MAGeCK_MLE_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1440,6 +1913,7 @@ def tool_results(results_directory, tools_available, token):
                 tools_available, tool="MAGeCK_MLE", treatment=treatment, control=control
             )
         if "CRISPhieRmix" in tool:
+            at_least_one_tool = True
             _CRISPhieRmix_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1456,6 +1930,7 @@ def tool_results(results_directory, tools_available, token):
                 control=control,
             )
         if "directional_scoring_method" in tool:
+            at_least_one_tool = True
             _directional_scoring_method_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1472,6 +1947,7 @@ def tool_results(results_directory, tools_available, token):
                 control=control,
             )
         if "SSREA" in tool:
+            at_least_one_tool = True
             _SSREA_like_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1485,6 +1961,7 @@ def tool_results(results_directory, tools_available, token):
                 tools_available, tool="SSREA", treatment=treatment, control=control
             )
         if "BAGEL2" in tool:
+            at_least_one_tool = True
             _BAGEL_snake_plot(
                 comparison,
                 fdr_cutoff,
@@ -1497,13 +1974,57 @@ def tool_results(results_directory, tools_available, token):
             download(
                 tools_available, tool="BAGEL2", treatment=treatment, control=control
             )
-        else:
-            print("Choose a tool.")
+        if not at_least_one_tool:
+            # print("Choose a tool.")
+            display_warning("Choose at least one tool.")
 
     display(tools_widget)
     display(element)
     display(comparisons_widget)
+    # Display a text widget to delimite the filter for each tool
+    display(HTML("<h3>Highlight features:</h3>"))
     display(fdr_widget)
+
+    if "BAGEL2" in tools:
+        display(HTML("<h4>BAGEL2:</h4>"))
+        display(widgets.HBox([bagel_bf_widget, bagel_bf_orientation_widget]))
+
+    if "SSREA" in tools:
+        display(HTML("<h4>SSREA:</h4>"))
+        display(widgets.HBox([ssrea_nes_widget, ssrea_nes_orientation_widget]))
+
+    if "directional_scoring_method" in tools:
+        display(HTML("<h4>DSM:</h4>"))
+        display(
+            widgets.HBox(
+                [
+                    directional_scoring_method_score_widget,
+                    directional_scoring_method_score_orientation_widget,
+                ]
+            )
+        )
+
+    if "CRISPhieRmix" in tools:
+        display(HTML("<h4>CRISPhieRmix:</h4>"))
+        display(
+            widgets.HBox(
+                [crisphiermix_logfc_widget, crisphiermix_logfc_orientation_widget]
+            )
+        )
+
+    if "MAGeCK_MLE" in tools:
+        display(HTML("<h4>MAGeCK MLE:</h4>"))
+        display(
+            widgets.HBox([mageck_mle_beta_widget, mageck_mle_beta_orientation_widget])
+        )
+
+    if "MAGeCK_RRA" in tools:
+        display(HTML("<h4>MAGeCK RRA:</h4>"))
+        display(
+            widgets.HBox([mageck_rra_lfc_widget, mageck_rra_lfc_orientation_widget])
+        )
+
+    display(HTML("<h3>Color:</h3>"))
     display(color_sig_widget)
     display(color_non_widget)
 
@@ -1563,7 +2084,8 @@ def show_sgRNA_counts(token):
         genes = element.value.split(",")
         for gene in genes:
             if not gene in list(cts.Gene):
-                print("%s was not found in %s." % (gene, cts_file))
+                # print("%s was not found in %s." % (gene, cts_file))
+                display_warning(f"Gene '{gene}' was not found in {cts_file}.")
             else:
                 gene_cts = cts.loc[cts.Gene == gene]
                 gene_cts = gene_cts.loc[gene_cts.variable.isin(conditions.value)]
@@ -1672,7 +2194,7 @@ def show_sgRNA_counts_lines(token):
         genes = element.value.split(",")
         for gene in genes:
             if not gene in list(cts.Gene):
-                print("Element '%s' was not found in %s." % (gene, cts_file))
+                display_warning(f"Gene '{gene}' was not found in {cts_file}.")
             else:
                 sort_cols = conditions.value
                 gene_cts = cts.loc[cts.Gene == gene]
@@ -1879,9 +2401,11 @@ def tool_results_by_element(results_directory, tools_available, token):
         gene.options = list(set(elements_list))
         gene.value = elements_list[0]
 
-    config = "config/%s.yaml" % token
+    # Set configuration
+    config = f"config/{token}.yaml"
+
+    # Open configuration file
     content = open_yaml(config)
-    # cts_file = "results/%s/normalized.filtered.counts.txt" % token
     design_file = content["tsv_file"]
     design = pd.read_csv(design_file, sep="\t")
 
@@ -1903,8 +2427,128 @@ def tool_results_by_element(results_directory, tools_available, token):
         value=conditions_list, allowed_tags=conditions_list, allow_duplicates=False
     )
 
-    fdr_cutoff = widgets.FloatSlider(
-        description="FDR:", min=0.0, max=1.0, step=0.01, value=0.05
+    fdr_widget = widgets.FloatSlider(
+        min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
+    )
+
+    # Add a widget to define the BAGEL2 minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    bagel_bf_widget = widgets.FloatText(
+        value=0,
+        description="BAGEL2 BF cut-off:",
+        # If BAGEL2 is not available, the widget is disabled
+        disabled="BAGEL2" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the BAGEL2 BF cut-off. Default is ">=".
+    bagel_bf_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value=">=",
+        description="",
+        # If BAGEL2 is not available, the widget is disabled
+        disabled="BAGEL2" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the SSREA minimum NES cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    ssrea_nes_widget = widgets.FloatText(
+        value=0,
+        description="SSREA NES cut-off:",
+        # If SSREA is not available, the widget is disabled
+        disabled="SSREA" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the SSREA NES cut-off. Default is ">=". Using Dropdown widget.
+    ssrea_nes_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
+        description="",
+        # If SSREA is not available, the widget is disabled
+        disabled="SSREA" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the directional_scoring_method minimum score cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    directional_scoring_method_score_widget = widgets.FloatText(
+        value=0,
+        description="DSM score cut-off:",
+        # If directional_scoring_method is not available, the widget is disabled
+        disabled="directional_scoring_method" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the directional_scoring_method score cut-off. Default is ">=". Using Dropdown widget.
+    directional_scoring_method_score_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <=", "abs() >", "abs() <"],
+        value="abs() >",
+        description="",
+        # If directional_scoring_method is not available, the widget is disabled
+        disabled="directional_scoring_method" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the CRISPhieRmix minimum mean logFC cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    crisphiermix_logfc_widget = widgets.FloatText(
+        value=0,
+        description="CRISPhieRmix logFC cut-off:",
+        # If CRISPhieRmix is not available, the widget is disabled
+        disabled="CRISPhieRmix" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the CRISPhieRmix mean logFC cut-off. Default is ">=". Using Dropdown widget.
+    crisphiermix_logfc_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
+        description="",
+        # If CRISPhieRmix is not available, the widget is disabled
+        disabled="CRISPhieRmix" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the MAGeCK_MLE minimum beta cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    mageck_mle_beta_widget = widgets.FloatText(
+        value=0,
+        description="MAGeCK MLE beta cut-off:",
+        # If MAGeCK_MLE is not available, the widget is disabled
+        disabled="MAGeCK_MLE" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the MAGeCK_MLE beta cut-off. Default is ">=". Using Dropdown widget.
+    mageck_mle_beta_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
+        description="",
+        # If MAGeCK_MLE is not available, the widget is disabled
+        disabled="MAGeCK_MLE" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
+    )
+
+    # Add a widget to define the MAGeCK_RRA minimum LFC cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    mageck_rra_lfc_widget = widgets.FloatText(
+        value=0,
+        description="MAGeCK RRA LFC cut-off:",
+        # If MAGeCK_RRA is not available, the widget is disabled
+        disabled="MAGeCK_RRA" not in tools_list,
+        style=style,
+    )
+
+    # Add a widget to define the orientation of the MAGeCK_RRA LFC cut-off. Default is ">=". Using Dropdown widget.
+    mageck_rra_lfc_orientation_widget = widgets.Dropdown(
+        options=[">=", "<=", "abs() >=", "abs() <="],
+        value="abs() >=",
+        description="",
+        # If MAGeCK_RRA is not available, the widget is disabled
+        disabled="MAGeCK_RRA" not in tools_list,
+        # style=style,
+        layout=widgets.Layout(width="75px"),
     )
 
     elements_list = get_genes_list(results_directory, tools_available, tools_list[0])
@@ -1916,15 +2560,66 @@ def tool_results_by_element(results_directory, tools_available, token):
         ensure_option=False,
     )
 
-    display(widgets.VBox([control, gene, fdr_cutoff, conditions]))
+    # Display all widgets
+    display(control)
+    display(gene)
+    display(fdr_widget)
+
+    if "BAGEL2" in tools_list:
+        display(widgets.HBox([bagel_bf_widget, bagel_bf_orientation_widget]))
+
+    if "SSREA" in tools_list:
+        display(widgets.HBox([ssrea_nes_widget, ssrea_nes_orientation_widget]))
+
+    if "directional_scoring_method" in tools_list:
+        display(
+            widgets.HBox(
+                [
+                    directional_scoring_method_score_widget,
+                    directional_scoring_method_score_orientation_widget,
+                ]
+            )
+        )
+
+    if "CRISPhieRmix" in tools_list:
+        display(
+            widgets.HBox(
+                [crisphiermix_logfc_widget, crisphiermix_logfc_orientation_widget]
+            )
+        )
+
+    if "MAGeCK_MLE" in tools_list:
+        display(
+            widgets.HBox([mageck_mle_beta_widget, mageck_mle_beta_orientation_widget])
+        )
+
+    if "MAGeCK_RRA" in tools_list:
+        display(
+            widgets.HBox([mageck_rra_lfc_widget, mageck_rra_lfc_orientation_widget])
+        )
 
     def CRISPhieRmix_results(result, fdr_cutoff, control, gene, sort_cols):
-        significant_label = "Yes"
-        non_significant_label = "No"
-        result.loc[result["locfdr"] < fdr_cutoff, "significant"] = significant_label
-        result.loc[
-            result["locfdr"] >= fdr_cutoff, "significant"
-        ] = non_significant_label
+        # Define the orientation of the logFC cut-off and its value
+        crisphiermix_logfc_orientation = crisphiermix_logfc_orientation_widget.value
+        crisphiermix_logfc = crisphiermix_logfc_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and logFC {get_pretty_orientation(crisphiermix_logfc_orientation)} {crisphiermix_logfc}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or logFC {get_pretty_orientation(get_reverse_orientation(crisphiermix_logfc_orientation))} {crisphiermix_logfc}"
+
+        #  Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the logFC threshold
+        result = filter_by_threshold(
+            result,
+            "mean_log2FoldChange",
+            crisphiermix_logfc,
+            crisphiermix_logfc_orientation,
+            significant_label,
+        )
+
+        # Add a new row to the dataframe to display the baseline
         new_row = {
             "gene": gene,
             "condition": control,
@@ -1932,25 +2627,36 @@ def tool_results_by_element(results_directory, tools_available, token):
             "locfdr": 1,
             "mean_log2FoldChange": 0,
         }
+
+        # Append the new row to the dataframe
         result = result.append(new_row, ignore_index=True)
+
+        # Filter the dataframe to keep only the conditions in sort_cols
         res = result.loc[result.gene == gene]
+
         # filter res to keep 'condition' in sort_cols
         if control not in sort_cols:
             sort_cols.append(control)
+
+        # Filter the dataframe to keep only the conditions in sort_cols
         res = res[res["condition"].isin(sort_cols)]
+
+        # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
+
+        # Create the plot
         plot = (
             alt.Chart(res)
             .transform_fold(sort_cols)
             .mark_circle(size=60)
-            .mark_point(filled=True, size=100)
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y=alt.Y(
                     "mean_log2FoldChange",
                     axis=alt.Axis(title="sgRNAs log2FoldChange average"),
                 ),
-                x=alt.X("condition:O", sort=sort_cols),
+                x=alt.X("condition:N", sort=sort_cols),
                 color=alt.Color(
                     "significant",
                     scale=alt.Scale(domain=domain, range=range_),
@@ -1963,23 +2669,30 @@ def tool_results_by_element(results_directory, tools_available, token):
         return plot
 
     def MAGeCK_RRA_results(result, fdr_cutoff, control, gene, sort_cols):
-        significant_label = "Yes"
-        non_significant_label = "No"
+        # Define the threshold for the score and its orientation
+        mageck_rra_lfc_orientation = mageck_rra_lfc_orientation_widget.value
+        mageck_rra_lfc = mageck_rra_lfc_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and LFC {get_pretty_orientation(mageck_rra_lfc_orientation)} {mageck_rra_lfc}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or LFC {get_pretty_orientation(get_reverse_orientation(mageck_rra_lfc_orientation))} {mageck_rra_lfc}"
 
         # Use numpy.where to conditionally assign the FDR based on the sign of LFC
         result["selected_fdr"] = np.where(
             result["neg|lfc"] < 0, result["neg|fdr"], result["pos|fdr"]
         )
 
-        result.loc[
-            result["selected_fdr"] < fdr_cutoff, "significant"
-        ] = significant_label
-        result.loc[
-            result["selected_fdr"] < fdr_cutoff, "significant"
-        ] = significant_label
-        result.loc[
-            result["selected_fdr"] >= fdr_cutoff, "significant"
-        ] = non_significant_label
+        # Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the LFC threshold
+        result = filter_by_threshold(
+            result,
+            "neg|lfc",
+            mageck_rra_lfc,
+            mageck_rra_lfc_orientation,
+            significant_label,
+        )
 
         new_row = {
             "id": gene,
@@ -2010,10 +2723,7 @@ def tool_results_by_element(results_directory, tools_available, token):
         plot = (
             alt.Chart(res)
             .mark_circle(size=60)
-            .mark_point(
-                filled=True,
-                size=100,
-            )
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y=alt.Y(f"score", axis=alt.Axis(title="RRA Score")),
                 x=alt.X("condition:N", sort=sort_cols),
@@ -2042,10 +2752,28 @@ def tool_results_by_element(results_directory, tools_available, token):
         return plot
 
     def MAGeCK_MLE_results(result, fdr_cutoff, control, gene, sort_cols):
-        significant_label = "Yes"
-        non_significant_label = "No"
-        result.loc[result["fdr"] < fdr_cutoff, "significant"] = significant_label
-        result.loc[result["fdr"] >= fdr_cutoff, "significant"] = non_significant_label
+
+        # Define the threshold for the beta and its orientation
+        mageck_mle_beta_orientation = mageck_mle_beta_orientation_widget.value
+        mageck_mle_beta = mageck_mle_beta_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and beta {get_pretty_orientation(mageck_mle_beta_orientation)} {mageck_mle_beta}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or beta {get_pretty_orientation(get_reverse_orientation(mageck_mle_beta_orientation))} {mageck_mle_beta}"
+
+        # Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the beta threshold
+        result = filter_by_threshold(
+            result,
+            "beta",
+            mageck_mle_beta,
+            mageck_mle_beta_orientation,
+            significant_label,
+        )
+
+        # Add a new row to the dataframe to display the baseline
         new_row = {
             "Gene": gene,
             "condition": control,
@@ -2054,20 +2782,21 @@ def tool_results_by_element(results_directory, tools_available, token):
             "beta": 0,
         }
         result = result.append(new_row, ignore_index=True)
+
+        # Filter the dataframe to keep only the conditions in sort_cols
         res = result.loc[result.Gene == gene]
-        # filter res to keep 'condition' in sort_cols
+
+        # Filter the dataframe to keep only the conditions in sort_cols
         if control not in sort_cols:
             sort_cols.append(control)
+
         res = res[res["condition"].isin(sort_cols)]
         domain = [significant_label, non_significant_label, "Baseline"]
         range_ = ["red", "grey", "black"]
         plot = (
             alt.Chart(res)
             .mark_circle(size=60)
-            .mark_point(
-                filled=True,
-                size=100,
-            )
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y=alt.Y("beta", axis=alt.Axis(title="Beta")),
                 x=alt.X("condition:N", sort=sort_cols),
@@ -2083,10 +2812,24 @@ def tool_results_by_element(results_directory, tools_available, token):
         return plot
 
     def SSREA_like_results(result, fdr_cutoff, control, gene, sort_cols):
-        significant_label = "Yes"
-        non_significant_label = "No"
-        result.loc[result["padj"] < fdr_cutoff, "significant"] = significant_label
-        result.loc[result["padj"] >= fdr_cutoff, "significant"] = non_significant_label
+
+        # Define the threshold for the NES and its orientation
+        ssrea_nes_orientation = ssrea_nes_orientation_widget.value
+        ssrea_nes = ssrea_nes_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"FDR < {fdr_cutoff} and NES {get_pretty_orientation(ssrea_nes_orientation)} {ssrea_nes}"
+        non_significant_label = f"FDR ≥ {fdr_cutoff} or NES {get_pretty_orientation(get_reverse_orientation(ssrea_nes_orientation))} {ssrea_nes}"
+
+        # Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the NES threshold
+        result = filter_by_threshold(
+            result, "NES", ssrea_nes, ssrea_nes_orientation, significant_label
+        )
+
+        # Add a new row to the dataframe to display the baseline
         new_row = {
             "pathway": gene,
             "condition": control,
@@ -2097,6 +2840,8 @@ def tool_results_by_element(results_directory, tools_available, token):
             "NES": 0,
             "size": None,
         }
+
+        # Append the new row to the dataframe
         result = result.append(new_row, ignore_index=True)
         res = result.loc[result.pathway == gene]
         # filter res to keep 'condition' in sort_cols
@@ -2108,10 +2853,7 @@ def tool_results_by_element(results_directory, tools_available, token):
         plot = (
             alt.Chart(res)
             .mark_circle(size=60)
-            .mark_point(
-                filled=True,
-                size=100,
-            )
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y=alt.Y("NES", axis=alt.Axis(title="NES")),
                 x=alt.X("condition:N", sort=sort_cols),
@@ -2127,10 +2869,25 @@ def tool_results_by_element(results_directory, tools_available, token):
         return plot
 
     def BAGEL_results(result, fdr_cutoff, control, gene, sort_cols):
-        significant_label = "Yes"
-        non_significant_label = "No"
-        result.loc[result["BF"] > fdr_cutoff, "significant"] = significant_label
-        result.loc[result["BF"] <= fdr_cutoff, "significant"] = non_significant_label
+
+        # Define the threshold for the BF and its orientation
+        bagel_bf_orientation = bagel_bf_orientation_widget.value
+        bagel_bf = bagel_bf_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = (
+            f"BF {get_pretty_orientation(bagel_bf_orientation)} {bagel_bf}"
+        )
+        non_significant_label = f"BF {get_pretty_orientation(get_reverse_orientation(bagel_bf_orientation))} {bagel_bf}"
+
+        # Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the BF threshold
+        result = filter_by_threshold(
+            result, "BF", bagel_bf, bagel_bf_orientation, significant_label
+        )
+
         new_row = {
             "Gene": gene,
             "condition": control,
@@ -2149,10 +2906,7 @@ def tool_results_by_element(results_directory, tools_available, token):
         plot = (
             alt.Chart(res)
             .mark_circle(size=60)
-            .mark_point(
-                filled=True,
-                size=100,
-            )
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y=alt.Y("BF", axis=alt.Axis(title="Bayesian factor")),
                 x=alt.X("condition:N", sort=sort_cols),
@@ -2170,14 +2924,29 @@ def tool_results_by_element(results_directory, tools_available, token):
     def directional_scoring_method_results(
         result, fdr_cutoff, control, gene, sort_cols
     ):
-        significant_label = "Yes"
-        non_significant_label = "No"
-        result.loc[
-            result.category.isin(["down", "up"]), "significant"
-        ] = significant_label
-        result.loc[
-            ~result.category.isin(["down", "up"]), "significant"
-        ] = non_significant_label
+
+        # Define the threshold for the score and its orientation
+        directional_scoring_method_score_orientation = (
+            directional_scoring_method_score_orientation_widget.value
+        )
+        directional_scoring_method_score = directional_scoring_method_score_widget.value
+
+        # Define the significant and non-significant labels
+        significant_label = f"score {get_pretty_orientation(directional_scoring_method_score_orientation)} {directional_scoring_method_score}"
+        non_significant_label = f"score {get_pretty_orientation(get_reverse_orientation(directional_scoring_method_score_orientation))} {directional_scoring_method_score}"
+
+        # Define default values for the significant column
+        result["significant"] = non_significant_label
+
+        # Filter the data based on the score threshold
+        result = filter_by_threshold(
+            result,
+            "score",
+            directional_scoring_method_score,
+            directional_scoring_method_score_orientation,
+            significant_label,
+        )
+
         new_row = {
             "Gene": gene,
             "condition": control,
@@ -2199,10 +2968,7 @@ def tool_results_by_element(results_directory, tools_available, token):
         plot = (
             alt.Chart(res)
             .mark_circle(size=60)
-            .mark_point(
-                filled=True,
-                size=100,
-            )
+            .mark_point(filled=True, size=100, opacity=1.0)
             .encode(
                 y="score",
                 x=alt.X("condition:N", sort=sort_cols),
@@ -2234,7 +3000,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 if tool == "CRISPhieRmix":
                     plot = CRISPhieRmix_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
@@ -2242,7 +3008,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 elif tool == "MAGeCK_MLE":
                     plot = MAGeCK_MLE_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
@@ -2250,7 +3016,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 elif tool == "SSREA":
                     plot = SSREA_like_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
@@ -2258,7 +3024,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 elif tool == "directional_scoring_method":
                     plot = directional_scoring_method_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
@@ -2266,7 +3032,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                 elif tool == "MAGeCK_RRA":
                     plot = MAGeCK_RRA_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
@@ -2274,12 +3040,15 @@ def tool_results_by_element(results_directory, tools_available, token):
                 elif tool == "BAGEL2":
                     plot = BAGEL_results(
                         result,
-                        fdr_cutoff.value,
+                        fdr_widget.value,
                         control.value,
                         element,
                         conditions.value,
                     )
                 chart |= plot
+            chart = chart.resolve_legend(
+                color="independent", size="independent"
+            ).resolve_scale(color="independent", size="independent")
             display(chart)
 
     button = widgets.Button(description="Show plot")
@@ -2287,141 +3056,37 @@ def tool_results_by_element(results_directory, tools_available, token):
     button.on_click(on_button_clicked)
 
 
-def enrichr_plots(token, pitviper_res):
-    config = "./config/%s.yaml" % token
-    content = open_yaml(config)
-    if content["screen_type"] == "not_gene":
-        return HTML(
-            """<p style="color:red;background-color: white;padding: 0.5em;">This module is available only if genes symbol are available.</p>"""
-        )
-        # return "This module is available only if genes symbol are used."
+def get_enrichr_bases():
+    """Get the list of available libraries in EnrichR"""
+    link = "https://maayanlab.cloud/Enrichr/datasetStatistics"
 
-    def update_conditions(update):
-        conditions_list = list(pitviper_res[tool.value].keys())
-        conditions.options = conditions_list
-        conditions.value = conditions_list[0]
+    try:
+        response = requests.get(link, timeout=5)
+        response.raise_for_status()  # Will raise an exception for HTTP errors
+    except requests.exceptions.Timeout:
+        # print("The request timed out")
+        display_error("The request timed out")
+        return []
+    except requests.exceptions.RequestException as err:
+        # print("Something went wrong: %s", err)
+        display_error(f"Something went wrong: {err}")
+        return []
 
-    BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
-    TOOLS = [tool for tool in pitviper_res.keys() if tool != "DESeq2"]
+    try:
+        data = response.json()
+    except json.JSONDecodeError:
+        display_error("Invalid JSON response")
+        # print("Invalid JSON response")
+        return []
 
-    tool = widgets.Dropdown(options=TOOLS, value=TOOLS[0], description="Tool:")
-    tool.observe(update_conditions, "value")
+    if "statistics" not in data:
+        display_error("Missing 'statistics' in response")
+        # print("Missing 'statistics' in response")
+        return []
 
-    conditions_list = list(pitviper_res[tool.value].keys())
-    conditions = widgets.Dropdown(
-        options=conditions_list, value=conditions_list[0], description="Condition:"
-    )
-
-    description = widgets.Text(
-        value="My gene list", placeholder="Description", description="Description:"
-    )
-    bases = widgets.SelectMultiple(options=BASES)
-
-    col_2 = widgets.ColorPicker(concise=False, description="Top color", value="blue")
-    col_1 = widgets.ColorPicker(concise=False, description="Bottom color", value="red")
-    plot_type = widgets.Dropdown(
-        options=["Circle", "Bar"], value="Circle", description="Plot type:"
-    )
-    size = widgets.Dropdown(
-        options=[5, 10, 20, 50, 100, 200, "max"], value=5, description="Size:"
-    )
-    fdr_cutoff = widgets.FloatSlider(
-        min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
-    )
-    score_cutoff = widgets.IntText(value=0, placeholder=0, description="Score cut-off:")
-    button = widgets.Button(description="EnrichR!")
-
-    display(
-        widgets.VBox(
-            [
-                tool,
-                conditions,
-                description,
-                bases,
-                fdr_cutoff,
-                score_cutoff,
-                plot_type,
-                size,
-                col_2,
-                col_1,
-                button,
-            ]
-        )
-    )
-
-    def on_button_clicked(b):
-        charts = []
-        tool_res = pitviper_res[tool.value]
-        treatment, baseline = conditions.value.split("_vs_")
-        for base in bases.value:
-            if tool.value == "MAGeCK_MLE":
-                info = tool_res[conditions.value][
-                    conditions.value + ".gene_summary.txt"
-                ]
-                info = info.loc[info[treatment + "|fdr"] < fdr_cutoff.value]
-                if score_cutoff.value < 0:
-                    info = info.loc[info[treatment + "|beta"] < score_cutoff.value]
-                elif score_cutoff.value > 0:
-                    info = info.loc[info[treatment + "|beta"] > score_cutoff.value]
-                genes = info["Gene"].to_list()
-
-            if tool.value == "MAGeCK_RRA":
-                info = tool_res[conditions.value][
-                    conditions.value + ".gene_summary.txt"
-                ]
-                info = info.loc[info["neg|fdr"] < fdr_cutoff.value]
-                genes = info["id"]
-
-            if tool.value == "BAGEL2":
-                info = tool_res[conditions.value][conditions.value + "_BAGEL_output.pr"]
-                info = info.loc[info["BF"] > score_cutoff.value]
-                genes = info["Gene"]
-
-            if tool.value == "directional_scoring_method":
-                info = tool_res[conditions.value][
-                    conditions.value + "_all-elements_directional_scoring_method.txt"
-                ]
-                if score_cutoff.value > 0:
-                    info = info.loc[info["score"] > score_cutoff.value]
-                else:
-                    info = info.loc[info["score"] < score_cutoff.value]
-                genes = info["Gene"]
-
-            if tool.value == "SSREA":
-                info = tool_res[conditions.value][
-                    conditions.value + "_all-elements_SSREA.txt"
-                ]
-                if score_cutoff.value > 0:
-                    info = info.loc[info["NES"] > score_cutoff.value]
-                elif score_cutoff.value < 0:
-                    info = info.loc[info["NES"] < score_cutoff.value]
-                info = info.loc[info["padj"] < fdr_cutoff.value]
-                genes = info["pathway"]
-
-            if tool.value == "CRISPhieRmix":
-                info = tool_res[conditions.value][conditions.value + ".txt"]
-                info = info.loc[info["locfdr"] < fdr_cutoff.value]
-                if score_cutoff.value > 0:
-                    info = info.loc[info["mean_log2FoldChange"] > score_cutoff.value]
-                elif score_cutoff.value <= 0:
-                    info = info.loc[info["mean_log2FoldChange"] < score_cutoff.value]
-                genes = info["gene"]
-
-            enrichr_res = getEnrichrResults(genes, description.value, base)
-            table = createEnrichrTable(enrichr_res)
-            if plot_type.value == "Bar":
-                chart = enrichmentBarPlot(
-                    table, size.value, description.value, col_1.value, col_2.value, base
-                )
-            else:
-                chart = enrichmentCirclePlot(
-                    table, size.value, description.value, col_1.value, col_2.value, base
-                )
-            charts.append(chart)
-        for chart in charts:
-            display(chart)
-
-    button.on_click(on_button_clicked)
+    bases = [entry["libraryName"] for entry in data["statistics"]]
+    bases.sort()
+    return bases
 
 
 def run_rra(ranks):
@@ -2498,11 +3163,10 @@ def genemania_link_results(token, tools_available):
             info = info.loc[info["padj"] < fdr_cutoff.value]
             genes = info["pathway"]
 
-        print("Size (gene set):", len(genes))
+        print("Size geneset:", len(genes))
         link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes)
         print(link)
 
-    BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
     TOOLS = [tool for tool in tools_available.keys() if tool != "DESeq2"]
 
     tool = widgets.Dropdown(options=TOOLS, value=TOOLS[0], description="Tool:")
@@ -2749,6 +3413,7 @@ def ranking(treatment, control, token, tools_available, params):
 
 
 def plot_venn(occurences):
+    """Plot a venn diagram from the occurences dataframe"""
     venn_lib = importr("venn")
     grdevices = importr("grDevices")
     with localconverter(ro.default_converter + pandas2ri.converter):
@@ -2771,6 +3436,21 @@ def plot_venn(occurences):
             IPython.display.Image(data=img.getvalue(), format="png", embed=True)
         )
     )
+
+
+def plot_upset(occurences):
+    """Plot an upset plot from the occurences dataframe"""
+    # Convert 0 and 1 to False and True
+    occurences = occurences.astype(bool)
+
+    occurences = occurences.groupby(occurences.columns.tolist()).size()
+
+    # Create the upset plot
+    upset = upsetplot.UpSet(occurences)
+
+    # Display the upset plot in the notebook
+    upset.plot()
+    plt.show()
 
 
 def reset_params():
@@ -3000,7 +3680,10 @@ def multiple_tools_results(tools_available, token):
     conditions_widget = widgets.Dropdown(
         options=conditions_options, description="Conditions:"
     )
-    tools_widget = widgets.SelectMultiple(options=tools_options, description="Tool:")
+    tools_widget = widgets.SelectMultiple(
+        options=tools_options,
+        description="Tool:",
+    )
     selection_widgets = widgets.ToggleButtons(
         options=["Intersection", "Union"],
         description="Selection mode:",
@@ -3192,9 +3875,15 @@ def multiple_tools_results(tools_available, token):
         def download_button_clicked(b):
             heatmap_name = f"results/{token}/{column_to_plot}_heatmap.pdf"
             fig.write_image(heatmap_name)
-            from IPython.display import FileLink
+            # Get the base name of the heatmap
+            base_name = os.path.basename(heatmap_name)
 
-            display(FileLink(heatmap_name))
+            # Display a clickable link to the image
+            display(
+                HTML(
+                    f'<a href="{base_name}" target="_blank">Open {column_to_plot} heatmap</a>'
+                )
+            )
 
         display(download_button)
 
@@ -3212,7 +3901,7 @@ def multiple_tools_results(tools_available, token):
 
     disabled = disable_widgets(token)
     venn_button = widgets.Button(
-        description="Venn diagram", style=dict(button_color="#707070")
+        description="Venn/Upset plots", style=dict(button_color="#707070")
     )
     rra_button = widgets.Button(
         description="RRA ranking", style=dict(button_color="#707070")
@@ -3316,30 +4005,79 @@ def multiple_tools_results(tools_available, token):
             )
 
     def venn_button_clicked(b):
-        treatment, control = conditions_widget.value.split("_vs_")
-        ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        if selection_widgets.value == "Intersection":
+        # If at least one tool is selected
+        if len(tools_widget.value) > 0:
+            treatment, control = conditions_widget.value.split("_vs_")
+            ranks, occurences = ranking(
+                treatment, control, token, tools_available, params
+            )
+            # if selection_widgets.value == "Intersection":
             df = pd.DataFrame(
                 occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
                 columns=["intersection"],
             )
-            genes_list = df.loc[df.intersection == True].index
-        else:
+            genes_list_at_intersection = df.loc[df.intersection == True].index
+            # else:
             df = pd.DataFrame(
                 occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
             )
-            genes_list = df.loc[df.union == True].index
-        display(
-            HTML(
-                """<p style="color:white;font-weight: bold;background-color: orange;padding: 0.5em;">Venn diagram: %s</p>"""
-                % selection_widgets.value
+            genes_list_at_union = df.loc[df.union == True].index
+            display(
+                HTML(
+                    """<p style="color:white;font-weight: bold;background-color: orange;padding: 0.5em;">Venn diagram: %s</p>"""
+                    % selection_widgets.value
+                )
             )
-        )
-        show_parameters(params)
-        plot_venn(occurences)
-        print("Genes at %s of all methods:" % selection_widgets.value)
-        for gene in genes_list:
-            print(gene)
+
+            show_parameters(params)
+            plot_venn(occurences)
+            # If more than one tool is selected, display the upset plot
+            if len(tools_widget.value) > 1:
+                plot_upset(occurences)
+
+            textarea_intersection = widgets.Textarea(
+                value="\n".join(genes_list_at_intersection),
+                description=f"List of genes at intersection of all methods (n = {len(genes_list_at_intersection)}):",
+                disabled=True,
+                # Increase the height of the textarea (default is 6 rows)
+                layout=widgets.Layout(height="200px", width="60%"),
+                style={"description_width": "400px"},
+            )
+            display(textarea_intersection)
+
+            textarea_union = widgets.Textarea(
+                value="\n".join(genes_list_at_union),
+                description=f"List of genes at union of all methods (n = {len(genes_list_at_union)}):",
+                disabled=True,
+                # Increase the height of the textarea (default is 6 rows)
+                layout=widgets.Layout(height="200px", width="60%"),
+                style={"description_width": "400px"},
+            )
+
+            display(textarea_union)
+
+            # Utilisez du HTML et du JavaScript pour changer la couleur du texte
+            display(
+                HTML(
+                    """
+                <style>
+                    .widget-textarea textarea:disabled {
+                        color: black !important;
+                        opacity: 1 !important;
+                    }
+                </style>
+                <script>
+                    require(["base/js/namespace"], function(Jupyter) {
+                        Jupyter.notebook.events.one("kernel_ready.Kernel", function() {
+                            Jupyter.notebook.execute_cells([Jupyter.notebook.get_cell_index(Jupyter.notebook.get_selected_cell())]);
+                        });
+                    });
+                </script>
+            """
+                )
+            )
+        else:
+            display_warning("Please select at least one tool above.")
 
     def rra_button_clicked(b):
         treatment, control = conditions_widget.value.split("_vs_")
@@ -3380,14 +4118,23 @@ def multiple_tools_results(tools_available, token):
 
     def enrichr_button_clicked(b):
         def show_enrichr_plots(
-            b, genes, bases, size, plot_type, col_2, col_1, description
+            b,
+            genes,
+            bases,
+            size,
+            plot_type,
+            col_2,
+            col_1,
+            description,
+            # output
         ):
-            show_parameters(params)
             charts = []
             title = description.value + " (%s)" % selection_widgets.value
+            # with output:
+            show_parameters(params)
             for base in bases.value:
-                enrichr_res = getEnrichrResults(genes, description.value, base)
-                table = createEnrichrTable(enrichr_res)
+                enrichr_res = get_enrichr_results(genes, description.value, base)
+                table = create_enrichr_table(enrichr_res)
                 if plot_type.value == "Bar":
                     chart = enrichmentBarPlot(
                         table, size.value, title, col_1.value, col_2.value, base
@@ -3402,8 +4149,12 @@ def multiple_tools_results(tools_available, token):
 
         display(
             HTML(
-                """<p style="color:white;font-weight: bold;background-color: purple;padding: 0.5em;">EnrichR for genes at %s</p>"""
-                % selection_widgets.value
+                f"""
+                <p style="color:white;
+                          font-weight: bold;
+                          background-color: purple;
+                          padding: 0.5em;">EnrichR for genes at {selection_widgets.value}</p>
+                """
             )
         )
         treatment, control = conditions_widget.value.split("_vs_")
@@ -3420,8 +4171,8 @@ def multiple_tools_results(tools_available, token):
             )
             genes_list = df.loc[df.union == True].index
         genes_list = regions2genes(token, genes_list)
-        BASES = open("workflow/notebooks/enrichr_list.txt", "r").readlines()
-        bases = widgets.SelectMultiple(options=BASES, description="Gene sets:", rows=10)
+        BASES = get_enrichr_bases()
+        bases = widgets.SelectMultiple(options=BASES, description="Genesets:", rows=10)
         col_2 = widgets.ColorPicker(
             concise=False, description="Top color", value="blue"
         )
@@ -3437,13 +4188,18 @@ def multiple_tools_results(tools_available, token):
         description = widgets.Text(
             value="My gene list", placeholder="Description", description="Description:"
         )
-        button_enrichr = widgets.Button(description="EnrichR!")
+        button_enrichr = widgets.Button(description="Plot!")
 
         display(
             widgets.VBox(
                 [description, bases, plot_type, size, col_2, col_1, button_enrichr]
             )
         )
+
+        # output_enrichr = widgets.Output()
+
+        # display(output_enrichr)
+
         button_enrichr.on_click(
             partial(
                 show_enrichr_plots,
@@ -3454,24 +4210,26 @@ def multiple_tools_results(tools_available, token):
                 col_2=col_2,
                 col_1=col_1,
                 description=description,
+                # output=output_enrichr,
             )
         )
 
     def depmap_button_clicked(b):
         display(
             HTML(
-                """<p style="color:white;font-weight: bold;background-color: #A52A2A;padding: 0.5em;">depmap vizualisation module</p>"""
+                """<p style="color:white;font-weight: bold;background-color: #A52A2A;padding: 0.5em;">DepMap vizualisation module</p>"""
             )
         )
         data_types_widget = widgets.RadioButtons(
             options=["crispr", "proteomic", "rnai", "tpm", "mutations"],
             value="crispr",
-            description="Data type:",
+            description="Choose a data type:",
             disabled=False,
         )
 
         def download_depmap_file(data_type, release):
-            target_file = "resources/depmap/%s_%s.txt" % (release, data_type)
+            """Determine if the file is already downloaded or not."""
+            target_file = f"resources/depmap/{release}_{data_type}.txt"
             for file_name in listdir("resources/depmap/"):
                 if ("metadata" in file_name) and (not release in file_name):
                     os.remove(file_name)
@@ -3485,24 +4243,32 @@ def multiple_tools_results(tools_available, token):
                         return False
             return True
 
-        def getRelease():
+        def get_release():
+            """Get the release of the depmap data."""
             depmap_release = depmap.depmap_release()
             return str(depmap_release).rstrip()[5:-1]
 
         def depmap_query_button_clicked(b):
-            depmap_release = getRelease()
-            save_path = "resources/depmap/%s_%s.txt" % (
-                depmap_release,
-                data_types_widget.value,
+            """Query the depmap data."""
+            # Get the release of the depmap data
+            depmap_release = get_release()
+            # Set the path to save the file
+            save_path = (
+                f"resources/depmap/{depmap_release}_{data_types_widget.value}.txt"
             )
+            # Create the directory if it does not exist
             Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
+            # Get the treatment and control conditions
             treatment, control = conditions_widget.value.split("_vs_")
+            # Get the ranking
             ranks, occurences = ranking(
                 treatment, control, token, tools_available, params
             )
             if download_depmap_file(data_types_widget.value, depmap_release):
-                print("This step can take some time.")
-                print("Querying: %s..." % data_types_widget.value)
+                # print("This step can take some time.")
+                display_info("This step can take some time.")
+                # print("Querying: %s..." % data_types_widget.value)
+                display_info(f"Querying: {data_types_widget.value}...", bold=False)
                 eh = experimentHub.ExperimentHub()
                 base_package = importr("base")
                 dplyr = importr("dplyr")
@@ -3552,7 +4318,7 @@ def multiple_tools_results(tools_available, token):
                         )
                     )
                 if not os.path.isfile(
-                    "resources/depmap/%s_metadata.txt" % depmap_release
+                    f"resources/depmap/{depmap_release}_metadata.txt"
                 ):
                     depmap_metadata = dplyr.select(
                         depmap.depmap_metadata(),
@@ -3567,7 +4333,7 @@ def multiple_tools_results(tools_available, token):
                     print("Saving metadata...")
                     utils.write_table(
                         depmap_metadata,
-                        "resources/depmap/%s_metadata.txt" % depmap_release,
+                        "resources/depmap/{depmap_release}_metadata.txt",
                         row_names=False,
                         quote=False,
                         sep="\t",
@@ -3575,23 +4341,23 @@ def multiple_tools_results(tools_available, token):
                 else:
                     print("Import metadata...")
                     depmap_metadata = readr.read_delim(
-                        "resources/depmap/%s_metadata.txt" % depmap_release, delim="\t"
+                        f"resources/depmap/{depmap_release}_metadata.txt", delim="\t"
                     )
                 depmap_data = base_package.merge(
                     depmap_data, depmap_metadata, by="depmap_id"
                 )
-                print("Saving %s" % save_path)
+                print(f"Saving {save_path}")
                 utils.write_table(
                     depmap_data, save_path, row_names=False, quote=False, sep="\t"
                 )
-            print("Opening %s" % save_path)
+            print(f"Opening {save_path}")
             data = pd.read_table(save_path, sep="\t")
 
             tissues_init = list(set(data.cell_line))
             tissues = [
                 "_".join(str(tissu).split("_")[1:])
                 for tissu in tissues_init
-                if not str(tissu) in ["nan", ""]
+                if str(tissu) not in ["nan", ""]
             ]
             tissues = list(set(tissues))
             tissues.insert(0, "All")
@@ -3601,7 +4367,7 @@ def multiple_tools_results(tools_available, token):
 
             cell_lines_init = list(set(data.cell_line_name))
             cell_lines = [
-                tissu for tissu in cell_lines_init if not str(tissu) in ["nan", ""]
+                tissu for tissu in cell_lines_init if str(tissu) not in ["nan", ""]
             ]
             cell_lines = natural_sort(cell_lines)
             cell_lines.insert(0, "All")
@@ -3794,3 +4560,563 @@ def multiple_tools_results(tools_available, token):
         )
 
     ranking_button.on_click(ranking_button_clicked)
+
+
+def condition_comparison(results_directory, tools_available, token):
+    """This function let user choose a tool and two conditions and plot them against each other."""
+
+    def get_data(tool, comparison_1, comparison_2, results_directory):
+        """Get the data for the plot."""
+        functions = {
+            "MAGeCK_MLE": MAGeCK_MLE_data,
+            "MAGeCK_RRA": MAGeCK_RRA_data,
+            "CRISPhieRmix": CRISPhieRmix_data,
+            "SSREA": SSREA_like_data,
+            "directional_scoring_method": directional_scoring_method_data,
+        }
+        data_function = functions[tool]
+        comparison_1_data = data_function(
+            comparison=comparison_1,
+            control="",
+            tool=tool,
+            results_directory=results_directory,
+            tools_available=tools_available,
+        )
+        comparison_2_data = data_function(
+            comparison=comparison_2,
+            control="",
+            tool=tool,
+            results_directory=results_directory,
+            tools_available=tools_available,
+        )
+        return comparison_1_data, comparison_2_data
+
+    def parameters_widgets():
+        """Create widgets for the parameters."""
+        # Define widgets's options
+        tools_options = list(tools_available.keys())
+        # Remove DESeq2
+        if "DESeq2" in tools_options:
+            tools_options.remove("DESeq2")
+        if "directional_scoring_method" in tools_options:
+            tools_options.remove("directional_scoring_method")
+        if "SSREA" in tools_options:
+            tools_options.remove("SSREA")
+        comparisons_options = list(tools_available[tools_options[0]].keys())
+        comparisons_options.sort()
+
+        # Create a gene/element selection widget with Text input
+        gene_selection_widget = widgets.Text(
+            value="",
+            placeholder="Comma-separated list",
+            description="Gene/Element:",
+            disabled=False,
+            style={"description_width": "100px"},
+        )
+        # Create a color widget for the gene/element selection
+        color_gene_widget = widgets.ColorPicker(
+            concise=True, description="", value="green"
+        )
+
+        # Define widgets
+        # Create a condition 1 widget
+        comparison_1_widget = widgets.Dropdown(
+            options=comparisons_options,
+            description="Comparison 1:",
+            value=comparisons_options[0],
+            layout=widgets.Layout(width="30%"),
+            style={"description_width": "100px"},
+        )
+        # Create a widget to define the selection: <=, >=, <, >, abs() >=, abs() <=
+        orientation_1_widget = widgets.Dropdown(
+            options=["<=", ">=", "<", ">", "abs() >=", "abs() <="],
+            description="",
+            value=">=",
+            layout=widgets.Layout(width="10%"),
+        )
+        # Create a widget to define the value of the selection
+        value_1_widget = widgets.FloatText(
+            value=0,
+            description="",
+            layout=widgets.Layout(width="10%"),
+        )
+        # Create a color widget for the condition 1
+        color_1_widget = widgets.ColorPicker(
+            concise=True,
+            description="",
+            value="blue",
+            # layout=widgets.Layout(width="10%"),
+        )
+        # Create a checkbox to let user decide if they want to highlight genes with a specific value for the condition 1
+        highlight_1_widget = widgets.Checkbox(
+            value=True,
+            description="Highlight genes?",
+        )
+
+        # Create a condition 2 widget
+        comparison_2_widget = widgets.Dropdown(
+            options=comparisons_options,
+            description="Comparison 2:",
+            value=comparisons_options[1],
+            layout=widgets.Layout(width="30%"),
+            style={"description_width": "100px"},
+        )
+        # Create a widget to define the selection: <=, >=, <, >, abs() >=, abs() <=
+        orientation_2_widget = widgets.Dropdown(
+            options=["<=", ">=", "<", ">", "abs() >=", "abs() <="],
+            description="",
+            value=">=",
+            layout=widgets.Layout(width="10%"),
+        )
+        # Create a widget to define the value of the selection
+        value_2_widget = widgets.FloatText(
+            value=0,
+            description="",
+            layout=widgets.Layout(width="10%"),
+        )
+        # Create a color widget for the condition 2
+        color_2_widget = widgets.ColorPicker(concise=True, description="", value="red")
+        # Create a checkbox to let user decide if they want to highlight genes with a specific value for the condition 1
+        highlight_2_widget = widgets.Checkbox(
+            value=True,
+            description="Highlight genes?",
+        )
+
+        # Create a color widget for elements identified for both conditions
+        color_intersection_widget = widgets.ColorPicker(
+            concise=True, description="Intersection", value="purple"
+        )
+
+        # Create a tool widget
+        tools_widget = widgets.Dropdown(
+            options=tools_options,
+            description="Tool:",
+            style={"description_width": "100px"},
+        )
+
+        return (
+            tools_widget,
+            widgets.HBox(
+                [
+                    comparison_1_widget,
+                    orientation_1_widget,
+                    value_1_widget,
+                    color_1_widget,
+                    highlight_1_widget,
+                ]
+            ),
+            widgets.HBox(
+                [
+                    comparison_2_widget,
+                    orientation_2_widget,
+                    value_2_widget,
+                    color_2_widget,
+                    highlight_2_widget,
+                ]
+            ),
+            color_intersection_widget,
+            widgets.HBox([gene_selection_widget, color_gene_widget]),
+        )
+
+    parameters_widgets = widgets.VBox(parameters_widgets())
+
+    # Display the widgets
+    display(parameters_widgets)
+
+    # Create a button to plot the data
+    plot_button = widgets.Button(description="Plot")
+    display(plot_button)
+
+    # Create an output widget to display the results
+    # output = widgets.Output()
+    # display(output)
+
+    # On button click, plot the data
+    @plot_button.on_click
+    def plot_button_clicked(b):
+        """Plot the data."""
+
+        def plot_comparison(data, column_1, column_2, elements_column, color_dict):
+            """Plot the comparison using altair."""
+
+            # Définir les limites de vos données
+            min_value = min(data[column_1].min(), data[column_2].min())
+            max_value = max(data[column_1].max(), data[column_2].max())
+
+            # Créer une échelle avec les mêmes limites pour les axes x et y
+            scale = alt.Scale(domain=(min_value, max_value))
+
+            range_color = list(color_dict.values())
+            domain_color = list(color_dict.keys())
+
+            # Add none to the range color
+            range_color.append("grey")
+            domain_color.append("Others")
+
+            # Superposer les lignes sur le graphique
+            chart = (
+                (
+                    (
+                        alt.Chart(data)
+                        .transform_calculate(
+                            order="datum.color == 'Others' ? 0 : (datum.color == 'Selection' ? 2 : 1)"
+                        )
+                        .mark_circle()
+                        .encode(
+                            x=alt.X(
+                                column_1,
+                                scale=scale,
+                                title=column_1,
+                                axis=alt.Axis(
+                                    values=list(
+                                        np.arange(min_value, max_value + 0.5, 0.5)
+                                    )
+                                ),
+                            ),
+                            y=alt.Y(
+                                column_2,
+                                scale=scale,
+                                title=column_2,
+                                axis=alt.Axis(
+                                    values=list(
+                                        np.arange(min_value, max_value + 0.5, 0.5)
+                                    )
+                                ),
+                            ),
+                            tooltip=[elements_column, column_1, column_2],
+                            # Color the points in blue if they are selected
+                            color=alt.Color(
+                                "color:N",
+                                scale=alt.Scale(
+                                    range=range_color,
+                                    domain=domain_color,
+                                ),
+                                sort="ascending",
+                                # Set the legend title
+                                legend=alt.Legend(title="Highlighted elements:"),
+                            ),
+                            order="order:O",
+                            # Set opacity to 1.0 for all points
+                            opacity=alt.value(1.0),
+                        )
+                        .interactive()
+                    )
+                    # Add diagonal line
+                    + alt.Chart(pd.DataFrame({"x": [min_value * 2, max_value * 2]}))
+                    .mark_line(color="#636363")
+                    .encode(x="x", y="x")
+                    # Add a vertical line to highlight the x = 0 line, in black
+                    + alt.Chart(pd.DataFrame({"x": [0, 0]}))
+                    .mark_rule(color="#636363")
+                    .encode(x="x")
+                    # Add a horizontal line to highlight the y = 0 line, in black
+                    + alt.Chart(pd.DataFrame({"y": [0, 0]}))
+                    .mark_rule(color="#636363")
+                    .encode(y="y")
+                    + alt.Chart(data.query("selected == True"))
+                    .mark_text(dy=10, dx=20, color=selected_genes_color)
+                    .encode(
+                        x=column_1,
+                        y=column_2,
+                        text=elements_column,
+                    )
+                )
+                .configure_axis(grid=False)
+                .configure_view(stroke=None)
+                .properties(width=500, height=500)
+            )
+
+            if "abs" in parameters_widgets.children[1].children[1].value:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {
+                            "x": [
+                                parameters_widgets.children[1].children[2].value,
+                                -parameters_widgets.children[1].children[2].value,
+                            ]
+                        }
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(x="x")
+            else:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {"x": [parameters_widgets.children[1].children[2].value]}
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(x="x")
+            if "abs" in parameters_widgets.children[2].children[1].value:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {
+                            "y": [
+                                parameters_widgets.children[2].children[2].value,
+                                -parameters_widgets.children[2].children[2].value,
+                            ]
+                        }
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(y="y")
+            else:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {"y": [parameters_widgets.children[2].children[2].value]}
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(y="y")
+
+            display(chart)
+
+        def _get_elements_name_column_by_tool(tool):
+            """Get the column name for the elements by tool."""
+            columns_by_tool = {
+                "MAGeCK_MLE": "Gene",
+                "MAGeCK_RRA": "id",
+                "CRISPhieRmix": "gene",
+                "SSREA": "pathway",
+                "directional_scoring_method": "Gene",
+            }
+            return columns_by_tool[tool]
+
+        def _get_score_columns_by_tool(tool, condition):
+            """Get the columns to plot by tool."""
+            columns_by_tool = {
+                "MAGeCK_MLE": f"{condition}|beta",
+                "MAGeCK_RRA": "neg|lfc",
+                "CRISPhieRmix": "mean_log2FoldChange",
+                "SSREA": "NES",
+                "directional_scoring_method": "score",
+            }
+            return columns_by_tool[tool]
+
+        # with output:
+        # Clear the output
+        # output.clear_output()
+        # Get the parameters
+        tool = parameters_widgets.children[0].value
+
+        # Comparison 1 parameters
+        comparison_1 = parameters_widgets.children[1].children[0].value
+        orientation_1 = parameters_widgets.children[1].children[1].value
+        value_1 = parameters_widgets.children[1].children[2].value
+        color_1 = parameters_widgets.children[1].children[3].value
+        highlight_1 = parameters_widgets.children[1].children[4].value
+
+        # Comparison 2 parameters
+        comparison_2 = parameters_widgets.children[2].children[0].value
+        orientation_2 = parameters_widgets.children[2].children[1].value
+        value_2 = parameters_widgets.children[2].children[2].value
+        color_2 = parameters_widgets.children[2].children[3].value
+        highlight_2 = parameters_widgets.children[2].children[4].value
+
+        # Get the color for the intersection
+        color_intersection = parameters_widgets.children[3].value
+
+        # Get the data
+        comparison_1_data, comparison_2_data = get_data(
+            tool, comparison_1, comparison_2, results_directory
+        )
+
+        # If both comparisons are the same, display an error message
+        if comparison_1 == comparison_2:
+            display_warning("Please choose two different comparisons.")
+            # print("Please choose two different comparisons.")
+            return
+
+        # Get the selected genes and their color
+        selected_genes = parameters_widgets.children[4].children[0].value.split(",")
+        selected_genes_color = parameters_widgets.children[4].children[1].value
+
+        # Get the columns to plot
+        column_1 = _get_score_columns_by_tool(tool, comparison_1.split("_vs_")[0])
+        column_2 = _get_score_columns_by_tool(tool, comparison_2.split("_vs_")[0])
+        # Get column with elements name
+        elements_column = _get_elements_name_column_by_tool(tool)
+
+        # Combine the data: name, comparison_1, comparison_2
+        combined_data = comparison_1_data[[elements_column, column_1]].merge(
+            comparison_2_data[[elements_column, column_2]],
+            on=elements_column,
+            suffixes=("_" + comparison_1, "_" + comparison_2),
+            # Force suffixes to be added to the columns
+            how="outer",
+        )
+
+        if not column_1 + "_" + comparison_1 in combined_data.columns:
+            # Add a suffix to the column name
+            combined_data[column_1 + "_" + comparison_1] = comparison_1_data[column_1]
+        column_1 = column_1 + "_" + comparison_1
+        if not column_2 + "_" + comparison_2 in combined_data.columns:
+            # Add a suffix to the column name
+            combined_data[column_2 + "_" + comparison_2] = comparison_2_data[column_2]
+        column_2 = column_2 + "_" + comparison_2
+
+        # Add an annotation column to distinguish the elements selected by the user
+        combined_data["selected"] = combined_data[elements_column].isin(selected_genes)
+
+        def mask_condition(data, column, orientation, value):
+            """Mask the data based on the condition."""
+            if orientation == "<=":
+                mask = data[column] <= value
+            elif orientation == ">=":
+                mask = data[column] >= value
+            elif orientation == "<":
+                mask = data[column] < value
+            elif orientation == ">":
+                mask = data[column] > value
+            elif orientation == "abs() <=":
+                mask = abs(data[column]) <= value
+            elif orientation == "abs() >=":
+                mask = abs(data[column]) >= value
+            return mask
+
+        # If user selected to highlight genes, add a column to the dataframe for the genes passing the threshold
+        combined_data["highlight_1"] = mask_condition(
+            combined_data, column_1, orientation_1, value_1
+        )
+        combined_data["highlight_2"] = mask_condition(
+            combined_data, column_2, orientation_2, value_2
+        )
+
+        conditions = [
+            combined_data["selected"],
+            combined_data["highlight_1"] & combined_data["highlight_2"],
+            combined_data["highlight_1"],
+            combined_data["highlight_2"],
+        ]
+
+        label_1 = f"{comparison_1} {orientation_1} {value_1}"
+        label_2 = f"{comparison_2} {orientation_2} {value_2}"
+
+        outputs = [
+            "Selection",
+            "Intersection",
+            label_1,
+            label_2,
+        ]
+
+        # If no highlight is selected, remove the first element of the lists
+        to_remove = []
+        if not highlight_1 or not highlight_2:
+            to_remove.append(1)
+        if not highlight_1:
+            to_remove.append(2)
+        if not highlight_2:
+            to_remove.append(3)
+
+        conditions = [
+            conditions[i] for i in range(len(conditions)) if i not in to_remove
+        ]
+        outputs = [outputs[i] for i in range(len(outputs)) if i not in to_remove]
+
+        # Create a 'color' column.
+        # If highlight_1 is True, set the color to color_1
+        # If highlight_2 is True, set the color to color_2
+        # If both are True, set the color to color_intersection
+        # If selected is True, set the color to selected_genes_color
+        # Else, set the color to grey
+        combined_data["color"] = np.select(
+            conditions,
+            outputs,
+            default="Others",
+        )
+
+        # display(combined_data)
+
+        # display(combined_data.groupby("color").size())
+
+        color_dict = {
+            # Highlight the genes passing the threshold 1
+            label_1: color_1,
+            # Highlight the genes passing the threshold 2
+            label_2: color_2,
+            # Highlight the genes in the intersection
+            "Intersection": color_intersection,
+            # Genes selected by the user
+            "Selection": selected_genes_color,
+            # Others genes
+            "Others": "grey",
+        }
+
+        # Plot the data
+        plot_comparison(combined_data, column_1, column_2, elements_column, color_dict)
+
+        # Create a dropdown to select the gene sets
+        enrichr_bases = get_enrichr_bases()
+        enrichr_bases_widget = widgets.SelectMultiple(
+            options=enrichr_bases,
+            description="EnrichR genesets:",
+            rows=12,
+            layout=widgets.Layout(width="400px"),
+            style={"description_width": "initial"},
+        )
+
+        display(enrichr_bases_widget)
+
+        # Retrieve genes from each 'color' category and create a text area for each category
+        for category in color_dict:
+            genes = combined_data[combined_data["color"] == category][elements_column]
+            textarea = widgets.Textarea(
+                value="\n".join(genes),
+                description=f"{category} genes:",
+                disabled=True,
+                layout=widgets.Layout(height="200px", width="auto"),
+                style={"description_width": "200px"},
+            )
+
+            # Create a button to run enrichr on the genes
+            enrichr_button = widgets.Button(
+                description=f"Run EnrichR on {category}",
+                # Increase button width to match description width
+                layout=widgets.Layout(width="auto"),
+            )
+            display(widgets.HBox([textarea, enrichr_button]))
+
+            def enrichr_button_clicked(b):
+                """Run enrichr on the genes."""
+                category = b.description[15:]
+                genes = combined_data[combined_data["color"] == category][
+                    elements_column
+                ]
+                if len(genes) == 0:
+                    display_warning(f"No genes in the category {category}.")
+                    # print(f"No genes in the category {category}.")
+                    return
+                print(f"Running EnrichR on <{category}> genes.")
+                print(f"Number of genes: {len(genes)}")
+                if not enrichr_bases_widget.value:
+                    display_warning("Please select at least one geneset above.")
+                    # print("Please select at least one gene set.")
+                    return
+                for base in enrichr_bases_widget.value:
+                    enrichr_res = get_enrichr_results(
+                        genes,
+                        category,
+                        base,
+                    )
+                    table = create_enrichr_table(enrichr_res)
+                    chart = enrichmentBarPlot(
+                        table,
+                        10,
+                        f"EnrichR results for {category} genes",
+                        "red",
+                        "blue",
+                        base,
+                    )
+                    display(chart)
+
+            enrichr_button.on_click(enrichr_button_clicked)
+
+        # Display the text in black
+        display(
+            HTML(
+                """
+            <style>
+                .widget-textarea textarea:disabled {
+                    color: black !important;
+                    opacity: 1 !important;
+                }
+            </style>
+            """
+            )
+        )
+
+        # # Display the text areas in a Hbox
+        # display(widgets.HBox([upper_left_textarea, upper_right_textarea]))
+        # display(widgets.HBox([lower_left_textarea, lower_right_textarea]))

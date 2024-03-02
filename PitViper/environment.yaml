@@ -14,6 +14,7 @@ dependencies:
   - click=8.0.3
   - cmake
   - fastcluster=1.2.4
+  - fastqc=0.12.1
   - flask=2.0.2
   - gawk=5.1.0
   - git
@@ -72,5 +73,6 @@ dependencies:
   - snakemake=7.30.0
   - statsmodels=0.13.0
   - tk=8.6.11
+  - upsetplot=0.8.0
   - werkzeug=2.0.3
   - yaml=0.2.5
