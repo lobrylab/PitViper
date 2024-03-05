@@ -504,20 +504,32 @@ def show_read_count_distribution(token: str, width=800, height=400):
     """
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
-    path_qc = content["normalized_count_table"]
-    if not path.exists(path_qc):
+    
+    # Load the design file
+    design = pd.read_csv(content["tsv_file"], sep="\t")
+
+    # Create a dictionary to map replicate names to condition names
+    d = dict(zip(design.replicate, design.condition))
+
+    # Load the normalized count table
+    norm_file = content["normalized_count_table"]
+    if not path.exists(norm_file):
         display_info("No count file to show.")
         # print("No count file to show.")
         return 0
-    table = pd.read_csv(path_qc, sep="\t")
+    table = pd.read_csv(norm_file, sep="\t")
+    
+    table = table[[col for col in d]]
+    
+    display(table.head())
 
-    table.iloc[:, 2:] = table.iloc[:, 2:] + 1
-    table.iloc[:, 2:] = table.iloc[:, 2:].apply(np.log2)
+    table += 1
+    table = table.apply(np.log2)
 
     chart = (
         (
             alt.Chart(table)
-            .transform_fold(list(table.columns[2:]), as_=["Replicate", "counts"])
+            .transform_fold(list(table.columns), as_=["Replicate", "counts"])
             .transform_density(
                 density="counts",
                 bandwidth=0.3,
@@ -554,27 +566,38 @@ def pca_counts(token: str):
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
 
+    # Load the design file
     design = pd.read_csv(content["tsv_file"], sep="\t")
+
+    # Create a dictionary to map replicate names to condition names
+    d = dict(zip(design.replicate, design.condition))
+
+    # Load the normalized count table
     cts_file = content["normalized_count_table"]
     cts = pd.read_csv(cts_file, sep="\t")
     
-    X = cts[cts.columns[2:]].to_numpy().T
-    d = dict(zip(design.replicate, design.condition))
-    y = [d[k] for k in cts.columns[2:] if k in d]
-    y = np.array(y)
-    y_bis = np.array(cts.columns[2:])
+    # Filter columns to keep only replicates found in the design file
+    cts = cts[[col for col in d]]
 
+    # Create a numpy array of condition names
+    y = np.array([d[k] for k in cts.columns if k in d])
+    # Create a numpy array of replicate names
+    y_bis = np.array(cts.columns)
+    
+    # Transpose the count table
+    X = cts.to_numpy().T    
+    
+    # Perform PCA
     pca = decomposition.PCA(n_components=2)
     pca.fit(X)
     X = pca.transform(X)
 
+    # Create a pandas DataFrame from the PCA results
     a = pd.DataFrame(X, columns=["PC1", "PC2"])
     b = pd.DataFrame(y, columns=["condition"])
     c = pd.DataFrame(y_bis, columns=["replicate"])
 
-    df_c = pd.concat([a, b, c], axis=1)
-
-    source = df_c
+    source = pd.concat([a, b, c], axis=1)
 
     PC1_explained_variance_ratio = round(pca.explained_variance_ratio_[0] * 100, 2)
     PC2_explained_variance_ratio = round(pca.explained_variance_ratio_[1] * 100, 2)
