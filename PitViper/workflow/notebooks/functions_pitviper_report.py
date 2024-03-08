@@ -504,20 +504,32 @@ def show_read_count_distribution(token: str, width=800, height=400):
     """
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
-    path_qc = content["normalized_count_table"]
-    if not path.exists(path_qc):
+    
+    # Load the design file
+    design = pd.read_csv(content["tsv_file"], sep="\t")
+
+    # Create a dictionary to map replicate names to condition names
+    d = dict(zip(design.replicate, design.condition))
+
+    # Load the normalized count table
+    norm_file = content["normalized_count_table"]
+    if not path.exists(norm_file):
         display_info("No count file to show.")
         # print("No count file to show.")
         return 0
-    table = pd.read_csv(path_qc, sep="\t")
+    table = pd.read_csv(norm_file, sep="\t")
+    
+    table = table[[col for col in d]]
+    
+    display(table.head())
 
-    table.iloc[:, 2:] = table.iloc[:, 2:] + 1
-    table.iloc[:, 2:] = table.iloc[:, 2:].apply(np.log2)
+    table += 1
+    table = table.apply(np.log2)
 
     chart = (
         (
             alt.Chart(table)
-            .transform_fold(list(table.columns[2:]), as_=["Replicate", "counts"])
+            .transform_fold(list(table.columns), as_=["Replicate", "counts"])
             .transform_density(
                 density="counts",
                 bandwidth=0.3,
@@ -554,26 +566,38 @@ def pca_counts(token: str):
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
 
-    TSV = pd.read_csv(content["tsv_file"], sep="\t")
+    # Load the design file
+    design = pd.read_csv(content["tsv_file"], sep="\t")
+
+    # Create a dictionary to map replicate names to condition names
+    d = dict(zip(design.replicate, design.condition))
+
+    # Load the normalized count table
     cts_file = content["normalized_count_table"]
     cts = pd.read_csv(cts_file, sep="\t")
-    X = cts[cts.columns[2:]].to_numpy().T
-    d = dict(zip(TSV.replicate, TSV.condition))
-    y = [d[k] for k in cts.columns[2:]]
-    y = np.array(y)
-    y_bis = np.array(cts.columns[2:])
+    
+    # Filter columns to keep only replicates found in the design file
+    cts = cts[[col for col in d]]
 
+    # Create a numpy array of condition names
+    y = np.array([d[k] for k in cts.columns if k in d])
+    # Create a numpy array of replicate names
+    y_bis = np.array(cts.columns)
+    
+    # Transpose the count table
+    X = cts.to_numpy().T    
+    
+    # Perform PCA
     pca = decomposition.PCA(n_components=2)
     pca.fit(X)
     X = pca.transform(X)
 
+    # Create a pandas DataFrame from the PCA results
     a = pd.DataFrame(X, columns=["PC1", "PC2"])
     b = pd.DataFrame(y, columns=["condition"])
     c = pd.DataFrame(y_bis, columns=["replicate"])
 
-    df_c = pd.concat([a, b, c], axis=1)
-
-    source = df_c
+    source = pd.concat([a, b, c], axis=1)
 
     PC1_explained_variance_ratio = round(pca.explained_variance_ratio_[0] * 100, 2)
     PC2_explained_variance_ratio = round(pca.explained_variance_ratio_[1] * 100, 2)
@@ -4080,41 +4104,48 @@ def multiple_tools_results(tools_available, token):
             display_warning("Please select at least one tool above.")
 
     def rra_button_clicked(b):
-        treatment, control = conditions_widget.value.split("_vs_")
-        ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        display(
-            HTML(
-                """<p style="color:white;font-weight: bold;background-color: green;padding: 0.5em;">RRA results</p>"""
+        if len(tools_widget.value) == 0:
+            display_warning("Please select at least one tool above.")
+        else:
+            
+            treatment, control = conditions_widget.value.split("_vs_")
+            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            display(
+                HTML(
+                    """<p style="color:white;font-weight: bold;background-color: green;padding: 0.5em;">RRA results</p>"""
+                )
             )
-        )
-        show_parameters(params)
-        run_rra(ranks)
+            show_parameters(params)
+            run_rra(ranks)
 
     def genemania_button_clicked(b):
-        treatment, control = conditions_widget.value.split("_vs_")
-        ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        if selection_widgets.value == "Intersection":
-            df = pd.DataFrame(
-                occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
-                columns=["intersection"],
-            )
-            genes_list = df.loc[df.intersection == True].index
+        if len(tools_widget.value) == 0:
+            display_warning("Please select at least one tool above.")
         else:
-            df = pd.DataFrame(
-                occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
+            treatment, control = conditions_widget.value.split("_vs_")
+            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            if selection_widgets.value == "Intersection":
+                df = pd.DataFrame(
+                    occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
+                    columns=["intersection"],
+                )
+                genes_list = df.loc[df.intersection == True].index
+            else:
+                df = pd.DataFrame(
+                    occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
+                )
+                genes_list = df.loc[df.union == True].index
+            genes_list = regions2genes(token, genes_list)
+            display(
+                HTML(
+                    """<p style="color:white;font-weight: bold;background-color: blue;padding: 0.5em;">Genemania link - %s</p>"""
+                    % selection_widgets.value
+                )
             )
-            genes_list = df.loc[df.union == True].index
-        genes_list = regions2genes(token, genes_list)
-        display(
-            HTML(
-                """<p style="color:white;font-weight: bold;background-color: blue;padding: 0.5em;">Genemania link - %s</p>"""
-                % selection_widgets.value
-            )
-        )
-        show_parameters(params)
-        link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
-        print("Link to Genemania website: (%s elements)\n" % len(genes_list))
-        print(link)
+            show_parameters(params)
+            link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
+            print("Link to Genemania website: (%s elements)\n" % len(genes_list))
+            print(link)
 
     def enrichr_button_clicked(b):
         def show_enrichr_plots(
@@ -4147,264 +4178,248 @@ def multiple_tools_results(tools_available, token):
             for chart in charts:
                 display(chart)
 
-        display(
-            HTML(
-                f"""
-                <p style="color:white;
-                          font-weight: bold;
-                          background-color: purple;
-                          padding: 0.5em;">EnrichR for genes at {selection_widgets.value}</p>
-                """
-            )
-        )
-        treatment, control = conditions_widget.value.split("_vs_")
-        ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        if selection_widgets.value == "Intersection":
-            df = pd.DataFrame(
-                occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
-                columns=["intersection"],
-            )
-            genes_list = df.loc[df.intersection == True].index
+        if len(tools_widget.value) == 0:
+            display_warning("Please select at least one tool above.")
         else:
-            df = pd.DataFrame(
-                occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
+            display(
+                HTML(
+                    f"""
+                    <p style="color:white;
+                            font-weight: bold;
+                            background-color: purple;
+                            padding: 0.5em;">EnrichR for genes at {selection_widgets.value}</p>
+                    """
+                )
             )
-            genes_list = df.loc[df.union == True].index
-        genes_list = regions2genes(token, genes_list)
-        BASES = get_enrichr_bases()
-        bases = widgets.SelectMultiple(options=BASES, description="Genesets:", rows=10)
-        col_2 = widgets.ColorPicker(
-            concise=False, description="Top color", value="blue"
-        )
-        col_1 = widgets.ColorPicker(
-            concise=False, description="Bottom color", value="red"
-        )
-        plot_type = widgets.Dropdown(
-            options=["Circle", "Bar"], value="Circle", description="Plot type:"
-        )
-        size = widgets.Dropdown(
-            options=[5, 10, 20, 50, 100, 200, "max"], value=5, description="Size:"
-        )
-        description = widgets.Text(
-            value="My gene list", placeholder="Description", description="Description:"
-        )
-        button_enrichr = widgets.Button(description="Plot!")
-
-        display(
-            widgets.VBox(
-                [description, bases, plot_type, size, col_2, col_1, button_enrichr]
+            treatment, control = conditions_widget.value.split("_vs_")
+            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            if selection_widgets.value == "Intersection":
+                df = pd.DataFrame(
+                    occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
+                    columns=["intersection"],
+                )
+                genes_list = df.loc[df.intersection == True].index
+            else:
+                df = pd.DataFrame(
+                    occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
+                )
+                genes_list = df.loc[df.union == True].index
+            genes_list = regions2genes(token, genes_list)
+            BASES = get_enrichr_bases()
+            bases = widgets.SelectMultiple(options=BASES, description="Genesets:", rows=10)
+            col_2 = widgets.ColorPicker(
+                concise=False, description="Top color", value="blue"
             )
-        )
-
-        # output_enrichr = widgets.Output()
-
-        # display(output_enrichr)
-
-        button_enrichr.on_click(
-            partial(
-                show_enrichr_plots,
-                genes=genes_list,
-                bases=bases,
-                size=size,
-                plot_type=plot_type,
-                col_2=col_2,
-                col_1=col_1,
-                description=description,
-                # output=output_enrichr,
+            col_1 = widgets.ColorPicker(
+                concise=False, description="Bottom color", value="red"
             )
-        )
+            plot_type = widgets.Dropdown(
+                options=["Circle", "Bar"], value="Circle", description="Plot type:"
+            )
+            size = widgets.Dropdown(
+                options=[5, 10, 20, 50, 100, 200, "max"], value=5, description="Size:"
+            )
+            description = widgets.Text(
+                value="My gene list", placeholder="Description", description="Description:"
+            )
+            button_enrichr = widgets.Button(description="Plot!")
+
+            display(
+                widgets.VBox(
+                    [description, bases, plot_type, size, col_2, col_1, button_enrichr]
+                )
+            )
+
+            # output_enrichr = widgets.Output()
+
+            # display(output_enrichr)
+
+            button_enrichr.on_click(
+                partial(
+                    show_enrichr_plots,
+                    genes=genes_list,
+                    bases=bases,
+                    size=size,
+                    plot_type=plot_type,
+                    col_2=col_2,
+                    col_1=col_1,
+                    description=description,
+                    # output=output_enrichr,
+                )
+            )
 
     def depmap_button_clicked(b):
-        display(
-            HTML(
-                """<p style="color:white;font-weight: bold;background-color: #A52A2A;padding: 0.5em;">DepMap vizualisation module</p>"""
+        if len(tools_widget.value) == 0:
+            display_warning("Please select at least one tool above.")
+        else:
+            display(
+                HTML(
+                    """<p style="color:white;font-weight: bold;background-color: #A52A2A;padding: 0.5em;">DepMap vizualisation module</p>"""
+                )
             )
-        )
-        data_types_widget = widgets.RadioButtons(
-            options=["crispr", "proteomic", "rnai", "tpm", "mutations"],
-            value="crispr",
-            description="Choose a data type:",
-            disabled=False,
-        )
+            data_types_widget = widgets.RadioButtons(
+                options=["crispr", "proteomic", "rnai", "tpm", "mutations"],
+                value="crispr",
+                description="Choose a data type:",
+                disabled=False,
+            )
 
-        def download_depmap_file(data_type, release):
-            """Determine if the file is already downloaded or not."""
-            target_file = f"resources/depmap/{release}_{data_type}.txt"
-            for file_name in listdir("resources/depmap/"):
-                if ("metadata" in file_name) and (not release in file_name):
-                    os.remove(file_name)
-                if file_name == target_file:
-                    return False
-                elif data_type in file_name:
-                    if not release in str(file_name):
+            def download_depmap_file(data_type, release):
+                """Determine if the file is already downloaded or not."""
+                target_file = f"resources/depmap/{release}_{data_type}.txt"
+                for file_name in listdir("resources/depmap/"):
+                    if ("metadata" in file_name) and (not release in file_name):
                         os.remove(file_name)
-                        return True
-                    else:
+                    if file_name == target_file:
                         return False
-            return True
+                    elif data_type in file_name:
+                        if not release in str(file_name):
+                            os.remove(file_name)
+                            return True
+                        else:
+                            return False
+                return True
 
-        def get_release():
-            """Get the release of the depmap data."""
-            depmap_release = depmap.depmap_release()
-            return str(depmap_release).rstrip()[5:-1]
+            def get_release():
+                """Get the release of the depmap data."""
+                depmap_release = depmap.depmap_release()
+                return str(depmap_release).rstrip()[5:-1]
 
-        def depmap_query_button_clicked(b):
-            """Query the depmap data."""
-            # Get the release of the depmap data
-            depmap_release = get_release()
-            # Set the path to save the file
-            save_path = (
-                f"resources/depmap/{depmap_release}_{data_types_widget.value}.txt"
-            )
-            # Create the directory if it does not exist
-            Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
-            # Get the treatment and control conditions
-            treatment, control = conditions_widget.value.split("_vs_")
-            # Get the ranking
-            ranks, occurences = ranking(
-                treatment, control, token, tools_available, params
-            )
-            if download_depmap_file(data_types_widget.value, depmap_release):
-                # print("This step can take some time.")
-                display_info("This step can take some time.")
-                # print("Querying: %s..." % data_types_widget.value)
-                display_info(f"Querying: {data_types_widget.value}...", bold=False)
-                eh = experimentHub.ExperimentHub()
-                base_package = importr("base")
-                dplyr = importr("dplyr")
-                tidyr = importr("tidyr")
-                readr = importr("readr")
-                if data_types_widget.value == "rnai":
-                    depmap_data = tidyr.drop_na(
-                        dplyr.select(
-                            depmap.depmap_rnai(), "depmap_id", "gene_name", "dependency"
+            def depmap_query_button_clicked(b):
+                """Query the depmap data."""
+                # Get the release of the depmap data
+                depmap_release = get_release()
+                # Set the path to save the file
+                save_path = (
+                    f"resources/depmap/{depmap_release}_{data_types_widget.value}.txt"
+                )
+                # Create the directory if it does not exist
+                Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
+                # Get the treatment and control conditions
+                treatment, control = conditions_widget.value.split("_vs_")
+                # Get the ranking
+                ranks, occurences = ranking(
+                    treatment, control, token, tools_available, params
+                )
+                if download_depmap_file(data_types_widget.value, depmap_release):
+                    # print("This step can take some time.")
+                    display_info("This step can take some time.")
+                    # print("Querying: %s..." % data_types_widget.value)
+                    display_info(f"Querying: {data_types_widget.value}...", bold=False)
+                    eh = experimentHub.ExperimentHub()
+                    base_package = importr("base")
+                    dplyr = importr("dplyr")
+                    tidyr = importr("tidyr")
+                    readr = importr("readr")
+                    if data_types_widget.value == "rnai":
+                        depmap_data = tidyr.drop_na(
+                            dplyr.select(
+                                depmap.depmap_rnai(), "depmap_id", "gene_name", "dependency"
+                            )
                         )
-                    )
-                elif data_types_widget.value == "crispr":
-                    depmap_data = tidyr.drop_na(
-                        dplyr.select(
-                            depmap.depmap_crispr(),
+                    elif data_types_widget.value == "crispr":
+                        depmap_data = tidyr.drop_na(
+                            dplyr.select(
+                                depmap.depmap_crispr(),
+                                "depmap_id",
+                                "gene_name",
+                                "dependency",
+                            )
+                        )
+                    elif data_types_widget.value == "proteomic":
+                        depmap_data = tidyr.drop_na(
+                            dplyr.select(
+                                depmap.depmap_proteomic(),
+                                "depmap_id",
+                                "gene_name",
+                                "protein_expression",
+                            )
+                        )
+                    elif data_types_widget.value == "tpm":
+                        depmap_data = tidyr.drop_na(
+                            dplyr.select(
+                                depmap.depmap_TPM(),
+                                "depmap_id",
+                                "gene_name",
+                                "rna_expression",
+                            )
+                        )
+                    elif data_types_widget.value == "mutations":
+                        depmap_data = tidyr.drop_na(
+                            dplyr.select(
+                                depmap.depmap_mutationCalls(),
+                                "depmap_id",
+                                "gene_name",
+                                "protein_change",
+                                "is_deleterious",
+                            )
+                        )
+                    if not os.path.isfile(
+                        f"resources/depmap/{depmap_release}_metadata.txt"
+                    ):
+                        depmap_metadata = dplyr.select(
+                            depmap.depmap_metadata(),
                             "depmap_id",
-                            "gene_name",
-                            "dependency",
+                            "sample_collection_site",
+                            "primary_or_metastasis",
+                            "primary_disease",
+                            "subtype_disease",
+                            "cell_line",
+                            "cell_line_name",
                         )
-                    )
-                elif data_types_widget.value == "proteomic":
-                    depmap_data = tidyr.drop_na(
-                        dplyr.select(
-                            depmap.depmap_proteomic(),
-                            "depmap_id",
-                            "gene_name",
-                            "protein_expression",
+                        print("Saving metadata...")
+                        utils.write_table(
+                            depmap_metadata,
+                            "resources/depmap/{depmap_release}_metadata.txt",
+                            row_names=False,
+                            quote=False,
+                            sep="\t",
                         )
-                    )
-                elif data_types_widget.value == "tpm":
-                    depmap_data = tidyr.drop_na(
-                        dplyr.select(
-                            depmap.depmap_TPM(),
-                            "depmap_id",
-                            "gene_name",
-                            "rna_expression",
+                    else:
+                        print("Import metadata...")
+                        depmap_metadata = readr.read_delim(
+                            f"resources/depmap/{depmap_release}_metadata.txt", delim="\t"
                         )
+                    depmap_data = base_package.merge(
+                        depmap_data, depmap_metadata, by="depmap_id"
                     )
-                elif data_types_widget.value == "mutations":
-                    depmap_data = tidyr.drop_na(
-                        dplyr.select(
-                            depmap.depmap_mutationCalls(),
-                            "depmap_id",
-                            "gene_name",
-                            "protein_change",
-                            "is_deleterious",
-                        )
-                    )
-                if not os.path.isfile(
-                    f"resources/depmap/{depmap_release}_metadata.txt"
-                ):
-                    depmap_metadata = dplyr.select(
-                        depmap.depmap_metadata(),
-                        "depmap_id",
-                        "sample_collection_site",
-                        "primary_or_metastasis",
-                        "primary_disease",
-                        "subtype_disease",
-                        "cell_line",
-                        "cell_line_name",
-                    )
-                    print("Saving metadata...")
+                    print(f"Saving {save_path}")
                     utils.write_table(
-                        depmap_metadata,
-                        "resources/depmap/{depmap_release}_metadata.txt",
-                        row_names=False,
-                        quote=False,
-                        sep="\t",
+                        depmap_data, save_path, row_names=False, quote=False, sep="\t"
                     )
-                else:
-                    print("Import metadata...")
-                    depmap_metadata = readr.read_delim(
-                        f"resources/depmap/{depmap_release}_metadata.txt", delim="\t"
-                    )
-                depmap_data = base_package.merge(
-                    depmap_data, depmap_metadata, by="depmap_id"
-                )
-                print(f"Saving {save_path}")
-                utils.write_table(
-                    depmap_data, save_path, row_names=False, quote=False, sep="\t"
-                )
-            print(f"Opening {save_path}")
-            data = pd.read_table(save_path, sep="\t")
+                print(f"Opening {save_path}")
+                data = pd.read_table(save_path, sep="\t")
 
-            tissues_init = list(set(data.cell_line))
-            tissues = [
-                "_".join(str(tissu).split("_")[1:])
-                for tissu in tissues_init
-                if str(tissu) not in ["nan", ""]
-            ]
-            tissues = list(set(tissues))
-            tissues.insert(0, "All")
+                tissues_init = list(set(data.cell_line))
+                tissues = [
+                    "_".join(str(tissu).split("_")[1:])
+                    for tissu in tissues_init
+                    if str(tissu) not in ["nan", ""]
+                ]
+                tissues = list(set(tissues))
+                tissues.insert(0, "All")
 
-            primary_diseases = list(set(data.primary_disease))
-            primary_diseases.insert(0, "All")
-
-            cell_lines_init = list(set(data.cell_line_name))
-            cell_lines = [
-                tissu for tissu in cell_lines_init if str(tissu) not in ["nan", ""]
-            ]
-            cell_lines = natural_sort(cell_lines)
-            cell_lines.insert(0, "All")
-
-            tissues_widget = widgets.SelectMultiple(
-                options=tissues, value=["All"], description="Tissu:"
-            )
-            primary_diseases_widget = widgets.SelectMultiple(
-                options=primary_diseases, value=["All"], description="Primary tissu:"
-            )
-            cell_lines_widget = widgets.SelectMultiple(
-                options=cell_lines, value=["All"], description="Cell line:"
-            )
-
-            def update_primary_diseases_widget(update):
-                if not "All" in tissues_widget.value:
-                    subseted_data = data[
-                        data["cell_line"].str.contains(
-                            "|".join(tissues_widget.value), na=False
-                        )
-                    ]
-                else:
-                    subseted_data = data
-                primary_diseases = list(set(subseted_data.primary_disease))
-                primary_diseases = natural_sort(primary_diseases)
+                primary_diseases = list(set(data.primary_disease))
                 primary_diseases.insert(0, "All")
-                primary_diseases_widget.options = primary_diseases
-                primary_diseases_widget.value = ["All"]
 
-            def update_cell_lines_widget(update):
-                if not "All" in primary_diseases_widget.value:
-                    subseted_data = data[
-                        data["primary_disease"].str.contains(
-                            "|".join(primary_diseases_widget.value), na=False
-                        )
-                    ]
-                else:
+                cell_lines_init = list(set(data.cell_line_name))
+                cell_lines = [
+                    tissu for tissu in cell_lines_init if str(tissu) not in ["nan", ""]
+                ]
+                cell_lines = natural_sort(cell_lines)
+                cell_lines.insert(0, "All")
+
+                tissues_widget = widgets.SelectMultiple(
+                    options=tissues, value=["All"], description="Tissu:"
+                )
+                primary_diseases_widget = widgets.SelectMultiple(
+                    options=primary_diseases, value=["All"], description="Primary tissu:"
+                )
+                cell_lines_widget = widgets.SelectMultiple(
+                    options=cell_lines, value=["All"], description="Cell line:"
+                )
+
+                def update_primary_diseases_widget(update):
                     if not "All" in tissues_widget.value:
                         subseted_data = data[
                             data["cell_line"].str.contains(
@@ -4413,124 +4428,146 @@ def multiple_tools_results(tools_available, token):
                         ]
                     else:
                         subseted_data = data
-                cell_lines_init = list(set(subseted_data.cell_line_name))
-                cell_lines = [
-                    cell_line
-                    for cell_line in cell_lines_init
-                    if not str(cell_line) in ["nan"]
-                ]
-                cell_lines = natural_sort(cell_lines)
-                cell_lines.insert(0, "All")
-                cell_lines_widget.options = cell_lines
-                cell_lines_widget.value = ["All"]
+                    primary_diseases = list(set(subseted_data.primary_disease))
+                    primary_diseases = natural_sort(primary_diseases)
+                    primary_diseases.insert(0, "All")
+                    primary_diseases_widget.options = primary_diseases
+                    primary_diseases_widget.value = ["All"]
 
-            tissues_widget.observe(update_primary_diseases_widget, "value")
-            primary_diseases_widget.observe(update_cell_lines_widget, "value")
-
-            def tissu_selection_button_clicked(b):
-                print("Please wait!")
-                dic = {
-                    "rnai": "dependency",
-                    "crispr": "dependency",
-                    "tpm": "rna_expression",
-                    "proteomic": "protein_expression",
-                    "mutations": ["protein_change", "is_deleterious"],
-                }
-                variable = dic[data_types_widget.value]
-                save_path = "resources/depmap/%s_%s.txt" % (
-                    depmap_release,
-                    data_types_widget.value,
-                )
-                table = pd.read_table(save_path, sep="\t")
-                if "All" in cell_lines_widget.value:
-                    cell_lines_selected = cell_lines_widget.options
-                else:
-                    cell_lines_selected = cell_lines_widget.value
-                boolean_series = table.cell_line_name.isin(cell_lines_selected)
-                table = table[boolean_series]
-                if selection_widgets.value == "Intersection":
-                    df = pd.DataFrame(
-                        occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
-                        columns=["intersection"],
-                    )
-                    genes_list = df.loc[df.intersection == True].index
-                else:
-                    df = pd.DataFrame(
-                        occurences.eq(occurences.iloc[:, 0], axis=0).any(1),
-                        columns=["union"],
-                    )
-                    genes_list = df.loc[df.union == True].index
-                genes_list = regions2genes(token, genes_list)
-                if data_types_widget.value == "mutations":
-                    columns = [
-                        "gene_name",
-                        "cell_line",
-                        "cell_line_name",
-                        "sample_collection_site",
-                        "primary_or_metastasis",
-                        "primary_disease",
-                        "subtype_disease",
-                    ]
-                    for value in variable:
-                        columns.append(value)
-                    essential_genes = table[table.gene_name.isin(genes_list)][columns]
-                    essential_genes = essential_genes.loc[
-                        essential_genes.is_deleterious == True
-                    ]
-                    essential_genes = (
-                        essential_genes.groupby(
-                            [
-                                "gene_name",
-                                "cell_line",
-                                "cell_line_name",
-                                "sample_collection_site",
-                                "primary_or_metastasis",
-                                "primary_disease",
-                                "subtype_disease",
+                def update_cell_lines_widget(update):
+                    if not "All" in primary_diseases_widget.value:
+                        subseted_data = data[
+                            data["primary_disease"].str.contains(
+                                "|".join(primary_diseases_widget.value), na=False
+                            )
+                        ]
+                    else:
+                        if not "All" in tissues_widget.value:
+                            subseted_data = data[
+                                data["cell_line"].str.contains(
+                                    "|".join(tissues_widget.value), na=False
+                                )
                             ]
-                        )["protein_change"]
-                        .apply(lambda x: "%s" % "|".join(map(str, x)))
-                        .reset_index()
-                    )
-                    chart = (
-                        alt.Chart(essential_genes, title="DepMap Deleterious Mutations")
-                        .mark_rect()
-                        .encode(
-                            x=alt.X("cell_line_name", axis=alt.Axis(title="Cell line")),
-                            y=alt.Y("gene_name", axis=alt.Axis(title="Gene name")),
-                            color=alt.Color(
-                                "primary_disease",
-                                scale=alt.Scale(scheme="tableau20"),
-                                legend=alt.Legend(title="Primary disease"),
-                            ),
-                            tooltip=[
-                                "protein_change",
-                                "gene_name",
-                                "cell_line",
-                                "cell_line_name",
-                                "sample_collection_site",
-                                "primary_or_metastasis",
-                                "primary_disease",
-                                "subtype_disease",
-                            ],
-                        )
-                        .interactive()
-                    )
-                    show_parameters(params)
-                    display(chart)
-                else:
-                    essential_genes = table[table.gene_name.isin(genes_list)][
-                        ["gene_name", "cell_line_name", variable]
+                        else:
+                            subseted_data = data
+                    cell_lines_init = list(set(subseted_data.cell_line_name))
+                    cell_lines = [
+                        cell_line
+                        for cell_line in cell_lines_init
+                        if not str(cell_line) in ["nan"]
                     ]
-                    plot_interactive_heatmap(essential_genes, variable)
+                    cell_lines = natural_sort(cell_lines)
+                    cell_lines.insert(0, "All")
+                    cell_lines_widget.options = cell_lines
+                    cell_lines_widget.value = ["All"]
 
-            button = widgets.Button(description="Run!")
-            button.on_click(tissu_selection_button_clicked)
-            display(tissues_widget, primary_diseases_widget, cell_lines_widget, button)
+                tissues_widget.observe(update_primary_diseases_widget, "value")
+                primary_diseases_widget.observe(update_cell_lines_widget, "value")
 
-        depmap_query_button = widgets.Button(description="Query!")
-        depmap_query_button.on_click(depmap_query_button_clicked)
-        display(data_types_widget, depmap_query_button)
+                def tissu_selection_button_clicked(b):
+                    print("Please wait!")
+                    dic = {
+                        "rnai": "dependency",
+                        "crispr": "dependency",
+                        "tpm": "rna_expression",
+                        "proteomic": "protein_expression",
+                        "mutations": ["protein_change", "is_deleterious"],
+                    }
+                    variable = dic[data_types_widget.value]
+                    save_path = "resources/depmap/%s_%s.txt" % (
+                        depmap_release,
+                        data_types_widget.value,
+                    )
+                    table = pd.read_table(save_path, sep="\t")
+                    if "All" in cell_lines_widget.value:
+                        cell_lines_selected = cell_lines_widget.options
+                    else:
+                        cell_lines_selected = cell_lines_widget.value
+                    boolean_series = table.cell_line_name.isin(cell_lines_selected)
+                    table = table[boolean_series]
+                    if selection_widgets.value == "Intersection":
+                        df = pd.DataFrame(
+                            occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
+                            columns=["intersection"],
+                        )
+                        genes_list = df.loc[df.intersection == True].index
+                    else:
+                        df = pd.DataFrame(
+                            occurences.eq(occurences.iloc[:, 0], axis=0).any(1),
+                            columns=["union"],
+                        )
+                        genes_list = df.loc[df.union == True].index
+                    genes_list = regions2genes(token, genes_list)
+                    if data_types_widget.value == "mutations":
+                        columns = [
+                            "gene_name",
+                            "cell_line",
+                            "cell_line_name",
+                            "sample_collection_site",
+                            "primary_or_metastasis",
+                            "primary_disease",
+                            "subtype_disease",
+                        ]
+                        for value in variable:
+                            columns.append(value)
+                        essential_genes = table[table.gene_name.isin(genes_list)][columns]
+                        essential_genes = essential_genes.loc[
+                            essential_genes.is_deleterious == True
+                        ]
+                        essential_genes = (
+                            essential_genes.groupby(
+                                [
+                                    "gene_name",
+                                    "cell_line",
+                                    "cell_line_name",
+                                    "sample_collection_site",
+                                    "primary_or_metastasis",
+                                    "primary_disease",
+                                    "subtype_disease",
+                                ]
+                            )["protein_change"]
+                            .apply(lambda x: "%s" % "|".join(map(str, x)))
+                            .reset_index()
+                        )
+                        chart = (
+                            alt.Chart(essential_genes, title="DepMap Deleterious Mutations")
+                            .mark_rect()
+                            .encode(
+                                x=alt.X("cell_line_name", axis=alt.Axis(title="Cell line")),
+                                y=alt.Y("gene_name", axis=alt.Axis(title="Gene name")),
+                                color=alt.Color(
+                                    "primary_disease",
+                                    scale=alt.Scale(scheme="tableau20"),
+                                    legend=alt.Legend(title="Primary disease"),
+                                ),
+                                tooltip=[
+                                    "protein_change",
+                                    "gene_name",
+                                    "cell_line",
+                                    "cell_line_name",
+                                    "sample_collection_site",
+                                    "primary_or_metastasis",
+                                    "primary_disease",
+                                    "subtype_disease",
+                                ],
+                            )
+                            .interactive()
+                        )
+                        show_parameters(params)
+                        display(chart)
+                    else:
+                        essential_genes = table[table.gene_name.isin(genes_list)][
+                            ["gene_name", "cell_line_name", variable]
+                        ]
+                        plot_interactive_heatmap(essential_genes, variable)
+
+                button = widgets.Button(description="Run!")
+                button.on_click(tissu_selection_button_clicked)
+                display(tissues_widget, primary_diseases_widget, cell_lines_widget, button)
+
+            depmap_query_button = widgets.Button(description="Query!")
+            depmap_query_button.on_click(depmap_query_button_clicked)
+            display(data_types_widget, depmap_query_button)
 
     venn_button.on_click(venn_button_clicked)
     rra_button.on_click(rra_button_clicked)
@@ -4539,25 +4576,28 @@ def multiple_tools_results(tools_available, token):
     depmap_button.on_click(depmap_button_clicked)
 
     def ranking_button_clicked(event):
-        display(
-            HTML(
-                """<p style="color:white;font-weight: bold;background-color: #03fc3d;padding: 0.5em;">Save ranking and occurences</p>"""
+        if len(tools_widget.value) == 0:
+            display_warning("Please select at least one tool above.")
+        else:
+            display(
+                HTML(
+                    """<p style="color:white;font-weight: bold;background-color: #03fc3d;padding: 0.5em;">Save ranking and occurences</p>"""
+                )
             )
-        )
-        show_parameters(params)
-        treatment, control = conditions_widget.value.split("_vs_")
-        ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        download_name = widgets.Text(value="analysis", description="Name:")
-        download_file(
-            content=ranks.to_string(),
-            filename="ranking.txt",
-            label="Download ranking!",
-        )
-        download_file(
-            content=occurences.to_string(),
-            filename="occurences.txt",
-            label="Download occurences!",
-        )
+            show_parameters(params)
+            treatment, control = conditions_widget.value.split("_vs_")
+            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            download_name = widgets.Text(value="analysis", description="Name:")
+            download_file(
+                content=ranks.to_string(),
+                filename="ranking.txt",
+                label="Download ranking!",
+            )
+            download_file(
+                content=occurences.to_string(),
+                filename="occurences.txt",
+                label="Download occurences!",
+            )
 
     ranking_button.on_click(ranking_button_clicked)
 
@@ -4657,7 +4697,7 @@ def condition_comparison(results_directory, tools_available, token):
         comparison_2_widget = widgets.Dropdown(
             options=comparisons_options,
             description="Comparison 2:",
-            value=comparisons_options[1],
+            value=comparisons_options[0],
             layout=widgets.Layout(width="30%"),
             style={"description_width": "100px"},
         )
@@ -4726,10 +4766,6 @@ def condition_comparison(results_directory, tools_available, token):
     # Create a button to plot the data
     plot_button = widgets.Button(description="Plot")
     display(plot_button)
-
-    # Create an output widget to display the results
-    # output = widgets.Output()
-    # display(output)
 
     # On button click, plot the data
     @plot_button.on_click
@@ -5034,6 +5070,8 @@ def condition_comparison(results_directory, tools_available, token):
             "Others": "grey",
         }
 
+        # display(combined_data)
+
         # Plot the data
         plot_comparison(combined_data, column_1, column_2, elements_column, color_dict)
 
@@ -5049,9 +5087,23 @@ def condition_comparison(results_directory, tools_available, token):
 
         display(enrichr_bases_widget)
 
-        # Retrieve genes from each 'color' category and create a text area for each category
-        for category in color_dict:
-            genes = combined_data[combined_data["color"] == category][elements_column]
+
+        label_to_column = {
+            label_1: "highlight_1",
+            label_2: "highlight_2",
+        }
+
+        # # Retrieve genes from each 'color' category and create a text area for each category
+        # for category in color_dict:
+        #     if category not in ["Selection", "Others"]:
+        #     genes = combined_data[combined_data["color"] == category][elements_column]
+
+
+        for category in [label_1, label_2, "Intersection"]:
+            if category == "Intersection":
+                genes = combined_data[(combined_data["highlight_1"]) & (combined_data["highlight_2"])][elements_column]
+            elif category in [label_1, label_2]:
+                genes = combined_data[combined_data[label_to_column[category]]][elements_column]        
             textarea = widgets.Textarea(
                 value="\n".join(genes),
                 description=f"{category} genes:",
@@ -5071,9 +5123,10 @@ def condition_comparison(results_directory, tools_available, token):
             def enrichr_button_clicked(b):
                 """Run enrichr on the genes."""
                 category = b.description[15:]
-                genes = combined_data[combined_data["color"] == category][
-                    elements_column
-                ]
+                if category == "Intersection":
+                    genes = combined_data[(combined_data["highlight_1"]) & (combined_data["highlight_2"])][elements_column]
+                elif category in [label_1, label_2]:
+                    genes = combined_data[combined_data[label_to_column[category]]][elements_column]
                 if len(genes) == 0:
                     display_warning(f"No genes in the category {category}.")
                     # print(f"No genes in the category {category}.")
