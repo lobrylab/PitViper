@@ -158,7 +158,7 @@ else
     # Check if the OS is macOS
     if [[ "$(uname)" == "Darwin" ]]; then
     echo "Installing admisc R package on macOS"
-    Rscript -e 'install.packages("admisc", repos="https://cloud.r-project.org)'
+    Rscript -e 'install.packages("admisc", repos="https://cloud.r-project.org")'
     fi
 
     # Freeze the conda environment to a YAML file
