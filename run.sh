@@ -154,6 +154,13 @@ else
         git clone https://github.com/lobrylab/bagel.git "$bagel_dir"
     fi
 
+    # Re-install admisc R package on Mac OS
+    # Check if the OS is macOS
+    if [[ "$(uname)" == "Darwin" ]]; then
+    echo "Installing admisc R package on macOS"
+    Rscript -e 'install.packages("admisc", repos="https://cloud.r-project.org)'
+    fi
+
     # Freeze the conda environment to a YAML file
     conda env export > PitViper/environment_freeze.yaml
 fi
