@@ -275,19 +275,35 @@ def import_results(token: str):
 
     if content["mageck_mle_activate"] == "True":
         tools.append("MAGeCK_MLE")
+        print("\nPlease cite the following article if you use MAGeCK MLE:")
+        print(
+            "Li, W., Köster, J., Xu, H. et al. Quality control, modeling, and visualization of CRISPR screens with MAGeCK-VISPR. Genome Biol 16, 281 (2015). https://doi.org/10.1186/s13059-015-0843-6"
+        )
     if content["mageck_rra_activate"] == "True":
         tools.append("MAGeCK_RRA")
+        print("\nPlease cite the following article if you use MAGeCK RRA:")
+        print(
+            "Li, W., Xu, H., Xiao, T. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biol 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
+        )
     if content["bagel_activate"] == "True":
         tools.append("BAGEL2")
+        print("\nPlease cite the following article if you use BAGEL2:")
+        print(
+            "Li, W., Xu, H., Xiao, T. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biol 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
+        )
     if content["crisphiermix_activate"] == "True":
         tools.append("CRISPhieRmix")
+        print("\nPlease cite the following article if you use CRISPhieRmix:")
+        print(
+            "Daley, T., Lin, Z., Lin, X. et al. CRISPhieRmix: a hierarchical mixture model for CRISPR pooled screens. Genome Biol 19, 159 (2018). https://doi.org/10.1186/s13059-018-1538-6"
+        )
     if content["directional_scoring_method_activate"] == "True":
         tools.append("directional_scoring_method")
     if content["ssrea_activate"] == "True":
         tools.append("SSREA")
 
     results_directory = "results/%s/" % token
-    print("Results directory: %s \n" % results_directory)
+    print("\nResults directory: %s \n" % results_directory)
 
     tools_available = {}
     print("Tools available:")
@@ -504,7 +520,7 @@ def show_read_count_distribution(token: str, width=800, height=400):
     """
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
-    
+
     # Load the design file
     design = pd.read_csv(content["tsv_file"], sep="\t")
 
@@ -518,10 +534,8 @@ def show_read_count_distribution(token: str, width=800, height=400):
         # print("No count file to show.")
         return 0
     table = pd.read_csv(norm_file, sep="\t")
-    
+
     table = table[[col for col in d]]
-    
-    display(table.head())
 
     table += 1
     table = table.apply(np.log2)
@@ -575,7 +589,7 @@ def pca_counts(token: str):
     # Load the normalized count table
     cts_file = content["normalized_count_table"]
     cts = pd.read_csv(cts_file, sep="\t")
-    
+
     # Filter columns to keep only replicates found in the design file
     cts = cts[[col for col in d]]
 
@@ -583,10 +597,10 @@ def pca_counts(token: str):
     y = np.array([d[k] for k in cts.columns if k in d])
     # Create a numpy array of replicate names
     y_bis = np.array(cts.columns)
-    
+
     # Transpose the count table
-    X = cts.to_numpy().T    
-    
+    X = cts.to_numpy().T
+
     # Perform PCA
     pca = decomposition.PCA(n_components=2)
     pca.fit(X)
@@ -1607,8 +1621,8 @@ def tool_results(results_directory, tools_available, token):
         )
 
         # Define the significant and non-significant labels
-        significant_label = f"FDR < {fdr_cutoff} and score {get_pretty_orientation(directional_scoring_method_score_orientation)} {directional_scoring_method_score}"
-        non_significant_label = f"FDR ≥ {fdr_cutoff} or score {get_pretty_orientation(get_reverse_orientation(directional_scoring_method_score_orientation))} {directional_scoring_method_score}"
+        significant_label = f"score {get_pretty_orientation(directional_scoring_method_score_orientation)} {directional_scoring_method_score}"
+        non_significant_label = f"score {get_pretty_orientation(get_reverse_orientation(directional_scoring_method_score_orientation))} {directional_scoring_method_score}"
 
         # Define the highlight label
         highlight_label = "Hit(s) of Interest"
@@ -4054,6 +4068,7 @@ def multiple_tools_results(tools_available, token):
             )
 
             show_parameters(params)
+            display(occurences.sum(axis=0))
             plot_venn(occurences)
             # If more than one tool is selected, display the upset plot
             if len(tools_widget.value) > 1:
@@ -4107,9 +4122,11 @@ def multiple_tools_results(tools_available, token):
         if len(tools_widget.value) == 0:
             display_warning("Please select at least one tool above.")
         else:
-            
+
             treatment, control = conditions_widget.value.split("_vs_")
-            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            ranks, occurences = ranking(
+                treatment, control, token, tools_available, params
+            )
             display(
                 HTML(
                     """<p style="color:white;font-weight: bold;background-color: green;padding: 0.5em;">RRA results</p>"""
@@ -4123,7 +4140,9 @@ def multiple_tools_results(tools_available, token):
             display_warning("Please select at least one tool above.")
         else:
             treatment, control = conditions_widget.value.split("_vs_")
-            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            ranks, occurences = ranking(
+                treatment, control, token, tools_available, params
+            )
             if selection_widgets.value == "Intersection":
                 df = pd.DataFrame(
                     occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
@@ -4132,7 +4151,8 @@ def multiple_tools_results(tools_available, token):
                 genes_list = df.loc[df.intersection == True].index
             else:
                 df = pd.DataFrame(
-                    occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
+                    occurences.eq(occurences.iloc[:, 0], axis=0).any(1),
+                    columns=["union"],
                 )
                 genes_list = df.loc[df.union == True].index
             genes_list = regions2genes(token, genes_list)
@@ -4192,7 +4212,9 @@ def multiple_tools_results(tools_available, token):
                 )
             )
             treatment, control = conditions_widget.value.split("_vs_")
-            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            ranks, occurences = ranking(
+                treatment, control, token, tools_available, params
+            )
             if selection_widgets.value == "Intersection":
                 df = pd.DataFrame(
                     occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
@@ -4201,12 +4223,15 @@ def multiple_tools_results(tools_available, token):
                 genes_list = df.loc[df.intersection == True].index
             else:
                 df = pd.DataFrame(
-                    occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
+                    occurences.eq(occurences.iloc[:, 0], axis=0).any(1),
+                    columns=["union"],
                 )
                 genes_list = df.loc[df.union == True].index
             genes_list = regions2genes(token, genes_list)
             BASES = get_enrichr_bases()
-            bases = widgets.SelectMultiple(options=BASES, description="Genesets:", rows=10)
+            bases = widgets.SelectMultiple(
+                options=BASES, description="Genesets:", rows=10
+            )
             col_2 = widgets.ColorPicker(
                 concise=False, description="Top color", value="blue"
             )
@@ -4220,7 +4245,9 @@ def multiple_tools_results(tools_available, token):
                 options=[5, 10, 20, 50, 100, 200, "max"], value=5, description="Size:"
             )
             description = widgets.Text(
-                value="My gene list", placeholder="Description", description="Description:"
+                value="My gene list",
+                placeholder="Description",
+                description="Description:",
             )
             button_enrichr = widgets.Button(description="Plot!")
 
@@ -4314,7 +4341,10 @@ def multiple_tools_results(tools_available, token):
                     if data_types_widget.value == "rnai":
                         depmap_data = tidyr.drop_na(
                             dplyr.select(
-                                depmap.depmap_rnai(), "depmap_id", "gene_name", "dependency"
+                                depmap.depmap_rnai(),
+                                "depmap_id",
+                                "gene_name",
+                                "dependency",
                             )
                         )
                     elif data_types_widget.value == "crispr":
@@ -4378,7 +4408,8 @@ def multiple_tools_results(tools_available, token):
                     else:
                         print("Import metadata...")
                         depmap_metadata = readr.read_delim(
-                            f"resources/depmap/{depmap_release}_metadata.txt", delim="\t"
+                            f"resources/depmap/{depmap_release}_metadata.txt",
+                            delim="\t",
                         )
                     depmap_data = base_package.merge(
                         depmap_data, depmap_metadata, by="depmap_id"
@@ -4413,7 +4444,9 @@ def multiple_tools_results(tools_available, token):
                     options=tissues, value=["All"], description="Tissu:"
                 )
                 primary_diseases_widget = widgets.SelectMultiple(
-                    options=primary_diseases, value=["All"], description="Primary tissu:"
+                    options=primary_diseases,
+                    value=["All"],
+                    description="Primary tissu:",
                 )
                 cell_lines_widget = widgets.SelectMultiple(
                     options=cell_lines, value=["All"], description="Cell line:"
@@ -4510,7 +4543,9 @@ def multiple_tools_results(tools_available, token):
                         ]
                         for value in variable:
                             columns.append(value)
-                        essential_genes = table[table.gene_name.isin(genes_list)][columns]
+                        essential_genes = table[table.gene_name.isin(genes_list)][
+                            columns
+                        ]
                         essential_genes = essential_genes.loc[
                             essential_genes.is_deleterious == True
                         ]
@@ -4530,10 +4565,14 @@ def multiple_tools_results(tools_available, token):
                             .reset_index()
                         )
                         chart = (
-                            alt.Chart(essential_genes, title="DepMap Deleterious Mutations")
+                            alt.Chart(
+                                essential_genes, title="DepMap Deleterious Mutations"
+                            )
                             .mark_rect()
                             .encode(
-                                x=alt.X("cell_line_name", axis=alt.Axis(title="Cell line")),
+                                x=alt.X(
+                                    "cell_line_name", axis=alt.Axis(title="Cell line")
+                                ),
                                 y=alt.Y("gene_name", axis=alt.Axis(title="Gene name")),
                                 color=alt.Color(
                                     "primary_disease",
@@ -4563,7 +4602,9 @@ def multiple_tools_results(tools_available, token):
 
                 button = widgets.Button(description="Run!")
                 button.on_click(tissu_selection_button_clicked)
-                display(tissues_widget, primary_diseases_widget, cell_lines_widget, button)
+                display(
+                    tissues_widget, primary_diseases_widget, cell_lines_widget, button
+                )
 
             depmap_query_button = widgets.Button(description="Query!")
             depmap_query_button.on_click(depmap_query_button_clicked)
@@ -4586,7 +4627,9 @@ def multiple_tools_results(tools_available, token):
             )
             show_parameters(params)
             treatment, control = conditions_widget.value.split("_vs_")
-            ranks, occurences = ranking(treatment, control, token, tools_available, params)
+            ranks, occurences = ranking(
+                treatment, control, token, tools_available, params
+            )
             download_name = widgets.Text(value="analysis", description="Name:")
             download_file(
                 content=ranks.to_string(),
@@ -5087,7 +5130,6 @@ def condition_comparison(results_directory, tools_available, token):
 
         display(enrichr_bases_widget)
 
-
         label_to_column = {
             label_1: "highlight_1",
             label_2: "highlight_2",
@@ -5098,12 +5140,15 @@ def condition_comparison(results_directory, tools_available, token):
         #     if category not in ["Selection", "Others"]:
         #     genes = combined_data[combined_data["color"] == category][elements_column]
 
-
         for category in [label_1, label_2, "Intersection"]:
             if category == "Intersection":
-                genes = combined_data[(combined_data["highlight_1"]) & (combined_data["highlight_2"])][elements_column]
+                genes = combined_data[
+                    (combined_data["highlight_1"]) & (combined_data["highlight_2"])
+                ][elements_column]
             elif category in [label_1, label_2]:
-                genes = combined_data[combined_data[label_to_column[category]]][elements_column]        
+                genes = combined_data[combined_data[label_to_column[category]]][
+                    elements_column
+                ]
             textarea = widgets.Textarea(
                 value="\n".join(genes),
                 description=f"{category} genes:",
@@ -5124,9 +5169,13 @@ def condition_comparison(results_directory, tools_available, token):
                 """Run enrichr on the genes."""
                 category = b.description[15:]
                 if category == "Intersection":
-                    genes = combined_data[(combined_data["highlight_1"]) & (combined_data["highlight_2"])][elements_column]
+                    genes = combined_data[
+                        (combined_data["highlight_1"]) & (combined_data["highlight_2"])
+                    ][elements_column]
                 elif category in [label_1, label_2]:
-                    genes = combined_data[combined_data[label_to_column[category]]][elements_column]
+                    genes = combined_data[combined_data[label_to_column[category]]][
+                        elements_column
+                    ]
                 if len(genes) == 0:
                     display_warning(f"No genes in the category {category}.")
                     # print(f"No genes in the category {category}.")
