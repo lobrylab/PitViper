@@ -12,4 +12,5 @@ PitViper/gui/__pycache__/
 __pycache__/
 PitViper/workflow/notebooks/.ipynb_checkpoints/
 PitViper/workflow/scripts/bagel
+PitViper/PitViper_reproducibility
 PitViper/environment_freeze.yaml
