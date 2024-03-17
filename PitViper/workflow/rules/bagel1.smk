@@ -1,11 +1,11 @@
 rule BAGEL1_foldchange:
     "Run BAGEL's script for foldchange calculation."
     input:
-        count_table = "results/{token}/count_matrices/BAGEL2/{treatment}_vs_{control}_count_matrix.txt"
+        count_table = "results/{token}/count_matrices/BAGEL/{treatment}_vs_{control}_count_matrix.txt"
     output:
-        foldchange="results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL1.foldchange"
+        foldchange="results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL1.foldchange"
     params:
-        "results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL1"
+        "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL1"
     conda:
         "../envs/bagel.yaml"
     log:
@@ -21,7 +21,7 @@ rule BAGEL1_foldchange:
 
 
 def bagel_bf_columns(wildcards):
-    file = "results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL1.foldchange".format(token=wildcards.token, treatment=wildcards.treatment, control=wildcards.control)
+    file = "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL1.foldchange".format(token=wildcards.token, treatment=wildcards.treatment, control=wildcards.control)
     content = pd.read_csv(file, sep="\t")
     out = ",".join([ str(i + 1) for i in range(len(content.columns)-2)])
     return out
@@ -32,7 +32,7 @@ rule BAGEL1_bf:
     input:
         foldchange = rules.BAGEL1_foldchange.output.foldchange
     output:
-        bf = "results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL1_output.bf"
+        bf = "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL1_output.bf"
     params:
         nonessential = config['nonessentials'],
         essentials = config['essentials'],

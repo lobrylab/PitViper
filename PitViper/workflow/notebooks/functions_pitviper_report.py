@@ -257,7 +257,7 @@ def download_design(token):
     )
 
 
-def import_results(token: str):
+def import_results(token: str, bagel_version: int = 2):
     """Load PitViper results inside token sub-directory.
 
     Args:
@@ -286,8 +286,10 @@ def import_results(token: str):
             "Li, W., Xu, H., Xiao, T. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biol 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
         )
     if content["bagel_activate"] == "True":
-        tools.append("BAGEL2")
-        print("\nPlease cite the following article if you use BAGEL2:")
+        if bagel_version != 1 and bagel_version != 2:
+            raise ValueError("Invalid BAGEL version. Please use 1 or 2.")
+        tools.append("BAGEL")
+        print("\nPlease cite the following article if you use BAGEL:")
         print(
             "Li, W., Xu, H., Xiao, T. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biol 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
         )
@@ -317,7 +319,7 @@ def import_results(token: str):
         for comparison in os.listdir(results_directory + tool):
             tools_available[tool][comparison] = {}
             for file in os.listdir(os.path.join(results_directory, tool, comparison)):
-                if file.endswith(".txt") or file.endswith(".pr"):
+                if file.endswith(".txt") or file.endswith(".pr") or file.endswith(".bf"):
                     if tool in ["CRISPhieRmix"]:
                         sep = ","
                     else:
@@ -966,10 +968,9 @@ def MAGeCK_MLE_data(
 
 
 def BAGEL_data(
-    comparison="", control="", tool="BAGEL2", results_directory="", tools_available=""
+    comparison="", control="", tool="BAGEL", results_directory="", tools_available="", bagel_version=2,
 ):
-    """Return BAGEL2 results as pandas dataframe."""
-
+    """Return BAGEL results as pandas dataframe."""
     def check(comparison, _comparison, control, mode):
         if mode:
             if _comparison.split("_vs_")[-1] == control:
@@ -982,6 +983,11 @@ def BAGEL_data(
             else:
                 return False
 
+    if bagel_version == 2:
+        end_file = "_BAGEL_output.pr"
+    elif bagel_version == 1:
+        end_file = "_BAGEL1_output.bf"
+
     tables_list = []
     if control != "" and comparison == "":
         mode = True
@@ -993,7 +999,7 @@ def BAGEL_data(
         if _comparison.split("_vs_")[-1] == control:
             keys_list = list(tools_available[tool][_comparison].keys())
             for key in keys_list:
-                if key.endswith("_BAGEL_output.pr"):
+                if key.endswith(end_file):
                     break
             data = tools_available[tool][_comparison][key]
             trt = _comparison.split("_vs_")[0]
@@ -1001,7 +1007,7 @@ def BAGEL_data(
             tables_list.append(data)
         if _comparison == comparison:
             data = tools_available[tool][_comparison][
-                "%s_BAGEL_output.pr" % _comparison
+                _comparison + end_file
             ]
             tables_list.append(data)
     result = pd.concat(tables_list)
@@ -1087,7 +1093,7 @@ def get_pretty_orientation(orientation):
         return "abs() <"
 
 
-def tool_results(results_directory, tools_available, token):
+def tool_results(results_directory, tools_available, token, bagel_version):
     """Display selected method's results for all genes."""
     config = f"./config/{token}.yaml"
     content = open_yaml(config)
@@ -1125,22 +1131,22 @@ def tool_results(results_directory, tools_available, token):
         min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
     )
 
-    # Add a widget to define the BAGEL2 minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    # Add a widget to define the BAGEL minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
     bagel_bf_widget = widgets.FloatText(
         value=0,
-        description="BAGEL2 BF cut-off:",
-        # If BAGEL2 is not available, the widget is disabled
-        disabled="BAGEL2" not in tools,
+        description="BAGEL BF cut-off:",
+        # If BAGEL is not available, the widget is disabled
+        disabled="BAGEL" not in tools,
         style=style,
     )
 
-    # Add a widget to define the orientation of the BAGEL2 BF cut-off. Default is ">=".
+    # Add a widget to define the orientation of the BAGEL BF cut-off. Default is ">=".
     bagel_bf_orientation_widget = widgets.Dropdown(
         options=[">=", "<=", "abs() >=", "abs() <="],
         value=">=",
         description="",
-        # If BAGEL2 is not available, the widget is disabled
-        disabled="BAGEL2" not in tools,
+        # If BAGEL is not available, the widget is disabled
+        disabled="BAGEL" not in tools,
         # style=style,
         layout=widgets.Layout(width="75px"),
     )
@@ -1827,9 +1833,9 @@ def tool_results(results_directory, tools_available, token):
         elements,
     ):
         # Define the tool
-        tool = "BAGEL2"
+        tool = "BAGEL"
 
-        # Define the BAGEL2 BF cut-off and orientation
+        # Define the BAGEL BF cut-off and orientation
         bagel_bf = float(bagel_bf_widget.value)
         bagel_bf_orientation = bagel_bf_orientation_widget.value
 
@@ -1843,13 +1849,14 @@ def tool_results(results_directory, tools_available, token):
         # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
 
-        # Get the BAGEL2 results
+        # Get the BAGEL results
         source = BAGEL_data(
             comparison=comparison,
             control="",
             tool=tool,
             results_directory=results_directory,
             tools_available=tools_available,
+            bagel_version=bagel_version,
         )
 
         # Compute the default rank of the BF scores
@@ -1867,8 +1874,11 @@ def tool_results(results_directory, tools_available, token):
             significant_label,
         )
 
-        # Highlight the elements of interest
-        source.loc[source.Gene.isin(elements), "significant"] = highlight_label
+        if bagel_version == 1:
+            # rename GENE column to Gene
+            source = source.rename(columns={"GENE": "Gene"})
+
+        source.loc[source['Gene'].isin(elements), "significant"] = highlight_label
 
         # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
@@ -1886,12 +1896,12 @@ def tool_results(results_directory, tools_available, token):
 
         # Create the snake plot
         chart = (
-            alt.Chart(source, title=f"BAGEL2 ({comparison})")
+            alt.Chart(source, title=f"BAGEL ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
                 y=alt.Y("BF:Q", axis=alt.Axis(title="Bayesian Factor")),
-                tooltip=["Gene", "BF", "FDR", "significant", "default_rank"],
+                tooltip=source.columns.tolist() + ["default_rank"],
                 color=alt.Color(
                     "significant",
                     scale=alt.Scale(domain=domain, range=range_),
@@ -1998,7 +2008,7 @@ def tool_results(results_directory, tools_available, token):
             download(
                 tools_available, tool="SSREA", treatment=treatment, control=control
             )
-        if "BAGEL2" in tool:
+        if "BAGEL" in tool:
             at_least_one_tool = True
             _BAGEL_snake_plot(
                 comparison,
@@ -2010,7 +2020,7 @@ def tool_results(results_directory, tools_available, token):
                 elements,
             )
             download(
-                tools_available, tool="BAGEL2", treatment=treatment, control=control
+                tools_available, tool="BAGEL", treatment=treatment, control=control
             )
         if not at_least_one_tool:
             # print("Choose a tool.")
@@ -2023,8 +2033,8 @@ def tool_results(results_directory, tools_available, token):
     display(HTML("<h3>Highlight features:</h3>"))
     display(fdr_widget)
 
-    if "BAGEL2" in tools:
-        display(HTML("<h4>BAGEL2:</h4>"))
+    if "BAGEL" in tools:
+        display(HTML("<h4>BAGEL:</h4>"))
         display(widgets.HBox([bagel_bf_widget, bagel_bf_orientation_widget]))
 
     if "SSREA" in tools:
@@ -2298,7 +2308,7 @@ def regions2genes(token, se):
     return s2g
 
 
-def tool_results_by_element(results_directory, tools_available, token):
+def tool_results_by_element(results_directory, tools_available, token, bagel_version):
     def get_controls(results_directory, tools_available, tool):
         comparisons_list = os.listdir(os.path.join(results_directory, tool))
         ctrs = list(
@@ -2347,13 +2357,14 @@ def tool_results_by_element(results_directory, tools_available, token):
                 results_directory=results_directory,
                 tools_available=tools_available,
             )
-        if tool == "BAGEL2":
+        if tool == "BAGEL":
             result = BAGEL_data(
                 comparison="",
                 control=control.value,
                 tool=tool,
                 results_directory=results_directory,
                 tools_available=tools_available,
+                bagel_version=bagel_version
             )
         return result
 
@@ -2365,7 +2376,7 @@ def tool_results_by_element(results_directory, tools_available, token):
             elements_list = list(set(result.Gene))
         elif tool == "MAGeCK_RRA":
             elements_list = list(set(result.id))
-        elif tool == "BAGEL2":
+        elif tool == "BAGEL":
             elements_list = list(set(result.Gene))
         elif tool == "SSREA":
             elements_list = list(set(result.pathway))
@@ -2406,13 +2417,14 @@ def tool_results_by_element(results_directory, tools_available, token):
                 )
                 gene_var = "ig"
                 break
-            if tool == "BAGEL2":
+            if tool == "BAGEL":
                 result = BAGEL_data(
                     comparison="",
                     control=control.value,
                     tool=tool,
                     results_directory=results_directory,
                     tools_available=tools_available,
+                    bagel_version=bagel_version
                 )
                 gene_var = "Gene"
                 break
@@ -2471,22 +2483,22 @@ def tool_results_by_element(results_directory, tools_available, token):
         min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
     )
 
-    # Add a widget to define the BAGEL2 minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    # Add a widget to define the BAGEL minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
     bagel_bf_widget = widgets.FloatText(
         value=0,
-        description="BAGEL2 BF cut-off:",
-        # If BAGEL2 is not available, the widget is disabled
-        disabled="BAGEL2" not in tools_list,
+        description="BAGEL BF cut-off:",
+        # If BAGEL is not available, the widget is disabled
+        disabled="BAGEL" not in tools_list,
         style=style,
     )
 
-    # Add a widget to define the orientation of the BAGEL2 BF cut-off. Default is ">=".
+    # Add a widget to define the orientation of the BAGEL BF cut-off. Default is ">=".
     bagel_bf_orientation_widget = widgets.Dropdown(
         options=[">=", "<=", "abs() >=", "abs() <="],
         value=">=",
         description="",
-        # If BAGEL2 is not available, the widget is disabled
-        disabled="BAGEL2" not in tools_list,
+        # If BAGEL is not available, the widget is disabled
+        disabled="BAGEL" not in tools_list,
         # style=style,
         layout=widgets.Layout(width="75px"),
     )
@@ -2605,7 +2617,7 @@ def tool_results_by_element(results_directory, tools_available, token):
     display(gene)
     display(fdr_widget)
 
-    if "BAGEL2" in tools_list:
+    if "BAGEL" in tools_list:
         display(widgets.HBox([bagel_bf_widget, bagel_bf_orientation_widget]))
 
     if "SSREA" in tools_list:
@@ -2928,6 +2940,9 @@ def tool_results_by_element(results_directory, tools_available, token):
             result, "BF", bagel_bf, bagel_bf_orientation, significant_label
         )
 
+        # rename GENE to Gene
+        result = result.rename(columns={"GENE": "Gene"})
+
         new_row = {
             "Gene": gene,
             "condition": control,
@@ -2955,9 +2970,9 @@ def tool_results_by_element(results_directory, tools_available, token):
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Significativity:"),
                 ),
-                tooltip=["Gene", "BF", "FDR", "condition"],
+                tooltip=res.columns.tolist(),
             )
-            .properties(title=gene + " (BAGEL2)", width=100)
+            .properties(title=gene + " (BAGEL)", width=100)
         )
         return plot
 
@@ -3077,7 +3092,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                         element,
                         conditions.value,
                     )
-                elif tool == "BAGEL2":
+                elif tool == "BAGEL":
                     plot = BAGEL_results(
                         result,
                         fdr_widget.value,
@@ -3177,7 +3192,7 @@ def genemania_link_results(token, tools_available):
             info = info.loc[info["neg|fdr"] < fdr_cutoff.value]
             genes = info["id"]
 
-        if tool.value == "BAGEL2":
+        if tool.value == "BAGEL":
             info = tool_res[conditions.value][conditions.value + "_BAGEL_output.pr"]
             info = info.loc[info["BF"] > score_cutoff.value]
             genes = info["Gene"]
@@ -3228,7 +3243,7 @@ def genemania_link_results(token, tools_available):
     display(tool, conditions, fdr_cutoff, score_cutoff, button)
 
 
-def ranking(treatment, control, token, tools_available, params):
+def ranking(treatment, control, token, tools_available, params, bagel_version):
     def get_occurence_df(data):
         essential_genes = []
         for key in list(data.keys()):
@@ -3301,16 +3316,24 @@ def ranking(treatment, control, token, tools_available, params):
         tool_results["MAGeCK RRA"] = rra_genes
         tool_genes.append(rra_genes)
 
-    if params["BAGEL2"]["on"]:
-        score = params["BAGEL2"]["score"]
-        bagel = tools_available["BAGEL2"][comparison][comparison + "_BAGEL_output.pr"]
+    if params["BAGEL"]["on"]:
+        if bagel_version == 2:
+            end_file = "_BAGEL_output.pr"
+        elif bagel_version == 1:
+            end_file = "_BAGEL1_output.bf"
+        score = params["BAGEL"]["score"]
+        bagel = tools_available["BAGEL"][comparison][comparison + end_file]
+
+        # Rename GENE column to Gene
+        bagel = bagel.rename(columns={"GENE": "Gene"})
+
         bagel = bagel[(bagel["BF"] > score)]
         bagel["default_rank"] = bagel["BF"].rank(method="dense", ascending=False).copy()
         bagel = bagel[["Gene", "default_rank"]].rename(
             columns={"Gene": "id", "default_rank": "bagel_rank"}
         )
         bagel_genes = list(bagel.id)
-        tool_results["BAGEL2"] = bagel_genes
+        tool_results["BAGEL"] = bagel_genes
         tool_genes.append(bagel_genes)
 
     if params["directional_scoring_method"]["on"]:
@@ -3402,8 +3425,10 @@ def ranking(treatment, control, token, tools_available, params):
             rra = rra[["id", "pos|rank"]].rename(columns={"pos|rank": "rra_rank"})
         pdList.append(rra)
 
-    if params["BAGEL2"]["on"]:
-        bagel = tools_available["BAGEL2"][comparison][comparison + "_BAGEL_output.pr"]
+    if params["BAGEL"]["on"]:
+        bagel = tools_available["BAGEL"][comparison][comparison + end_file]
+        # Renew GENE column to Gene
+        bagel = bagel.rename(columns={"GENE": "Gene"})
         bagel["default_rank"] = bagel["BF"].rank(method="dense", ascending=False).copy()
         bagel = bagel[["Gene", "default_rank"]].rename(
             columns={"Gene": "id", "default_rank": "bagel_rank"}
@@ -3503,7 +3528,7 @@ def reset_params():
             "greater": False,
             "direction": "Negative",
         },
-        "BAGEL2": {"on": False, "score": 0, "greater": True},
+        "BAGEL": {"on": False, "score": 0, "greater": True},
         "CRISPhieRmix": {
             "on": False,
             "fdr": 0.05,
@@ -3546,18 +3571,18 @@ def display_tools_widgets(tools_selected):
     def rra_direction_update(change):
         params["MAGeCK_RRA"]["direction"] = change["new"]
 
-    ### BAGEL2
+    ### BAGEL
     def bagel_order_update(change):
         if change["new"] == "Greater than score":
-            params["BAGEL2"]["greater"] = True
+            params["BAGEL"]["greater"] = True
         else:
-            params["BAGEL2"]["greater"] = False
+            params["BAGEL"]["greater"] = False
 
     def bagel_fdr_update(change):
-        params["BAGEL2"]["fdr"] = change["new"]
+        params["BAGEL"]["fdr"] = change["new"]
 
     def bagel_score_update(change):
-        params["BAGEL2"]["score"] = change["new"]
+        params["BAGEL"]["score"] = change["new"]
 
     ### CRISPhieRmix
     def CRISPhieRmix_order_update(change):
@@ -3627,8 +3652,8 @@ def display_tools_widgets(tools_selected):
         rra_order.observe(rra_order_update, "value")
         rra_score.observe(rra_score_update, "value")
         rra_fdr.observe(rra_fdr_update, "value")
-    if "BAGEL2" in tools_selected:
-        params["BAGEL2"]["on"] = True
+    if "BAGEL" in tools_selected:
+        params["BAGEL"]["on"] = True
         bagel_score = widgets.FloatText(
             value=0,
             description="BF >",
@@ -3637,7 +3662,7 @@ def display_tools_widgets(tools_selected):
             flex_flow="column",
             align_items="stretch",
         )
-        bagel_text = widgets.HTML(value="<b>BAGEL2</b>:")
+        bagel_text = widgets.HTML(value="<b>BAGEL</b>:")
         # bagel_order = widgets.ToggleButtons(
         #     options=["Greater than score", "Lower than score"], description="Selection:"
         # )
@@ -3709,7 +3734,7 @@ def disable_widgets(token):
     return disabled
 
 
-def multiple_tools_results(tools_available, token):
+def multiple_tools_results(tools_available, token, bagel_version):
     TOOLS = [tool for tool in tools_available.keys() if not tool in ["DESeq2"]]
 
     # Define widgets's options
@@ -3999,15 +4024,15 @@ def multiple_tools_results(tools_available, token):
                     )
                 )
             )
-        if "BAGEL2" in tools_widget.value:
-            # if params["BAGEL2"]["greater"]:
+        if "BAGEL" in tools_widget.value:
+            # if params["BAGEL"]["greater"]:
             #     word = "greater"
             # else:
             #     word = "less"
             display(
                 HTML(
-                    """<p style="color:black;padding: 0.5em;"><b>BAGEL2</b>: Bayesian factor threshold = %s, keep elements with Bayesian factor > than threshold.</p>"""
-                    % (params["BAGEL2"]["score"])
+                    """<p style="color:black;padding: 0.5em;"><b>BAGEL</b>: Bayesian factor threshold = %s, keep elements with Bayesian factor > than threshold.</p>"""
+                    % (params["BAGEL"]["score"])
                 )
             )
         if "CRISPhieRmix" in tools_widget.value:
@@ -4049,7 +4074,7 @@ def multiple_tools_results(tools_available, token):
         if len(tools_widget.value) > 0:
             treatment, control = conditions_widget.value.split("_vs_")
             ranks, occurences = ranking(
-                treatment, control, token, tools_available, params
+                treatment, control, token, tools_available, params, bagel_version
             )
             # if selection_widgets.value == "Intersection":
             df = pd.DataFrame(
@@ -4127,7 +4152,7 @@ def multiple_tools_results(tools_available, token):
 
             treatment, control = conditions_widget.value.split("_vs_")
             ranks, occurences = ranking(
-                treatment, control, token, tools_available, params
+                treatment, control, token, tools_available, params, bagel_version
             )
             display(
                 HTML(
@@ -4143,7 +4168,7 @@ def multiple_tools_results(tools_available, token):
         else:
             treatment, control = conditions_widget.value.split("_vs_")
             ranks, occurences = ranking(
-                treatment, control, token, tools_available, params
+                treatment, control, token, tools_available, params, bagel_version
             )
             if selection_widgets.value == "Intersection":
                 df = pd.DataFrame(
@@ -4215,7 +4240,7 @@ def multiple_tools_results(tools_available, token):
             )
             treatment, control = conditions_widget.value.split("_vs_")
             ranks, occurences = ranking(
-                treatment, control, token, tools_available, params
+                treatment, control, token, tools_available, params, bagel_version
             )
             if selection_widgets.value == "Intersection":
                 df = pd.DataFrame(
@@ -4328,7 +4353,7 @@ def multiple_tools_results(tools_available, token):
                 treatment, control = conditions_widget.value.split("_vs_")
                 # Get the ranking
                 ranks, occurences = ranking(
-                    treatment, control, token, tools_available, params
+                    treatment, control, token, tools_available, params, bagel_version
                 )
                 if download_depmap_file(data_types_widget.value, depmap_release):
                     # print("This step can take some time.")
@@ -4630,7 +4655,7 @@ def multiple_tools_results(tools_available, token):
             show_parameters(params)
             treatment, control = conditions_widget.value.split("_vs_")
             ranks, occurences = ranking(
-                treatment, control, token, tools_available, params
+                treatment, control, token, tools_available, params, bagel_version
             )
             download_name = widgets.Text(value="analysis", description="Name:")
             download_file(
