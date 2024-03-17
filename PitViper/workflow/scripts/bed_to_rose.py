@@ -24,7 +24,7 @@ try:
     with open(output_file, "r+") as f:
         content = f.read()
         f.seek(0, 0)
-        f.write("#\n" * 5 + content)
+        f.write("#\n" * 6 + content)
 
 except Exception as e:
     logging.error("Caught an error: " + str(e))

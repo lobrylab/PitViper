@@ -2258,7 +2258,8 @@ def show_sgRNA_counts_lines(token):
 
 
 def regions2genes(token, se):
-    annotation_file = f"resources/{token}/annotation_ROSE_REGION_TO_Gene.txt"
+    annotation_file = f"resources/{token}/annotation_ROSE_REGION_TO_GENE.txt"
+    print(os.path.exists(annotation_file), annotation_file)
     if os.path.exists(annotation_file):
         annotation_table = pd.read_table(
             annotation_file, sep="\t", skiprows=1, header=None
@@ -2268,13 +2269,13 @@ def regions2genes(token, se):
             "Chromosome",
             "Start",
             "End",
-            "none1",
             "OVERLAP_GeneS",
             "PROXIMAL_GeneS",
             "CLOSEST_Gene",
             "L",
             "none2",
         ]
+        # print(annotation_table.head())
         annotation_table = annotation_table.loc[annotation_table.Name.isin(se)]
         annotation_table["OVERLAP_GeneS"] = annotation_table["OVERLAP_GeneS"].fillna(0)
         annotation_table["PROXIMAL_GeneS"] = annotation_table["PROXIMAL_GeneS"].fillna(
@@ -2293,6 +2294,7 @@ def regions2genes(token, se):
                         s2g.append(gene)
     else:
         s2g = se
+    # print(s2g)
     return s2g
 
 
