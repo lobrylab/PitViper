@@ -1,3 +1,17 @@
+# rule awk_bed_formating:
+# 	"""This rule is used to format the annotation file to be used by ROSE."""
+# 	input:
+# 		config['bed_annotation_file']
+# 	output:
+# 		f"resources/{config['token']}/annotation_ROSE.bed"
+# 	log:
+# 		f"logs/{config['token']}/awk_formating.log"
+# 	message:
+# 		"Formating annotation file {input} to {output}."
+# 	shell:
+#   		"bash ./workflow/scripts/awk_formating.sh {input} {output}"
+
+
 rule awk_bed_formating:
 	"""This rule is used to format the annotation file to be used by ROSE."""
 	input:
@@ -8,9 +22,8 @@ rule awk_bed_formating:
 		f"logs/{config['token']}/awk_formating.log"
 	message:
 		"Formating annotation file {input} to {output}."
-	shell:
-  		"bash ./workflow/scripts/awk_formating.sh {input} {output}"
-
+	script:
+  		"../../workflow/scripts/bed_to_rose.py"
 
 rule ROSE_annotation:
 	"""This rule is used to annotate the regions with ROSE."""

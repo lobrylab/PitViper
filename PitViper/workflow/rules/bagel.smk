@@ -23,13 +23,13 @@ rule bagel_generate_count_matrix:
 rule bagel_foldchange:
     "Run BAGEL2's script for foldchange calculation."
     input:
-        # count_table = rules.bagel_generate_count_matrix.output.matrix
-        count_table = rules.counts_filtering.output.normalized_filtered_counts
+        count_table = rules.bagel_generate_count_matrix.output.matrix
+        # count_table = rules.counts_filtering.output.normalized_filtered_counts
     output:
         foldchange="results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL.foldchange"
     params:
         out_dir="results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL",
-        control_cols=getControlIds,
+        control_cols=1,  #getControlIds,
     log:
         "logs/{token}/BAGEL2/{treatment}_vs_{control}_foldchange.log"
     message:

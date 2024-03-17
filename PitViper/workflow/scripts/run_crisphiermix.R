@@ -77,11 +77,12 @@ if (neg_controls_file != "") {
 } else {
   log2fcCRISPhieRmixFit = CRISPhieRmix::CRISPhieRmix(x = all_count.DESeq2$log2FoldChange,
                                                      geneIds = geneIds,
-                                                     screenType = screen_type,
-                                                     mu = mu,
-                                                     BIMODAL = bimodal,
-                                                     max_iter = 1000,
-                                                     tol = 1e-12)
+                                                    #  screenType = screen_type,
+                                                    #  mu = mu,
+                                                    #  BIMODAL = bimodal,
+                                                    #  max_iter = 1000,
+                                                    #  tol = 1e-12
+                                                     )
 }
 
 
