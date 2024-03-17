@@ -2259,7 +2259,7 @@ def show_sgRNA_counts_lines(token):
 
 def regions2genes(token, se):
     annotation_file = f"resources/{token}/annotation_ROSE_REGION_TO_GENE.txt"
-    print(os.path.exists(annotation_file), annotation_file)
+    # print(os.path.exists(annotation_file), annotation_file)
     if os.path.exists(annotation_file):
         annotation_table = pd.read_table(
             annotation_file, sep="\t", skiprows=1, header=None
