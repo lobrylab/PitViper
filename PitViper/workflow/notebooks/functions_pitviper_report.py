@@ -257,7 +257,7 @@ def download_design(token):
     )
 
 
-def import_results(token: str):
+def import_results(token: str, bagel_version: int = 2):
     """Load PitViper results inside token sub-directory.
 
     Args:
@@ -275,19 +275,37 @@ def import_results(token: str):
 
     if content["mageck_mle_activate"] == "True":
         tools.append("MAGeCK_MLE")
+        print("\nPlease cite the following article if you use MAGeCK MLE:")
+        print(
+            "Li, W., Köster, J., Xu, H. et al. Quality control, modeling, and visualization of CRISPR screens with MAGeCK-VISPR. Genome Biol 16, 281 (2015). https://doi.org/10.1186/s13059-015-0843-6"
+        )
     if content["mageck_rra_activate"] == "True":
         tools.append("MAGeCK_RRA")
+        print("\nPlease cite the following article if you use MAGeCK RRA:")
+        print(
+            "Li, W., Xu, H., Xiao, T. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biol 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
+        )
     if content["bagel_activate"] == "True":
-        tools.append("BAGEL2")
+        if bagel_version != 1 and bagel_version != 2:
+            raise ValueError("Invalid BAGEL version. Please use 1 or 2.")
+        tools.append("BAGEL")
+        print("\nPlease cite the following article if you use BAGEL:")
+        print(
+            "Li, W., Xu, H., Xiao, T. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biol 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
+        )
     if content["crisphiermix_activate"] == "True":
         tools.append("CRISPhieRmix")
+        print("\nPlease cite the following article if you use CRISPhieRmix:")
+        print(
+            "Daley, T., Lin, Z., Lin, X. et al. CRISPhieRmix: a hierarchical mixture model for CRISPR pooled screens. Genome Biol 19, 159 (2018). https://doi.org/10.1186/s13059-018-1538-6"
+        )
     if content["directional_scoring_method_activate"] == "True":
         tools.append("directional_scoring_method")
     if content["ssrea_activate"] == "True":
         tools.append("SSREA")
 
     results_directory = "results/%s/" % token
-    print("Results directory: %s \n" % results_directory)
+    print("\nResults directory: %s \n" % results_directory)
 
     tools_available = {}
     print("Tools available:")
@@ -301,7 +319,7 @@ def import_results(token: str):
         for comparison in os.listdir(results_directory + tool):
             tools_available[tool][comparison] = {}
             for file in os.listdir(os.path.join(results_directory, tool, comparison)):
-                if file.endswith(".txt") or file.endswith(".pr"):
+                if file.endswith(".txt") or file.endswith(".pr") or file.endswith(".bf"):
                     if tool in ["CRISPhieRmix"]:
                         sep = ","
                     else:
@@ -504,35 +522,49 @@ def show_read_count_distribution(token: str, width=800, height=400):
     """
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
-    path_qc = content["normalized_count_table"]
-    if not path.exists(path_qc):
+
+    # Load the design file
+    design = pd.read_csv(content["tsv_file"], sep="\t")
+
+    # Create a dictionary to map replicate names to condition names
+    d = dict(zip(design.replicate, design.condition))
+
+    # Load the normalized count table
+    norm_file = content["normalized_count_table"]
+    if not path.exists(norm_file):
         display_info("No count file to show.")
         # print("No count file to show.")
         return 0
-    table = pd.read_csv(path_qc, sep="\t")
+    table = pd.read_csv(norm_file, sep="\t")
 
-    table.iloc[:, 2:] = table.iloc[:, 2:] + 1
-    table.iloc[:, 2:] = table.iloc[:, 2:].apply(np.log2)
+    table = table[[col for col in d]]
+
+    table += 1
+    table = table.apply(np.log2)
 
     chart = (
-        alt.Chart(table)
-        .transform_fold(list(table.columns[2:]), as_=["Replicate", "counts"])
-        .transform_density(
-            density="counts",
-            bandwidth=0.3,
-            groupby=["Replicate"],
-            extent=[0, 20],
-            counts=True,
-            steps=200,
+        (
+            alt.Chart(table)
+            .transform_fold(list(table.columns), as_=["Replicate", "counts"])
+            .transform_density(
+                density="counts",
+                bandwidth=0.3,
+                groupby=["Replicate"],
+                extent=[0, 20],
+                counts=True,
+                steps=200,
+            )
+            .mark_line()
+            .encode(
+                alt.X("value:Q", axis=alt.Axis(title="log2(read count)")),
+                alt.Y("density:Q", axis=alt.Axis(title="Density")),
+                alt.Color("Replicate:N"),
+                tooltip=["Replicate:N", "value:Q", "density:Q"],
+            )
+            .properties(width=width, height=height)
         )
-        .mark_line()
-        .encode(
-            alt.X("value:Q", axis=alt.Axis(title="log2(read count)")),
-            alt.Y("density:Q", axis=alt.Axis(title="Density")),
-            alt.Color("Replicate:N"),
-            tooltip=["Replicate:N", "value:Q", "density:Q"],
-        )
-        .properties(width=width, height=height)
+        .configure_axis(grid=False)
+        .configure_view(stroke=None)
     )
 
     return chart
@@ -550,50 +582,66 @@ def pca_counts(token: str):
     config = "./config/%s.yaml" % token
     content = open_yaml(config)
 
-    TSV = pd.read_csv(content["tsv_file"], sep="\t")
+    # Load the design file
+    design = pd.read_csv(content["tsv_file"], sep="\t")
+
+    # Create a dictionary to map replicate names to condition names
+    d = dict(zip(design.replicate, design.condition))
+
+    # Load the normalized count table
     cts_file = content["normalized_count_table"]
     cts = pd.read_csv(cts_file, sep="\t")
-    X = cts[cts.columns[2:]].to_numpy().T
-    d = dict(zip(TSV.replicate, TSV.condition))
-    y = [d[k] for k in cts.columns[2:]]
-    y = np.array(y)
-    y_bis = np.array(cts.columns[2:])
 
+    # Filter columns to keep only replicates found in the design file
+    cts = cts[[col for col in d]]
+
+    # Create a numpy array of condition names
+    y = np.array([d[k] for k in cts.columns if k in d])
+    # Create a numpy array of replicate names
+    y_bis = np.array(cts.columns)
+
+    # Transpose the count table
+    X = cts.to_numpy().T
+
+    # Perform PCA
     pca = decomposition.PCA(n_components=2)
     pca.fit(X)
     X = pca.transform(X)
 
+    # Create a pandas DataFrame from the PCA results
     a = pd.DataFrame(X, columns=["PC1", "PC2"])
     b = pd.DataFrame(y, columns=["condition"])
     c = pd.DataFrame(y_bis, columns=["replicate"])
 
-    df_c = pd.concat([a, b, c], axis=1)
-
-    source = df_c
+    source = pd.concat([a, b, c], axis=1)
 
     PC1_explained_variance_ratio = round(pca.explained_variance_ratio_[0] * 100, 2)
     PC2_explained_variance_ratio = round(pca.explained_variance_ratio_[1] * 100, 2)
 
     pca_2d = (
-        alt.Chart(source)
-        .mark_circle(size=60)
-        .encode(
-            x=alt.X(
-                "PC1:Q",
-                axis=alt.Axis(
-                    title="PC1 ({p}%)".format(p=PC1_explained_variance_ratio)
+        (
+            alt.Chart(source)
+            .mark_circle(size=60)
+            .encode(
+                x=alt.X(
+                    "PC1:Q",
+                    axis=alt.Axis(
+                        title="PC1 ({p}%)".format(p=PC1_explained_variance_ratio)
+                    ),
                 ),
-            ),
-            y=alt.X(
-                "PC2:Q",
-                axis=alt.Axis(
-                    title="PC2 ({p}%)".format(p=PC2_explained_variance_ratio)
+                y=alt.X(
+                    "PC2:Q",
+                    axis=alt.Axis(
+                        title="PC2 ({p}%)".format(p=PC2_explained_variance_ratio)
+                    ),
                 ),
-            ),
-            color="condition:N",
-            tooltip=["PC1", "PC2", "condition", "replicate"],
+                color="condition:N",
+                tooltip=["PC1", "PC2", "condition", "replicate"],
+            )
+            .interactive()
         )
-        .interactive()
+        .configure_axis(grid=False)
+        .configure_view(stroke=None)
     )
 
     return pca_2d
@@ -920,10 +968,9 @@ def MAGeCK_MLE_data(
 
 
 def BAGEL_data(
-    comparison="", control="", tool="BAGEL2", results_directory="", tools_available=""
+    comparison="", control="", tool="BAGEL", results_directory="", tools_available="", bagel_version=2,
 ):
-    """Return BAGEL2 results as pandas dataframe."""
-
+    """Return BAGEL results as pandas dataframe."""
     def check(comparison, _comparison, control, mode):
         if mode:
             if _comparison.split("_vs_")[-1] == control:
@@ -936,6 +983,11 @@ def BAGEL_data(
             else:
                 return False
 
+    if bagel_version == 2:
+        end_file = "_BAGEL_output.pr"
+    elif bagel_version == 1:
+        end_file = "_BAGEL1_output.bf"
+
     tables_list = []
     if control != "" and comparison == "":
         mode = True
@@ -947,7 +999,7 @@ def BAGEL_data(
         if _comparison.split("_vs_")[-1] == control:
             keys_list = list(tools_available[tool][_comparison].keys())
             for key in keys_list:
-                if key.endswith("_BAGEL_output.pr"):
+                if key.endswith(end_file):
                     break
             data = tools_available[tool][_comparison][key]
             trt = _comparison.split("_vs_")[0]
@@ -955,7 +1007,7 @@ def BAGEL_data(
             tables_list.append(data)
         if _comparison == comparison:
             data = tools_available[tool][_comparison][
-                "%s_BAGEL_output.pr" % _comparison
+                _comparison + end_file
             ]
             tables_list.append(data)
     result = pd.concat(tables_list)
@@ -1041,7 +1093,7 @@ def get_pretty_orientation(orientation):
         return "abs() <"
 
 
-def tool_results(results_directory, tools_available, token):
+def tool_results(results_directory, tools_available, token, bagel_version):
     """Display selected method's results for all genes."""
     config = f"./config/{token}.yaml"
     content = open_yaml(config)
@@ -1079,22 +1131,22 @@ def tool_results(results_directory, tools_available, token):
         min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
     )
 
-    # Add a widget to define the BAGEL2 minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    # Add a widget to define the BAGEL minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
     bagel_bf_widget = widgets.FloatText(
         value=0,
-        description="BAGEL2 BF cut-off:",
-        # If BAGEL2 is not available, the widget is disabled
-        disabled="BAGEL2" not in tools,
+        description="BAGEL BF cut-off:",
+        # If BAGEL is not available, the widget is disabled
+        disabled="BAGEL" not in tools,
         style=style,
     )
 
-    # Add a widget to define the orientation of the BAGEL2 BF cut-off. Default is ">=".
+    # Add a widget to define the orientation of the BAGEL BF cut-off. Default is ">=".
     bagel_bf_orientation_widget = widgets.Dropdown(
         options=[">=", "<=", "abs() >=", "abs() <="],
         value=">=",
         description="",
-        # If BAGEL2 is not available, the widget is disabled
-        disabled="BAGEL2" not in tools,
+        # If BAGEL is not available, the widget is disabled
+        disabled="BAGEL" not in tools,
         # style=style,
         layout=widgets.Layout(width="75px"),
     )
@@ -1320,7 +1372,9 @@ def tool_results(results_directory, tools_available, token):
                 text=alt.Text("Gene"),
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _MAGeCK_RRA_snake_plot(
@@ -1438,7 +1492,9 @@ def tool_results(results_directory, tools_available, token):
             )
         )
 
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _CRISPhieRmix_snake_plot(
@@ -1545,7 +1601,9 @@ def tool_results(results_directory, tools_available, token):
                 text=alt.Text("gene"),
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _directional_scoring_method_snake_plot(
@@ -1569,8 +1627,8 @@ def tool_results(results_directory, tools_available, token):
         )
 
         # Define the significant and non-significant labels
-        significant_label = f"FDR < {fdr_cutoff} and score {get_pretty_orientation(directional_scoring_method_score_orientation)} {directional_scoring_method_score}"
-        non_significant_label = f"FDR ≥ {fdr_cutoff} or score {get_pretty_orientation(get_reverse_orientation(directional_scoring_method_score_orientation))} {directional_scoring_method_score}"
+        significant_label = f"score {get_pretty_orientation(directional_scoring_method_score_orientation)} {directional_scoring_method_score}"
+        non_significant_label = f"score {get_pretty_orientation(get_reverse_orientation(directional_scoring_method_score_orientation))} {directional_scoring_method_score}"
 
         # Define the highlight label
         highlight_label = "Hit(s) of Interest"
@@ -1652,7 +1710,9 @@ def tool_results(results_directory, tools_available, token):
                 x=alt.X("default_rank:Q"), y=alt.Y("score:Q"), text=alt.Text("Gene")
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _SSREA_like_snake_plot(
@@ -1758,7 +1818,9 @@ def tool_results(results_directory, tools_available, token):
                 x=alt.X("default_rank:Q"), y=alt.Y("NES:Q"), text=alt.Text("pathway")
             )
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _BAGEL_snake_plot(
@@ -1771,9 +1833,9 @@ def tool_results(results_directory, tools_available, token):
         elements,
     ):
         # Define the tool
-        tool = "BAGEL2"
+        tool = "BAGEL"
 
-        # Define the BAGEL2 BF cut-off and orientation
+        # Define the BAGEL BF cut-off and orientation
         bagel_bf = float(bagel_bf_widget.value)
         bagel_bf_orientation = bagel_bf_orientation_widget.value
 
@@ -1787,13 +1849,14 @@ def tool_results(results_directory, tools_available, token):
         # Define the treatment and control names
         treatment, control = comparison.split("_vs_")
 
-        # Get the BAGEL2 results
+        # Get the BAGEL results
         source = BAGEL_data(
             comparison=comparison,
             control="",
             tool=tool,
             results_directory=results_directory,
             tools_available=tools_available,
+            bagel_version=bagel_version,
         )
 
         # Compute the default rank of the BF scores
@@ -1811,8 +1874,11 @@ def tool_results(results_directory, tools_available, token):
             significant_label,
         )
 
-        # Highlight the elements of interest
-        source.loc[source.Gene.isin(elements), "significant"] = highlight_label
+        if bagel_version == 1:
+            # rename GENE column to Gene
+            source = source.rename(columns={"GENE": "Gene"})
+
+        source.loc[source['Gene'].isin(elements), "significant"] = highlight_label
 
         # Define the domain and range for the color scale
         domain = [significant_label, non_significant_label, highlight_label]
@@ -1830,12 +1896,12 @@ def tool_results(results_directory, tools_available, token):
 
         # Create the snake plot
         chart = (
-            alt.Chart(source, title=f"BAGEL2 ({comparison})")
+            alt.Chart(source, title=f"BAGEL ({comparison})")
             .mark_circle(size=60)
             .encode(
                 x=alt.X("default_rank:Q", axis=alt.Axis(title="Rank")),
                 y=alt.Y("BF:Q", axis=alt.Axis(title="Bayesian Factor")),
-                tooltip=["Gene", "BF", "FDR", "significant", "default_rank"],
+                tooltip=source.columns.tolist() + ["default_rank"],
                 color=alt.Color(
                     "significant",
                     scale=alt.Scale(domain=domain, range=range_),
@@ -1851,7 +1917,9 @@ def tool_results(results_directory, tools_available, token):
             .mark_text(dy=10, dx=20, color="blue")
             .encode(x=alt.X("default_rank:Q"), y=alt.Y("BF:Q"), text=alt.Text("Gene"))
         )
-        chart = chart + line + text
+        chart = (
+            (chart + line + text).configure_axis(grid=False).configure_view(stroke=None)
+        )
         display(chart)
 
     def _plot(event):
@@ -1940,7 +2008,7 @@ def tool_results(results_directory, tools_available, token):
             download(
                 tools_available, tool="SSREA", treatment=treatment, control=control
             )
-        if "BAGEL2" in tool:
+        if "BAGEL" in tool:
             at_least_one_tool = True
             _BAGEL_snake_plot(
                 comparison,
@@ -1952,7 +2020,7 @@ def tool_results(results_directory, tools_available, token):
                 elements,
             )
             download(
-                tools_available, tool="BAGEL2", treatment=treatment, control=control
+                tools_available, tool="BAGEL", treatment=treatment, control=control
             )
         if not at_least_one_tool:
             # print("Choose a tool.")
@@ -1965,8 +2033,8 @@ def tool_results(results_directory, tools_available, token):
     display(HTML("<h3>Highlight features:</h3>"))
     display(fdr_widget)
 
-    if "BAGEL2" in tools:
-        display(HTML("<h4>BAGEL2:</h4>"))
+    if "BAGEL" in tools:
+        display(HTML("<h4>BAGEL:</h4>"))
         display(widgets.HBox([bagel_bf_widget, bagel_bf_orientation_widget]))
 
     if "SSREA" in tools:
@@ -2200,7 +2268,8 @@ def show_sgRNA_counts_lines(token):
 
 
 def regions2genes(token, se):
-    annotation_file = f"resources/{token}/annotation_ROSE_REGION_TO_Gene.txt"
+    annotation_file = f"resources/{token}/annotation_ROSE_REGION_TO_GENE.txt"
+    # print(os.path.exists(annotation_file), annotation_file)
     if os.path.exists(annotation_file):
         annotation_table = pd.read_table(
             annotation_file, sep="\t", skiprows=1, header=None
@@ -2210,13 +2279,13 @@ def regions2genes(token, se):
             "Chromosome",
             "Start",
             "End",
-            "none1",
             "OVERLAP_GeneS",
             "PROXIMAL_GeneS",
             "CLOSEST_Gene",
             "L",
             "none2",
         ]
+        # print(annotation_table.head())
         annotation_table = annotation_table.loc[annotation_table.Name.isin(se)]
         annotation_table["OVERLAP_GeneS"] = annotation_table["OVERLAP_GeneS"].fillna(0)
         annotation_table["PROXIMAL_GeneS"] = annotation_table["PROXIMAL_GeneS"].fillna(
@@ -2235,10 +2304,11 @@ def regions2genes(token, se):
                         s2g.append(gene)
     else:
         s2g = se
+    # print(s2g)
     return s2g
 
 
-def tool_results_by_element(results_directory, tools_available, token):
+def tool_results_by_element(results_directory, tools_available, token, bagel_version):
     def get_controls(results_directory, tools_available, tool):
         comparisons_list = os.listdir(os.path.join(results_directory, tool))
         ctrs = list(
@@ -2287,13 +2357,14 @@ def tool_results_by_element(results_directory, tools_available, token):
                 results_directory=results_directory,
                 tools_available=tools_available,
             )
-        if tool == "BAGEL2":
+        if tool == "BAGEL":
             result = BAGEL_data(
                 comparison="",
                 control=control.value,
                 tool=tool,
                 results_directory=results_directory,
                 tools_available=tools_available,
+                bagel_version=bagel_version
             )
         return result
 
@@ -2305,7 +2376,7 @@ def tool_results_by_element(results_directory, tools_available, token):
             elements_list = list(set(result.Gene))
         elif tool == "MAGeCK_RRA":
             elements_list = list(set(result.id))
-        elif tool == "BAGEL2":
+        elif tool == "BAGEL":
             elements_list = list(set(result.Gene))
         elif tool == "SSREA":
             elements_list = list(set(result.pathway))
@@ -2346,13 +2417,14 @@ def tool_results_by_element(results_directory, tools_available, token):
                 )
                 gene_var = "ig"
                 break
-            if tool == "BAGEL2":
+            if tool == "BAGEL":
                 result = BAGEL_data(
                     comparison="",
                     control=control.value,
                     tool=tool,
                     results_directory=results_directory,
                     tools_available=tools_available,
+                    bagel_version=bagel_version
                 )
                 gene_var = "Gene"
                 break
@@ -2411,22 +2483,22 @@ def tool_results_by_element(results_directory, tools_available, token):
         min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
     )
 
-    # Add a widget to define the BAGEL2 minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
+    # Add a widget to define the BAGEL minimum BF cut-off. Default is 0. No minimum and maximum values are defined. Using FloatText widget.
     bagel_bf_widget = widgets.FloatText(
         value=0,
-        description="BAGEL2 BF cut-off:",
-        # If BAGEL2 is not available, the widget is disabled
-        disabled="BAGEL2" not in tools_list,
+        description="BAGEL BF cut-off:",
+        # If BAGEL is not available, the widget is disabled
+        disabled="BAGEL" not in tools_list,
         style=style,
     )
 
-    # Add a widget to define the orientation of the BAGEL2 BF cut-off. Default is ">=".
+    # Add a widget to define the orientation of the BAGEL BF cut-off. Default is ">=".
     bagel_bf_orientation_widget = widgets.Dropdown(
         options=[">=", "<=", "abs() >=", "abs() <="],
         value=">=",
         description="",
-        # If BAGEL2 is not available, the widget is disabled
-        disabled="BAGEL2" not in tools_list,
+        # If BAGEL is not available, the widget is disabled
+        disabled="BAGEL" not in tools_list,
         # style=style,
         layout=widgets.Layout(width="75px"),
     )
@@ -2545,7 +2617,7 @@ def tool_results_by_element(results_directory, tools_available, token):
     display(gene)
     display(fdr_widget)
 
-    if "BAGEL2" in tools_list:
+    if "BAGEL" in tools_list:
         display(widgets.HBox([bagel_bf_widget, bagel_bf_orientation_widget]))
 
     if "SSREA" in tools_list:
@@ -2868,6 +2940,9 @@ def tool_results_by_element(results_directory, tools_available, token):
             result, "BF", bagel_bf, bagel_bf_orientation, significant_label
         )
 
+        # rename GENE to Gene
+        result = result.rename(columns={"GENE": "Gene"})
+
         new_row = {
             "Gene": gene,
             "condition": control,
@@ -2895,9 +2970,9 @@ def tool_results_by_element(results_directory, tools_available, token):
                     scale=alt.Scale(domain=domain, range=range_),
                     legend=alt.Legend(title="Significativity:"),
                 ),
-                tooltip=["Gene", "BF", "FDR", "condition"],
+                tooltip=res.columns.tolist(),
             )
-            .properties(title=gene + " (BAGEL2)", width=100)
+            .properties(title=gene + " (BAGEL)", width=100)
         )
         return plot
 
@@ -3017,7 +3092,7 @@ def tool_results_by_element(results_directory, tools_available, token):
                         element,
                         conditions.value,
                     )
-                elif tool == "BAGEL2":
+                elif tool == "BAGEL":
                     plot = BAGEL_results(
                         result,
                         fdr_widget.value,
@@ -3069,143 +3144,6 @@ def get_enrichr_bases():
     return bases
 
 
-# def enrichr_plots(token, pitviper_res):
-#     config = "./config/%s.yaml" % token
-#     content = open_yaml(config)
-#     if content["screen_type"] == "not_gene":
-#         return HTML(
-#             """<p style="color:red;background-color: white;padding: 0.5em;">This module is available only if genes symbol are available.</p>"""
-#         )
-#         # return "This module is available only if genes symbol are used."
-
-#     def update_conditions(update):
-#         conditions_list = list(pitviper_res[tool.value].keys())
-#         conditions.options = conditions_list
-#         conditions.value = conditions_list[0]
-
-#     BASES = get_enrichr_bases()
-#     TOOLS = [tool for tool in pitviper_res.keys() if tool != "DESeq2"]
-
-#     tool = widgets.Dropdown(options=TOOLS, value=TOOLS[0], description="Tool:")
-#     tool.observe(update_conditions, "value")
-
-#     conditions_list = list(pitviper_res[tool.value].keys())
-#     conditions = widgets.Dropdown(
-#         options=conditions_list, value=conditions_list[0], description="Condition:"
-#     )
-
-#     description = widgets.Text(
-#         value="My gene list", placeholder="Description", description="Description:"
-#     )
-#     bases = widgets.SelectMultiple(options=BASES)
-
-#     col_2 = widgets.ColorPicker(concise=False, description="Top color", value="blue")
-#     col_1 = widgets.ColorPicker(concise=False, description="Bottom color", value="red")
-#     plot_type = widgets.Dropdown(
-#         options=["Circle", "Bar"], value="Circle", description="Plot type:"
-#     )
-#     size = widgets.Dropdown(
-#         options=[5, 10, 20, 50, 100, 200, "max"], value=5, description="Size:"
-#     )
-#     fdr_cutoff = widgets.FloatSlider(
-#         min=0.0, max=1.0, step=0.01, value=0.05, description="FDR cut-off:"
-#     )
-#     score_cutoff = widgets.IntText(value=0, placeholder=0, description="Score cut-off:")
-#     button = widgets.Button(description="EnrichR!")
-
-#     display(
-#         widgets.VBox(
-#             [
-#                 tool,
-#                 conditions,
-#                 description,
-#                 bases,
-#                 fdr_cutoff,
-#                 score_cutoff,
-#                 plot_type,
-#                 size,
-#                 col_2,
-#                 col_1,
-#                 button,
-#             ]
-#         )
-#     )
-
-#     def on_button_clicked(b):
-#         charts = []
-#         tool_res = pitviper_res[tool.value]
-#         treatment, baseline = conditions.value.split("_vs_")
-#         for base in bases.value:
-#             if tool.value == "MAGeCK_MLE":
-#                 info = tool_res[conditions.value][
-#                     conditions.value + ".gene_summary.txt"
-#                 ]
-#                 info = info.loc[info[treatment + "|fdr"] < fdr_cutoff.value]
-#                 if score_cutoff.value < 0:
-#                     info = info.loc[info[treatment + "|beta"] < score_cutoff.value]
-#                 elif score_cutoff.value > 0:
-#                     info = info.loc[info[treatment + "|beta"] > score_cutoff.value]
-#                 genes = info["Gene"].to_list()
-
-#             if tool.value == "MAGeCK_RRA":
-#                 info = tool_res[conditions.value][
-#                     conditions.value + ".gene_summary.txt"
-#                 ]
-#                 info = info.loc[info["neg|fdr"] < fdr_cutoff.value]
-#                 genes = info["id"]
-
-#             if tool.value == "BAGEL2":
-#                 info = tool_res[conditions.value][conditions.value + "_BAGEL_output.pr"]
-#                 info = info.loc[info["BF"] > score_cutoff.value]
-#                 genes = info["Gene"]
-
-#             if tool.value == "directional_scoring_method":
-#                 info = tool_res[conditions.value][
-#                     conditions.value + "_all-elements_directional_scoring_method.txt"
-#                 ]
-#                 if score_cutoff.value > 0:
-#                     info = info.loc[info["score"] > score_cutoff.value]
-#                 else:
-#                     info = info.loc[info["score"] < score_cutoff.value]
-#                 genes = info["Gene"]
-
-#             if tool.value == "SSREA":
-#                 info = tool_res[conditions.value][
-#                     conditions.value + "_all-elements_SSREA.txt"
-#                 ]
-#                 if score_cutoff.value > 0:
-#                     info = info.loc[info["NES"] > score_cutoff.value]
-#                 elif score_cutoff.value < 0:
-#                     info = info.loc[info["NES"] < score_cutoff.value]
-#                 info = info.loc[info["padj"] < fdr_cutoff.value]
-#                 genes = info["pathway"]
-
-#             if tool.value == "CRISPhieRmix":
-#                 info = tool_res[conditions.value][conditions.value + ".txt"]
-#                 info = info.loc[info["locfdr"] < fdr_cutoff.value]
-#                 if score_cutoff.value > 0:
-#                     info = info.loc[info["mean_log2FoldChange"] > score_cutoff.value]
-#                 elif score_cutoff.value <= 0:
-#                     info = info.loc[info["mean_log2FoldChange"] < score_cutoff.value]
-#                 genes = info["gene"]
-
-#             enrichr_res = get_enrichr_results(genes, description.value, base)
-#             table = create_enrichr_table(enrichr_res)
-#             if plot_type.value == "Bar":
-#                 chart = enrichmentBarPlot(
-#                     table, size.value, description.value, col_1.value, col_2.value, base
-#                 )
-#             else:
-#                 chart = enrichmentCirclePlot(
-#                     table, size.value, description.value, col_1.value, col_2.value, base
-#                 )
-#             charts.append(chart)
-#         for chart in charts:
-#             display(chart)
-
-#     button.on_click(on_button_clicked)
-
-
 def run_rra(ranks):
     rra_lib = importr("RobustRankAggreg")
     r_source = ro.r["source"]
@@ -3254,7 +3192,7 @@ def genemania_link_results(token, tools_available):
             info = info.loc[info["neg|fdr"] < fdr_cutoff.value]
             genes = info["id"]
 
-        if tool.value == "BAGEL2":
+        if tool.value == "BAGEL":
             info = tool_res[conditions.value][conditions.value + "_BAGEL_output.pr"]
             info = info.loc[info["BF"] > score_cutoff.value]
             genes = info["Gene"]
@@ -3305,7 +3243,7 @@ def genemania_link_results(token, tools_available):
     display(tool, conditions, fdr_cutoff, score_cutoff, button)
 
 
-def ranking(treatment, control, token, tools_available, params):
+def ranking(treatment, control, token, tools_available, params, bagel_version):
     def get_occurence_df(data):
         essential_genes = []
         for key in list(data.keys()):
@@ -3378,16 +3316,24 @@ def ranking(treatment, control, token, tools_available, params):
         tool_results["MAGeCK RRA"] = rra_genes
         tool_genes.append(rra_genes)
 
-    if params["BAGEL2"]["on"]:
-        score = params["BAGEL2"]["score"]
-        bagel = tools_available["BAGEL2"][comparison][comparison + "_BAGEL_output.pr"]
+    if params["BAGEL"]["on"]:
+        if bagel_version == 2:
+            end_file = "_BAGEL_output.pr"
+        elif bagel_version == 1:
+            end_file = "_BAGEL1_output.bf"
+        score = params["BAGEL"]["score"]
+        bagel = tools_available["BAGEL"][comparison][comparison + end_file]
+
+        # Rename GENE column to Gene
+        bagel = bagel.rename(columns={"GENE": "Gene"})
+
         bagel = bagel[(bagel["BF"] > score)]
         bagel["default_rank"] = bagel["BF"].rank(method="dense", ascending=False).copy()
         bagel = bagel[["Gene", "default_rank"]].rename(
             columns={"Gene": "id", "default_rank": "bagel_rank"}
         )
         bagel_genes = list(bagel.id)
-        tool_results["BAGEL2"] = bagel_genes
+        tool_results["BAGEL"] = bagel_genes
         tool_genes.append(bagel_genes)
 
     if params["directional_scoring_method"]["on"]:
@@ -3479,8 +3425,10 @@ def ranking(treatment, control, token, tools_available, params):
             rra = rra[["id", "pos|rank"]].rename(columns={"pos|rank": "rra_rank"})
         pdList.append(rra)
 
-    if params["BAGEL2"]["on"]:
-        bagel = tools_available["BAGEL2"][comparison][comparison + "_BAGEL_output.pr"]
+    if params["BAGEL"]["on"]:
+        bagel = tools_available["BAGEL"][comparison][comparison + end_file]
+        # Renew GENE column to Gene
+        bagel = bagel.rename(columns={"GENE": "Gene"})
         bagel["default_rank"] = bagel["BF"].rank(method="dense", ascending=False).copy()
         bagel = bagel[["Gene", "default_rank"]].rename(
             columns={"Gene": "id", "default_rank": "bagel_rank"}
@@ -3580,7 +3528,7 @@ def reset_params():
             "greater": False,
             "direction": "Negative",
         },
-        "BAGEL2": {"on": False, "score": 0, "greater": True},
+        "BAGEL": {"on": False, "score": 0, "greater": True},
         "CRISPhieRmix": {
             "on": False,
             "fdr": 0.05,
@@ -3623,18 +3571,18 @@ def display_tools_widgets(tools_selected):
     def rra_direction_update(change):
         params["MAGeCK_RRA"]["direction"] = change["new"]
 
-    ### BAGEL2
+    ### BAGEL
     def bagel_order_update(change):
         if change["new"] == "Greater than score":
-            params["BAGEL2"]["greater"] = True
+            params["BAGEL"]["greater"] = True
         else:
-            params["BAGEL2"]["greater"] = False
+            params["BAGEL"]["greater"] = False
 
     def bagel_fdr_update(change):
-        params["BAGEL2"]["fdr"] = change["new"]
+        params["BAGEL"]["fdr"] = change["new"]
 
     def bagel_score_update(change):
-        params["BAGEL2"]["score"] = change["new"]
+        params["BAGEL"]["score"] = change["new"]
 
     ### CRISPhieRmix
     def CRISPhieRmix_order_update(change):
@@ -3704,8 +3652,8 @@ def display_tools_widgets(tools_selected):
         rra_order.observe(rra_order_update, "value")
         rra_score.observe(rra_score_update, "value")
         rra_fdr.observe(rra_fdr_update, "value")
-    if "BAGEL2" in tools_selected:
-        params["BAGEL2"]["on"] = True
+    if "BAGEL" in tools_selected:
+        params["BAGEL"]["on"] = True
         bagel_score = widgets.FloatText(
             value=0,
             description="BF >",
@@ -3714,7 +3662,7 @@ def display_tools_widgets(tools_selected):
             flex_flow="column",
             align_items="stretch",
         )
-        bagel_text = widgets.HTML(value="<b>BAGEL2</b>:")
+        bagel_text = widgets.HTML(value="<b>BAGEL</b>:")
         # bagel_order = widgets.ToggleButtons(
         #     options=["Greater than score", "Lower than score"], description="Selection:"
         # )
@@ -3786,7 +3734,7 @@ def disable_widgets(token):
     return disabled
 
 
-def multiple_tools_results(tools_available, token):
+def multiple_tools_results(tools_available, token, bagel_version):
     TOOLS = [tool for tool in tools_available.keys() if not tool in ["DESeq2"]]
 
     # Define widgets's options
@@ -4076,15 +4024,15 @@ def multiple_tools_results(tools_available, token):
                     )
                 )
             )
-        if "BAGEL2" in tools_widget.value:
-            # if params["BAGEL2"]["greater"]:
+        if "BAGEL" in tools_widget.value:
+            # if params["BAGEL"]["greater"]:
             #     word = "greater"
             # else:
             #     word = "less"
             display(
                 HTML(
-                    """<p style="color:black;padding: 0.5em;"><b>BAGEL2</b>: Bayesian factor threshold = %s, keep elements with Bayesian factor > than threshold.</p>"""
-                    % (params["BAGEL2"]["score"])
+                    """<p style="color:black;padding: 0.5em;"><b>BAGEL</b>: Bayesian factor threshold = %s, keep elements with Bayesian factor > than threshold.</p>"""
+                    % (params["BAGEL"]["score"])
                 )
             )
         if "CRISPhieRmix" in tools_widget.value:
@@ -4126,7 +4074,7 @@ def multiple_tools_results(tools_available, token):
         if len(tools_widget.value) > 0:
             treatment, control = conditions_widget.value.split("_vs_")
             ranks, occurences = ranking(
-                treatment, control, token, tools_available, params
+                treatment, control, token, tools_available, params, bagel_version
             )
             # if selection_widgets.value == "Intersection":
             df = pd.DataFrame(
@@ -4147,6 +4095,7 @@ def multiple_tools_results(tools_available, token):
             )
 
             show_parameters(params)
+            display(occurences.sum(axis=0))
             plot_venn(occurences)
             # If more than one tool is selected, display the upset plot
             if len(tools_widget.value) > 1:
@@ -4197,41 +4146,53 @@ def multiple_tools_results(tools_available, token):
             display_warning("Please select at least one tool above.")
 
     def rra_button_clicked(b):
-        treatment, control = conditions_widget.value.split("_vs_")
-        ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        display(
-            HTML(
-                """<p style="color:white;font-weight: bold;background-color: green;padding: 0.5em;">RRA results</p>"""
+        if len(tools_widget.value) == 0:
+            display_warning("Please select at least one tool above.")
+        else:
+
+            treatment, control = conditions_widget.value.split("_vs_")
+            ranks, occurences = ranking(
+                treatment, control, token, tools_available, params, bagel_version
             )
-        )
-        show_parameters(params)
-        run_rra(ranks)
+            display(
+                HTML(
+                    """<p style="color:white;font-weight: bold;background-color: green;padding: 0.5em;">RRA results</p>"""
+                )
+            )
+            show_parameters(params)
+            run_rra(ranks)
 
     def genemania_button_clicked(b):
-        treatment, control = conditions_widget.value.split("_vs_")
-        ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        if selection_widgets.value == "Intersection":
-            df = pd.DataFrame(
-                occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
-                columns=["intersection"],
-            )
-            genes_list = df.loc[df.intersection == True].index
+        if len(tools_widget.value) == 0:
+            display_warning("Please select at least one tool above.")
         else:
-            df = pd.DataFrame(
-                occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
+            treatment, control = conditions_widget.value.split("_vs_")
+            ranks, occurences = ranking(
+                treatment, control, token, tools_available, params, bagel_version
             )
-            genes_list = df.loc[df.union == True].index
-        genes_list = regions2genes(token, genes_list)
-        display(
-            HTML(
-                """<p style="color:white;font-weight: bold;background-color: blue;padding: 0.5em;">Genemania link - %s</p>"""
-                % selection_widgets.value
+            if selection_widgets.value == "Intersection":
+                df = pd.DataFrame(
+                    occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
+                    columns=["intersection"],
+                )
+                genes_list = df.loc[df.intersection == True].index
+            else:
+                df = pd.DataFrame(
+                    occurences.eq(occurences.iloc[:, 0], axis=0).any(1),
+                    columns=["union"],
+                )
+                genes_list = df.loc[df.union == True].index
+            genes_list = regions2genes(token, genes_list)
+            display(
+                HTML(
+                    """<p style="color:white;font-weight: bold;background-color: blue;padding: 0.5em;">Genemania link - %s</p>"""
+                    % selection_widgets.value
+                )
             )
-        )
-        show_parameters(params)
-        link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
-        print("Link to Genemania website: (%s elements)\n" % len(genes_list))
-        print(link)
+            show_parameters(params)
+            link = "http://genemania.org/search/homo-sapiens/" + "/".join(genes_list)
+            print("Link to Genemania website: (%s elements)\n" % len(genes_list))
+            print(link)
 
     def enrichr_button_clicked(b):
         def show_enrichr_plots(
@@ -4264,264 +4225,261 @@ def multiple_tools_results(tools_available, token):
             for chart in charts:
                 display(chart)
 
-        display(
-            HTML(
-                f"""
-                <p style="color:white;
-                          font-weight: bold;
-                          background-color: purple;
-                          padding: 0.5em;">EnrichR for genes at {selection_widgets.value}</p>
-                """
-            )
-        )
-        treatment, control = conditions_widget.value.split("_vs_")
-        ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        if selection_widgets.value == "Intersection":
-            df = pd.DataFrame(
-                occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
-                columns=["intersection"],
-            )
-            genes_list = df.loc[df.intersection == True].index
+        if len(tools_widget.value) == 0:
+            display_warning("Please select at least one tool above.")
         else:
-            df = pd.DataFrame(
-                occurences.eq(occurences.iloc[:, 0], axis=0).any(1), columns=["union"]
+            display(
+                HTML(
+                    f"""
+                    <p style="color:white;
+                            font-weight: bold;
+                            background-color: purple;
+                            padding: 0.5em;">EnrichR for genes at {selection_widgets.value}</p>
+                    """
+                )
             )
-            genes_list = df.loc[df.union == True].index
-        genes_list = regions2genes(token, genes_list)
-        BASES = get_enrichr_bases()
-        bases = widgets.SelectMultiple(options=BASES, description="Genesets:", rows=10)
-        col_2 = widgets.ColorPicker(
-            concise=False, description="Top color", value="blue"
-        )
-        col_1 = widgets.ColorPicker(
-            concise=False, description="Bottom color", value="red"
-        )
-        plot_type = widgets.Dropdown(
-            options=["Circle", "Bar"], value="Circle", description="Plot type:"
-        )
-        size = widgets.Dropdown(
-            options=[5, 10, 20, 50, 100, 200, "max"], value=5, description="Size:"
-        )
-        description = widgets.Text(
-            value="My gene list", placeholder="Description", description="Description:"
-        )
-        button_enrichr = widgets.Button(description="Plot!")
-
-        display(
-            widgets.VBox(
-                [description, bases, plot_type, size, col_2, col_1, button_enrichr]
+            treatment, control = conditions_widget.value.split("_vs_")
+            ranks, occurences = ranking(
+                treatment, control, token, tools_available, params, bagel_version
             )
-        )
-
-        # output_enrichr = widgets.Output()
-
-        # display(output_enrichr)
-
-        button_enrichr.on_click(
-            partial(
-                show_enrichr_plots,
-                genes=genes_list,
-                bases=bases,
-                size=size,
-                plot_type=plot_type,
-                col_2=col_2,
-                col_1=col_1,
-                description=description,
-                # output=output_enrichr,
+            if selection_widgets.value == "Intersection":
+                df = pd.DataFrame(
+                    occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
+                    columns=["intersection"],
+                )
+                genes_list = df.loc[df.intersection == True].index
+            else:
+                df = pd.DataFrame(
+                    occurences.eq(occurences.iloc[:, 0], axis=0).any(1),
+                    columns=["union"],
+                )
+                genes_list = df.loc[df.union == True].index
+            genes_list = regions2genes(token, genes_list)
+            BASES = get_enrichr_bases()
+            bases = widgets.SelectMultiple(
+                options=BASES, description="Genesets:", rows=10
             )
-        )
+            col_2 = widgets.ColorPicker(
+                concise=False, description="Top color", value="blue"
+            )
+            col_1 = widgets.ColorPicker(
+                concise=False, description="Bottom color", value="red"
+            )
+            plot_type = widgets.Dropdown(
+                options=["Circle", "Bar"], value="Circle", description="Plot type:"
+            )
+            size = widgets.Dropdown(
+                options=[5, 10, 20, 50, 100, 200, "max"], value=5, description="Size:"
+            )
+            description = widgets.Text(
+                value="My gene list",
+                placeholder="Description",
+                description="Description:",
+            )
+            button_enrichr = widgets.Button(description="Plot!")
+
+            display(
+                widgets.VBox(
+                    [description, bases, plot_type, size, col_2, col_1, button_enrichr]
+                )
+            )
+
+            # output_enrichr = widgets.Output()
+
+            # display(output_enrichr)
+
+            button_enrichr.on_click(
+                partial(
+                    show_enrichr_plots,
+                    genes=genes_list,
+                    bases=bases,
+                    size=size,
+                    plot_type=plot_type,
+                    col_2=col_2,
+                    col_1=col_1,
+                    description=description,
+                    # output=output_enrichr,
+                )
+            )
 
     def depmap_button_clicked(b):
-        display(
-            HTML(
-                """<p style="color:white;font-weight: bold;background-color: #A52A2A;padding: 0.5em;">DepMap vizualisation module</p>"""
+        if len(tools_widget.value) == 0:
+            display_warning("Please select at least one tool above.")
+        else:
+            display(
+                HTML(
+                    """<p style="color:white;font-weight: bold;background-color: #A52A2A;padding: 0.5em;">DepMap vizualisation module</p>"""
+                )
             )
-        )
-        data_types_widget = widgets.RadioButtons(
-            options=["crispr", "proteomic", "rnai", "tpm", "mutations"],
-            value="crispr",
-            description="Choose a data type:",
-            disabled=False,
-        )
+            data_types_widget = widgets.RadioButtons(
+                options=["crispr", "proteomic", "rnai", "tpm", "mutations"],
+                value="crispr",
+                description="Choose a data type:",
+                disabled=False,
+            )
 
-        def download_depmap_file(data_type, release):
-            """Determine if the file is already downloaded or not."""
-            target_file = f"resources/depmap/{release}_{data_type}.txt"
-            for file_name in listdir("resources/depmap/"):
-                if ("metadata" in file_name) and (not release in file_name):
-                    os.remove(file_name)
-                if file_name == target_file:
-                    return False
-                elif data_type in file_name:
-                    if not release in str(file_name):
+            def download_depmap_file(data_type, release):
+                """Determine if the file is already downloaded or not."""
+                target_file = f"resources/depmap/{release}_{data_type}.txt"
+                for file_name in listdir("resources/depmap/"):
+                    if ("metadata" in file_name) and (not release in file_name):
                         os.remove(file_name)
-                        return True
-                    else:
+                    if file_name == target_file:
                         return False
-            return True
+                    elif data_type in file_name:
+                        if not release in str(file_name):
+                            os.remove(file_name)
+                            return True
+                        else:
+                            return False
+                return True
 
-        def get_release():
-            """Get the release of the depmap data."""
-            depmap_release = depmap.depmap_release()
-            return str(depmap_release).rstrip()[5:-1]
+            def get_release():
+                """Get the release of the depmap data."""
+                depmap_release = depmap.depmap_release()
+                return str(depmap_release).rstrip()[5:-1]
 
-        def depmap_query_button_clicked(b):
-            """Query the depmap data."""
-            # Get the release of the depmap data
-            depmap_release = get_release()
-            # Set the path to save the file
-            save_path = (
-                f"resources/depmap/{depmap_release}_{data_types_widget.value}.txt"
-            )
-            # Create the directory if it does not exist
-            Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
-            # Get the treatment and control conditions
-            treatment, control = conditions_widget.value.split("_vs_")
-            # Get the ranking
-            ranks, occurences = ranking(
-                treatment, control, token, tools_available, params
-            )
-            if download_depmap_file(data_types_widget.value, depmap_release):
-                # print("This step can take some time.")
-                display_info("This step can take some time.")
-                # print("Querying: %s..." % data_types_widget.value)
-                display_info(f"Querying: {data_types_widget.value}...", bold=False)
-                eh = experimentHub.ExperimentHub()
-                base_package = importr("base")
-                dplyr = importr("dplyr")
-                tidyr = importr("tidyr")
-                readr = importr("readr")
-                if data_types_widget.value == "rnai":
-                    depmap_data = tidyr.drop_na(
-                        dplyr.select(
-                            depmap.depmap_rnai(), "depmap_id", "gene_name", "dependency"
+            def depmap_query_button_clicked(b):
+                """Query the depmap data."""
+                # Get the release of the depmap data
+                depmap_release = get_release()
+                # Set the path to save the file
+                save_path = (
+                    f"resources/depmap/{depmap_release}_{data_types_widget.value}.txt"
+                )
+                # Create the directory if it does not exist
+                Path("resources/depmap/").mkdir(parents=True, exist_ok=True)
+                # Get the treatment and control conditions
+                treatment, control = conditions_widget.value.split("_vs_")
+                # Get the ranking
+                ranks, occurences = ranking(
+                    treatment, control, token, tools_available, params, bagel_version
+                )
+                if download_depmap_file(data_types_widget.value, depmap_release):
+                    # print("This step can take some time.")
+                    display_info("This step can take some time.")
+                    # print("Querying: %s..." % data_types_widget.value)
+                    display_info(f"Querying: {data_types_widget.value}...", bold=False)
+                    eh = experimentHub.ExperimentHub()
+                    base_package = importr("base")
+                    dplyr = importr("dplyr")
+                    tidyr = importr("tidyr")
+                    readr = importr("readr")
+                    if data_types_widget.value == "rnai":
+                        depmap_data = tidyr.drop_na(
+                            dplyr.select(
+                                depmap.depmap_rnai(),
+                                "depmap_id",
+                                "gene_name",
+                                "dependency",
+                            )
                         )
-                    )
-                elif data_types_widget.value == "crispr":
-                    depmap_data = tidyr.drop_na(
-                        dplyr.select(
-                            depmap.depmap_crispr(),
+                    elif data_types_widget.value == "crispr":
+                        depmap_data = tidyr.drop_na(
+                            dplyr.select(
+                                depmap.depmap_crispr(),
+                                "depmap_id",
+                                "gene_name",
+                                "dependency",
+                            )
+                        )
+                    elif data_types_widget.value == "proteomic":
+                        depmap_data = tidyr.drop_na(
+                            dplyr.select(
+                                depmap.depmap_proteomic(),
+                                "depmap_id",
+                                "gene_name",
+                                "protein_expression",
+                            )
+                        )
+                    elif data_types_widget.value == "tpm":
+                        depmap_data = tidyr.drop_na(
+                            dplyr.select(
+                                depmap.depmap_TPM(),
+                                "depmap_id",
+                                "gene_name",
+                                "rna_expression",
+                            )
+                        )
+                    elif data_types_widget.value == "mutations":
+                        depmap_data = tidyr.drop_na(
+                            dplyr.select(
+                                depmap.depmap_mutationCalls(),
+                                "depmap_id",
+                                "gene_name",
+                                "protein_change",
+                                "is_deleterious",
+                            )
+                        )
+                    if not os.path.isfile(
+                        f"resources/depmap/{depmap_release}_metadata.txt"
+                    ):
+                        depmap_metadata = dplyr.select(
+                            depmap.depmap_metadata(),
                             "depmap_id",
-                            "gene_name",
-                            "dependency",
+                            "sample_collection_site",
+                            "primary_or_metastasis",
+                            "primary_disease",
+                            "subtype_disease",
+                            "cell_line",
+                            "cell_line_name",
                         )
-                    )
-                elif data_types_widget.value == "proteomic":
-                    depmap_data = tidyr.drop_na(
-                        dplyr.select(
-                            depmap.depmap_proteomic(),
-                            "depmap_id",
-                            "gene_name",
-                            "protein_expression",
+                        print("Saving metadata...")
+                        utils.write_table(
+                            depmap_metadata,
+                            "resources/depmap/{depmap_release}_metadata.txt",
+                            row_names=False,
+                            quote=False,
+                            sep="\t",
                         )
-                    )
-                elif data_types_widget.value == "tpm":
-                    depmap_data = tidyr.drop_na(
-                        dplyr.select(
-                            depmap.depmap_TPM(),
-                            "depmap_id",
-                            "gene_name",
-                            "rna_expression",
+                    else:
+                        print("Import metadata...")
+                        depmap_metadata = readr.read_delim(
+                            f"resources/depmap/{depmap_release}_metadata.txt",
+                            delim="\t",
                         )
+                    depmap_data = base_package.merge(
+                        depmap_data, depmap_metadata, by="depmap_id"
                     )
-                elif data_types_widget.value == "mutations":
-                    depmap_data = tidyr.drop_na(
-                        dplyr.select(
-                            depmap.depmap_mutationCalls(),
-                            "depmap_id",
-                            "gene_name",
-                            "protein_change",
-                            "is_deleterious",
-                        )
-                    )
-                if not os.path.isfile(
-                    f"resources/depmap/{depmap_release}_metadata.txt"
-                ):
-                    depmap_metadata = dplyr.select(
-                        depmap.depmap_metadata(),
-                        "depmap_id",
-                        "sample_collection_site",
-                        "primary_or_metastasis",
-                        "primary_disease",
-                        "subtype_disease",
-                        "cell_line",
-                        "cell_line_name",
-                    )
-                    print("Saving metadata...")
+                    print(f"Saving {save_path}")
                     utils.write_table(
-                        depmap_metadata,
-                        "resources/depmap/{depmap_release}_metadata.txt",
-                        row_names=False,
-                        quote=False,
-                        sep="\t",
+                        depmap_data, save_path, row_names=False, quote=False, sep="\t"
                     )
-                else:
-                    print("Import metadata...")
-                    depmap_metadata = readr.read_delim(
-                        f"resources/depmap/{depmap_release}_metadata.txt", delim="\t"
-                    )
-                depmap_data = base_package.merge(
-                    depmap_data, depmap_metadata, by="depmap_id"
-                )
-                print(f"Saving {save_path}")
-                utils.write_table(
-                    depmap_data, save_path, row_names=False, quote=False, sep="\t"
-                )
-            print(f"Opening {save_path}")
-            data = pd.read_table(save_path, sep="\t")
+                print(f"Opening {save_path}")
+                data = pd.read_table(save_path, sep="\t")
 
-            tissues_init = list(set(data.cell_line))
-            tissues = [
-                "_".join(str(tissu).split("_")[1:])
-                for tissu in tissues_init
-                if str(tissu) not in ["nan", ""]
-            ]
-            tissues = list(set(tissues))
-            tissues.insert(0, "All")
+                tissues_init = list(set(data.cell_line))
+                tissues = [
+                    "_".join(str(tissu).split("_")[1:])
+                    for tissu in tissues_init
+                    if str(tissu) not in ["nan", ""]
+                ]
+                tissues = list(set(tissues))
+                tissues.insert(0, "All")
 
-            primary_diseases = list(set(data.primary_disease))
-            primary_diseases.insert(0, "All")
-
-            cell_lines_init = list(set(data.cell_line_name))
-            cell_lines = [
-                tissu for tissu in cell_lines_init if str(tissu) not in ["nan", ""]
-            ]
-            cell_lines = natural_sort(cell_lines)
-            cell_lines.insert(0, "All")
-
-            tissues_widget = widgets.SelectMultiple(
-                options=tissues, value=["All"], description="Tissu:"
-            )
-            primary_diseases_widget = widgets.SelectMultiple(
-                options=primary_diseases, value=["All"], description="Primary tissu:"
-            )
-            cell_lines_widget = widgets.SelectMultiple(
-                options=cell_lines, value=["All"], description="Cell line:"
-            )
-
-            def update_primary_diseases_widget(update):
-                if not "All" in tissues_widget.value:
-                    subseted_data = data[
-                        data["cell_line"].str.contains(
-                            "|".join(tissues_widget.value), na=False
-                        )
-                    ]
-                else:
-                    subseted_data = data
-                primary_diseases = list(set(subseted_data.primary_disease))
-                primary_diseases = natural_sort(primary_diseases)
+                primary_diseases = list(set(data.primary_disease))
                 primary_diseases.insert(0, "All")
-                primary_diseases_widget.options = primary_diseases
-                primary_diseases_widget.value = ["All"]
 
-            def update_cell_lines_widget(update):
-                if not "All" in primary_diseases_widget.value:
-                    subseted_data = data[
-                        data["primary_disease"].str.contains(
-                            "|".join(primary_diseases_widget.value), na=False
-                        )
-                    ]
-                else:
+                cell_lines_init = list(set(data.cell_line_name))
+                cell_lines = [
+                    tissu for tissu in cell_lines_init if str(tissu) not in ["nan", ""]
+                ]
+                cell_lines = natural_sort(cell_lines)
+                cell_lines.insert(0, "All")
+
+                tissues_widget = widgets.SelectMultiple(
+                    options=tissues, value=["All"], description="Tissu:"
+                )
+                primary_diseases_widget = widgets.SelectMultiple(
+                    options=primary_diseases,
+                    value=["All"],
+                    description="Primary tissu:",
+                )
+                cell_lines_widget = widgets.SelectMultiple(
+                    options=cell_lines, value=["All"], description="Cell line:"
+                )
+
+                def update_primary_diseases_widget(update):
                     if not "All" in tissues_widget.value:
                         subseted_data = data[
                             data["cell_line"].str.contains(
@@ -4530,124 +4488,154 @@ def multiple_tools_results(tools_available, token):
                         ]
                     else:
                         subseted_data = data
-                cell_lines_init = list(set(subseted_data.cell_line_name))
-                cell_lines = [
-                    cell_line
-                    for cell_line in cell_lines_init
-                    if not str(cell_line) in ["nan"]
-                ]
-                cell_lines = natural_sort(cell_lines)
-                cell_lines.insert(0, "All")
-                cell_lines_widget.options = cell_lines
-                cell_lines_widget.value = ["All"]
+                    primary_diseases = list(set(subseted_data.primary_disease))
+                    primary_diseases = natural_sort(primary_diseases)
+                    primary_diseases.insert(0, "All")
+                    primary_diseases_widget.options = primary_diseases
+                    primary_diseases_widget.value = ["All"]
 
-            tissues_widget.observe(update_primary_diseases_widget, "value")
-            primary_diseases_widget.observe(update_cell_lines_widget, "value")
-
-            def tissu_selection_button_clicked(b):
-                print("Please wait!")
-                dic = {
-                    "rnai": "dependency",
-                    "crispr": "dependency",
-                    "tpm": "rna_expression",
-                    "proteomic": "protein_expression",
-                    "mutations": ["protein_change", "is_deleterious"],
-                }
-                variable = dic[data_types_widget.value]
-                save_path = "resources/depmap/%s_%s.txt" % (
-                    depmap_release,
-                    data_types_widget.value,
-                )
-                table = pd.read_table(save_path, sep="\t")
-                if "All" in cell_lines_widget.value:
-                    cell_lines_selected = cell_lines_widget.options
-                else:
-                    cell_lines_selected = cell_lines_widget.value
-                boolean_series = table.cell_line_name.isin(cell_lines_selected)
-                table = table[boolean_series]
-                if selection_widgets.value == "Intersection":
-                    df = pd.DataFrame(
-                        occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
-                        columns=["intersection"],
-                    )
-                    genes_list = df.loc[df.intersection == True].index
-                else:
-                    df = pd.DataFrame(
-                        occurences.eq(occurences.iloc[:, 0], axis=0).any(1),
-                        columns=["union"],
-                    )
-                    genes_list = df.loc[df.union == True].index
-                genes_list = regions2genes(token, genes_list)
-                if data_types_widget.value == "mutations":
-                    columns = [
-                        "gene_name",
-                        "cell_line",
-                        "cell_line_name",
-                        "sample_collection_site",
-                        "primary_or_metastasis",
-                        "primary_disease",
-                        "subtype_disease",
-                    ]
-                    for value in variable:
-                        columns.append(value)
-                    essential_genes = table[table.gene_name.isin(genes_list)][columns]
-                    essential_genes = essential_genes.loc[
-                        essential_genes.is_deleterious == True
-                    ]
-                    essential_genes = (
-                        essential_genes.groupby(
-                            [
-                                "gene_name",
-                                "cell_line",
-                                "cell_line_name",
-                                "sample_collection_site",
-                                "primary_or_metastasis",
-                                "primary_disease",
-                                "subtype_disease",
+                def update_cell_lines_widget(update):
+                    if not "All" in primary_diseases_widget.value:
+                        subseted_data = data[
+                            data["primary_disease"].str.contains(
+                                "|".join(primary_diseases_widget.value), na=False
+                            )
+                        ]
+                    else:
+                        if not "All" in tissues_widget.value:
+                            subseted_data = data[
+                                data["cell_line"].str.contains(
+                                    "|".join(tissues_widget.value), na=False
+                                )
                             ]
-                        )["protein_change"]
-                        .apply(lambda x: "%s" % "|".join(map(str, x)))
-                        .reset_index()
-                    )
-                    chart = (
-                        alt.Chart(essential_genes, title="DepMap Deleterious Mutations")
-                        .mark_rect()
-                        .encode(
-                            x=alt.X("cell_line_name", axis=alt.Axis(title="Cell line")),
-                            y=alt.Y("gene_name", axis=alt.Axis(title="Gene name")),
-                            color=alt.Color(
-                                "primary_disease",
-                                scale=alt.Scale(scheme="tableau20"),
-                                legend=alt.Legend(title="Primary disease"),
-                            ),
-                            tooltip=[
-                                "protein_change",
-                                "gene_name",
-                                "cell_line",
-                                "cell_line_name",
-                                "sample_collection_site",
-                                "primary_or_metastasis",
-                                "primary_disease",
-                                "subtype_disease",
-                            ],
-                        )
-                        .interactive()
-                    )
-                    show_parameters(params)
-                    display(chart)
-                else:
-                    essential_genes = table[table.gene_name.isin(genes_list)][
-                        ["gene_name", "cell_line_name", variable]
+                        else:
+                            subseted_data = data
+                    cell_lines_init = list(set(subseted_data.cell_line_name))
+                    cell_lines = [
+                        cell_line
+                        for cell_line in cell_lines_init
+                        if not str(cell_line) in ["nan"]
                     ]
-                    plot_interactive_heatmap(essential_genes, variable)
+                    cell_lines = natural_sort(cell_lines)
+                    cell_lines.insert(0, "All")
+                    cell_lines_widget.options = cell_lines
+                    cell_lines_widget.value = ["All"]
 
-            button = widgets.Button(description="Run!")
-            button.on_click(tissu_selection_button_clicked)
-            display(tissues_widget, primary_diseases_widget, cell_lines_widget, button)
+                tissues_widget.observe(update_primary_diseases_widget, "value")
+                primary_diseases_widget.observe(update_cell_lines_widget, "value")
 
-        depmap_query_button = widgets.Button(description="Query!")
-        depmap_query_button.on_click(depmap_query_button_clicked)
-        display(data_types_widget, depmap_query_button)
+                def tissu_selection_button_clicked(b):
+                    print("Please wait!")
+                    dic = {
+                        "rnai": "dependency",
+                        "crispr": "dependency",
+                        "tpm": "rna_expression",
+                        "proteomic": "protein_expression",
+                        "mutations": ["protein_change", "is_deleterious"],
+                    }
+                    variable = dic[data_types_widget.value]
+                    save_path = "resources/depmap/%s_%s.txt" % (
+                        depmap_release,
+                        data_types_widget.value,
+                    )
+                    table = pd.read_table(save_path, sep="\t")
+                    if "All" in cell_lines_widget.value:
+                        cell_lines_selected = cell_lines_widget.options
+                    else:
+                        cell_lines_selected = cell_lines_widget.value
+                    boolean_series = table.cell_line_name.isin(cell_lines_selected)
+                    table = table[boolean_series]
+                    if selection_widgets.value == "Intersection":
+                        df = pd.DataFrame(
+                            occurences.eq(occurences.iloc[:, 0], axis=0).all(1),
+                            columns=["intersection"],
+                        )
+                        genes_list = df.loc[df.intersection == True].index
+                    else:
+                        df = pd.DataFrame(
+                            occurences.eq(occurences.iloc[:, 0], axis=0).any(1),
+                            columns=["union"],
+                        )
+                        genes_list = df.loc[df.union == True].index
+                    genes_list = regions2genes(token, genes_list)
+                    if data_types_widget.value == "mutations":
+                        columns = [
+                            "gene_name",
+                            "cell_line",
+                            "cell_line_name",
+                            "sample_collection_site",
+                            "primary_or_metastasis",
+                            "primary_disease",
+                            "subtype_disease",
+                        ]
+                        for value in variable:
+                            columns.append(value)
+                        essential_genes = table[table.gene_name.isin(genes_list)][
+                            columns
+                        ]
+                        essential_genes = essential_genes.loc[
+                            essential_genes.is_deleterious == True
+                        ]
+                        essential_genes = (
+                            essential_genes.groupby(
+                                [
+                                    "gene_name",
+                                    "cell_line",
+                                    "cell_line_name",
+                                    "sample_collection_site",
+                                    "primary_or_metastasis",
+                                    "primary_disease",
+                                    "subtype_disease",
+                                ]
+                            )["protein_change"]
+                            .apply(lambda x: "%s" % "|".join(map(str, x)))
+                            .reset_index()
+                        )
+                        chart = (
+                            alt.Chart(
+                                essential_genes, title="DepMap Deleterious Mutations"
+                            )
+                            .mark_rect()
+                            .encode(
+                                x=alt.X(
+                                    "cell_line_name", axis=alt.Axis(title="Cell line")
+                                ),
+                                y=alt.Y("gene_name", axis=alt.Axis(title="Gene name")),
+                                color=alt.Color(
+                                    "primary_disease",
+                                    scale=alt.Scale(scheme="tableau20"),
+                                    legend=alt.Legend(title="Primary disease"),
+                                ),
+                                tooltip=[
+                                    "protein_change",
+                                    "gene_name",
+                                    "cell_line",
+                                    "cell_line_name",
+                                    "sample_collection_site",
+                                    "primary_or_metastasis",
+                                    "primary_disease",
+                                    "subtype_disease",
+                                ],
+                            )
+                            .interactive()
+                        )
+                        show_parameters(params)
+                        display(chart)
+                    else:
+                        essential_genes = table[table.gene_name.isin(genes_list)][
+                            ["gene_name", "cell_line_name", variable]
+                        ]
+                        plot_interactive_heatmap(essential_genes, variable)
+
+                button = widgets.Button(description="Run!")
+                button.on_click(tissu_selection_button_clicked)
+                display(
+                    tissues_widget, primary_diseases_widget, cell_lines_widget, button
+                )
+
+            depmap_query_button = widgets.Button(description="Query!")
+            depmap_query_button.on_click(depmap_query_button_clicked)
+            display(data_types_widget, depmap_query_button)
 
     venn_button.on_click(venn_button_clicked)
     rra_button.on_click(rra_button_clicked)
@@ -4656,25 +4644,30 @@ def multiple_tools_results(tools_available, token):
     depmap_button.on_click(depmap_button_clicked)
 
     def ranking_button_clicked(event):
-        display(
-            HTML(
-                """<p style="color:white;font-weight: bold;background-color: #03fc3d;padding: 0.5em;">Save ranking and occurences</p>"""
+        if len(tools_widget.value) == 0:
+            display_warning("Please select at least one tool above.")
+        else:
+            display(
+                HTML(
+                    """<p style="color:white;font-weight: bold;background-color: #03fc3d;padding: 0.5em;">Save ranking and occurences</p>"""
+                )
             )
-        )
-        show_parameters(params)
-        treatment, control = conditions_widget.value.split("_vs_")
-        ranks, occurences = ranking(treatment, control, token, tools_available, params)
-        download_name = widgets.Text(value="analysis", description="Name:")
-        download_file(
-            content=ranks.to_string(),
-            filename="ranking.txt",
-            label="Download ranking!",
-        )
-        download_file(
-            content=occurences.to_string(),
-            filename="occurences.txt",
-            label="Download occurences!",
-        )
+            show_parameters(params)
+            treatment, control = conditions_widget.value.split("_vs_")
+            ranks, occurences = ranking(
+                treatment, control, token, tools_available, params, bagel_version
+            )
+            download_name = widgets.Text(value="analysis", description="Name:")
+            download_file(
+                content=ranks.to_string(),
+                filename="ranking.txt",
+                label="Download ranking!",
+            )
+            download_file(
+                content=occurences.to_string(),
+                filename="occurences.txt",
+                label="Download occurences!",
+            )
 
     ranking_button.on_click(ranking_button_clicked)
 
@@ -4774,7 +4767,7 @@ def condition_comparison(results_directory, tools_available, token):
         comparison_2_widget = widgets.Dropdown(
             options=comparisons_options,
             description="Comparison 2:",
-            value=comparisons_options[1],
+            value=comparisons_options[0],
             layout=widgets.Layout(width="30%"),
             style={"description_width": "100px"},
         )
@@ -4844,10 +4837,6 @@ def condition_comparison(results_directory, tools_available, token):
     plot_button = widgets.Button(description="Plot")
     display(plot_button)
 
-    # Create an output widget to display the results
-    # output = widgets.Output()
-    # display(output)
-
     # On button click, plot the data
     @plot_button.on_click
     def plot_button_clicked(b):
@@ -4873,52 +4862,110 @@ def condition_comparison(results_directory, tools_available, token):
             # Superposer les lignes sur le graphique
             chart = (
                 (
-                    alt.Chart(data)
-                    .transform_calculate(
-                        order="datum.color == 'Others' ? 0 : (datum.color == 'Selection' ? 2 : 1)"
-                    )
-                    .mark_circle()
-                    .encode(
-                        x=alt.X(column_1, scale=scale, title=column_1),
-                        y=alt.Y(column_2, scale=scale, title=column_2),
-                        tooltip=[elements_column, column_1, column_2],
-                        # Color the points in blue if they are selected
-                        color=alt.Color(
-                            "color:N",
-                            scale=alt.Scale(
-                                range=range_color,
-                                domain=domain_color,
+                    (
+                        alt.Chart(data)
+                        .transform_calculate(
+                            order="datum.color == 'Others' ? 0 : (datum.color == 'Selection' ? 2 : 1)"
+                        )
+                        .mark_circle()
+                        .encode(
+                            x=alt.X(
+                                column_1,
+                                scale=scale,
+                                title=column_1,
+                                axis=alt.Axis(
+                                    values=list(
+                                        np.arange(min_value, max_value + 0.5, 0.5)
+                                    )
+                                ),
                             ),
-                            sort="ascending",
-                            # Set the legend title
-                            legend=alt.Legend(title="Highlighted elements:"),
-                        ),
-                        order="order:O",
-                        # Set opacity to 1.0 for all points
-                        opacity=alt.value(1.0),
+                            y=alt.Y(
+                                column_2,
+                                scale=scale,
+                                title=column_2,
+                                axis=alt.Axis(
+                                    values=list(
+                                        np.arange(min_value, max_value + 0.5, 0.5)
+                                    )
+                                ),
+                            ),
+                            tooltip=[elements_column, column_1, column_2],
+                            # Color the points in blue if they are selected
+                            color=alt.Color(
+                                "color:N",
+                                scale=alt.Scale(
+                                    range=range_color,
+                                    domain=domain_color,
+                                ),
+                                sort="ascending",
+                                # Set the legend title
+                                legend=alt.Legend(title="Highlighted elements:"),
+                            ),
+                            order="order:O",
+                            # Set opacity to 1.0 for all points
+                            opacity=alt.value(1.0),
+                        )
+                        .interactive()
                     )
-                    .interactive()
+                    # Add diagonal line
+                    + alt.Chart(pd.DataFrame({"x": [min_value * 2, max_value * 2]}))
+                    .mark_line(color="#636363")
+                    .encode(x="x", y="x")
+                    # Add a vertical line to highlight the x = 0 line, in black
+                    + alt.Chart(pd.DataFrame({"x": [0, 0]}))
+                    .mark_rule(color="#636363")
+                    .encode(x="x")
+                    # Add a horizontal line to highlight the y = 0 line, in black
+                    + alt.Chart(pd.DataFrame({"y": [0, 0]}))
+                    .mark_rule(color="#636363")
+                    .encode(y="y")
+                    + alt.Chart(data.query("selected == True"))
+                    .mark_text(dy=10, dx=20, color=selected_genes_color)
+                    .encode(
+                        x=column_1,
+                        y=column_2,
+                        text=elements_column,
+                    )
                 )
-                # Add diagonal line
-                + alt.Chart(pd.DataFrame({"x": [min_value * 2, max_value * 2]}))
-                .mark_line(color="black")
-                .encode(x="x", y="x")
-                # Add a vertical line to highlight the x = 0 line, in black
-                + alt.Chart(pd.DataFrame({"x": [0, 0]}))
-                .mark_rule(color="black")
-                .encode(x="x")
-                # Add a horizontal line to highlight the y = 0 line, in black
-                + alt.Chart(pd.DataFrame({"y": [0, 0]}))
-                .mark_rule(color="black")
-                .encode(y="y")
-                + alt.Chart(data.query("selected == True"))
-                .mark_text(dy=10, dx=20, color=selected_genes_color)
-                .encode(
-                    x=column_1,
-                    y=column_2,
-                    text=elements_column,
-                )
+                .configure_axis(grid=False)
+                .configure_view(stroke=None)
+                .properties(width=500, height=500)
             )
+
+            if "abs" in parameters_widgets.children[1].children[1].value:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {
+                            "x": [
+                                parameters_widgets.children[1].children[2].value,
+                                -parameters_widgets.children[1].children[2].value,
+                            ]
+                        }
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(x="x")
+            else:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {"x": [parameters_widgets.children[1].children[2].value]}
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(x="x")
+            if "abs" in parameters_widgets.children[2].children[1].value:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {
+                            "y": [
+                                parameters_widgets.children[2].children[2].value,
+                                -parameters_widgets.children[2].children[2].value,
+                            ]
+                        }
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(y="y")
+            else:
+                chart = chart + alt.Chart(
+                    pd.DataFrame(
+                        {"y": [parameters_widgets.children[2].children[2].value]}
+                    )
+                ).mark_rule(color="grey", strokeDash=[3, 3]).encode(y="y")
 
             display(chart)
 
@@ -5093,6 +5140,8 @@ def condition_comparison(results_directory, tools_available, token):
             "Others": "grey",
         }
 
+        # display(combined_data)
+
         # Plot the data
         plot_comparison(combined_data, column_1, column_2, elements_column, color_dict)
 
@@ -5108,9 +5157,25 @@ def condition_comparison(results_directory, tools_available, token):
 
         display(enrichr_bases_widget)
 
-        # Retrieve genes from each 'color' category and create a text area for each category
-        for category in color_dict:
-            genes = combined_data[combined_data["color"] == category][elements_column]
+        label_to_column = {
+            label_1: "highlight_1",
+            label_2: "highlight_2",
+        }
+
+        # # Retrieve genes from each 'color' category and create a text area for each category
+        # for category in color_dict:
+        #     if category not in ["Selection", "Others"]:
+        #     genes = combined_data[combined_data["color"] == category][elements_column]
+
+        for category in [label_1, label_2, "Intersection"]:
+            if category == "Intersection":
+                genes = combined_data[
+                    (combined_data["highlight_1"]) & (combined_data["highlight_2"])
+                ][elements_column]
+            elif category in [label_1, label_2]:
+                genes = combined_data[combined_data[label_to_column[category]]][
+                    elements_column
+                ]
             textarea = widgets.Textarea(
                 value="\n".join(genes),
                 description=f"{category} genes:",
@@ -5130,9 +5195,14 @@ def condition_comparison(results_directory, tools_available, token):
             def enrichr_button_clicked(b):
                 """Run enrichr on the genes."""
                 category = b.description[15:]
-                genes = combined_data[combined_data["color"] == category][
-                    elements_column
-                ]
+                if category == "Intersection":
+                    genes = combined_data[
+                        (combined_data["highlight_1"]) & (combined_data["highlight_2"])
+                    ][elements_column]
+                elif category in [label_1, label_2]:
+                    genes = combined_data[combined_data[label_to_column[category]]][
+                        elements_column
+                    ]
                 if len(genes) == 0:
                     display_warning(f"No genes in the category {category}.")
                     # print(f"No genes in the category {category}.")

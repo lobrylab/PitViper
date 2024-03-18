@@ -97,8 +97,8 @@ def get_all_pairwise_comparisons():
 
 
 def bagel_bf_columns(wildcards):
-    """Return a list of column numbers for BAGEL2 output file. Use in bagel.smk"""
-    file = "results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL.foldchange".format(token=wildcards.token, treatment=wildcards.treatment, control=wildcards.control)
+    """Return a list of column numbers for BAGEL output file. Use in bagel.smk"""
+    file = "results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL.foldchange".format(token=wildcards.token, treatment=wildcards.treatment, control=wildcards.control)
     content = pd.read_csv(file, sep="\t")
     out = ",".join([ str(i + 1) for i in range(len(content.columns)-2)])
     return out
@@ -111,8 +111,9 @@ def generatedResults(wildcards):
     token = config['token']
     for comparaison in comparaisons:
         if (config['bagel_activate'] == 'True'):
-            results.append("results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
-            results.append("results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.pr".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+            results.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+            results.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.pr".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+            results.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL1_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if (config['mageck_mle_activate'] == 'True'):
             results.append("results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if (config['mageck_rra_activate'] == 'True'):
@@ -143,8 +144,8 @@ def get_pipeline_outputs(wildcards):
             wanted_outputs.append("results/{token}/SSREA/{treatment}_vs_{control}/{treatment}_vs_{control}_all-elements_SSREA.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
             wanted_outputs.append("results/{token}/DESeq2/{treatment}_vs_{control}/{treatment}_vs_{control}_DESeq2_table.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if (config['bagel_activate'] == 'True'):
-            wanted_outputs.append("results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
-            wanted_outputs.append("results/{token}/BAGEL2/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.pr".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+            wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.bf".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
+            wanted_outputs.append("results/{token}/BAGEL/{treatment}_vs_{control}/{treatment}_vs_{control}_BAGEL_output.pr".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if config['mageck_mle_activate'] == 'True':
             wanted_outputs.append("results/{token}/MAGeCK_MLE/{treatment}_vs_{control}/{treatment}_vs_{control}.gene_summary.txt".format(token = token, treatment = comparaison['treatment'], control = comparaison['control']))
         if config['mageck_rra_activate'] == 'True':
