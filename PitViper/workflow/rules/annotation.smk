@@ -8,9 +8,8 @@ rule awk_bed_formating:
 		f"logs/{config['token']}/awk_formating.log"
 	message:
 		"Formating annotation file {input} to {output}."
-	shell:
-  		"bash ./workflow/scripts/awk_formating.sh {input} {output}"
-
+	script:
+  		"../../workflow/scripts/bed_to_rose.py"
 
 rule ROSE_annotation:
 	"""This rule is used to annotate the regions with ROSE."""
