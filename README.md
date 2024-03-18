@@ -75,8 +75,10 @@ Available options:
 
 Once installation is complete, the PitViper GUI will automatically open in your default web browser, allowing you to start analyzing your functional screening data seamlessly.
 
-A screencast of complete PitViper installation on linux system (Ubuntu 22.04), starting with miniconda installation and followed by PitViper execution with the test dataset can be found **[here](https://youtu.be/jl1oEeAY9_A)**
+A screencast of complete PitViper installation on linux system (Ubuntu 22.04), starting with miniconda installation and followed by PitViper execution with the test dataset can be found **[here](https://youtu.be/jl1oEeAY9_A)**.
+
 A screencast of complete PitViper installation on macOSx64 (Venture 13.6.1) followed by PitViper execution with the test dataset can be found **[here](https://youtu.be/kBcmdl6sntA)**
+
 
 
 
