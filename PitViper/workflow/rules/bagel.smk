@@ -36,8 +36,8 @@ rule bagel_foldchange:
     shell:
         "python workflow/scripts/bagel/BAGEL.py fc \
             -i {input.count_table} \
-            -o {params} \
-            -c 1 > {log}"
+            -o {params.out_dir} \
+            -c {params.control_cols} > {log}"
 
 
 rule bagel_bf:
@@ -61,6 +61,7 @@ rule bagel_bf:
             -o {output.bf} \
             -e {params.essentials} \
             -n {params.nonessential} \
+            -s 123 \
             -c {params.columns} > {log}"
 
 rule bagel_pr:
