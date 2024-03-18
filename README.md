@@ -145,7 +145,9 @@ docker pull lobrylab/pitviper:v1.0
 
 #### Running container
 
-To start a PitViper container simply run:
+PitViper Docker image can be easily run with GUI using Docker Desktop application on Windows PC or macOS. A screencast demonstrating this on macOS amr64 (Sonoma 14.3) can be found **[here](https://youtu.be/Oi1j_Jl3PdY)**.
+
+To start a PitViper container using command line simply run:
 
 ```bash
 docker run -p 5000:5000 -p 8888:8888 -v [fastq/bam_files_path]:[fastq/bam_files_path] --name [name_the_container] [PitViper_image_name]
