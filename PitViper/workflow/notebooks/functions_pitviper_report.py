@@ -286,8 +286,8 @@ def import_results(token: str):
             "Li, W., Xu, H., Xiao, T. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biol 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
         )
     if content["bagel_activate"] == "True":
-        if bagel_version != 1 and bagel_version != 2:
-            raise ValueError("Invalid BAGEL version. Please use 1 or 2.")
+        # if bagel_version != 1 and bagel_version != 2:
+        #     raise ValueError("Invalid BAGEL version. Please use 1 or 2.")
         tools.append("BAGEL")
         print("\nPlease cite the following article if you use BAGEL:")
         print(
@@ -2657,6 +2657,8 @@ def tool_results_by_element(results_directory, tools_available, token):
             crisphiermix_logfc,
             crisphiermix_logfc_orientation,
             significant_label,
+            fdr_cutoff=fdr_cutoff,
+            fdr_column="locfdr",
         )
 
         # Add a new row to the dataframe to display the baseline
@@ -2732,6 +2734,8 @@ def tool_results_by_element(results_directory, tools_available, token):
             mageck_rra_lfc,
             mageck_rra_lfc_orientation,
             significant_label,
+            fdr_column="selected_fdr",
+            fdr_cutoff=fdr_cutoff,
         )
 
         new_row = {
@@ -2811,6 +2815,8 @@ def tool_results_by_element(results_directory, tools_available, token):
             mageck_mle_beta,
             mageck_mle_beta_orientation,
             significant_label,
+            fdr_cutoff=fdr_cutoff,
+            fdr_column="fdr",
         )
 
         # Add a new row to the dataframe to display the baseline
@@ -2866,7 +2872,13 @@ def tool_results_by_element(results_directory, tools_available, token):
 
         # Filter the data based on the NES threshold
         result = filter_by_threshold(
-            result, "NES", ssrea_nes, ssrea_nes_orientation, significant_label
+            result,
+            "NES",
+            ssrea_nes,
+            ssrea_nes_orientation,
+            significant_label,
+            fdr_cutoff=fdr_cutoff,
+            fdr_column="padj",
         )
 
         # Add a new row to the dataframe to display the baseline
@@ -4126,7 +4138,7 @@ def multiple_tools_results(tools_available, token):
 
             treatment, control = conditions_widget.value.split("_vs_")
             ranks, occurences = ranking(
-                treatment, control, token, tools_available, params, bagel_version
+                treatment, control, token, tools_available, params
             )
             display(
                 HTML(
@@ -4142,7 +4154,7 @@ def multiple_tools_results(tools_available, token):
         else:
             treatment, control = conditions_widget.value.split("_vs_")
             ranks, occurences = ranking(
-                treatment, control, token, tools_available, params, bagel_version
+                treatment, control, token, tools_available, params
             )
             if selection_widgets.value == "Intersection":
                 df = pd.DataFrame(
@@ -4214,7 +4226,7 @@ def multiple_tools_results(tools_available, token):
             )
             treatment, control = conditions_widget.value.split("_vs_")
             ranks, occurences = ranking(
-                treatment, control, token, tools_available, params, bagel_version
+                treatment, control, token, tools_available, params
             )
             if selection_widgets.value == "Intersection":
                 df = pd.DataFrame(
@@ -4327,7 +4339,7 @@ def multiple_tools_results(tools_available, token):
                 treatment, control = conditions_widget.value.split("_vs_")
                 # Get the ranking
                 ranks, occurences = ranking(
-                    treatment, control, token, tools_available, params, bagel_version
+                    treatment, control, token, tools_available, params
                 )
                 if download_depmap_file(data_types_widget.value, depmap_release):
                     # print("This step can take some time.")
@@ -4629,7 +4641,7 @@ def multiple_tools_results(tools_available, token):
             show_parameters(params)
             treatment, control = conditions_widget.value.split("_vs_")
             ranks, occurences = ranking(
-                treatment, control, token, tools_available, params, bagel_version
+                treatment, control, token, tools_available, params
             )
             download_name = widgets.Text(value="analysis", description="Name:")
             download_file(
