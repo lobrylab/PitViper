@@ -288,7 +288,7 @@ def import_results(token: str):
     if content["bagel_activate"] == "True":
         # if bagel_version != 1 and bagel_version != 2:
         #     raise ValueError("Invalid BAGEL version. Please use 1 or 2.")
-        tools.append("BAGEL")
+        tools.append("BAGEL2")
         print("\nPlease cite the following article if you use BAGEL:")
         print(
             "Li, W., Xu, H., Xiao, T. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biol 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
