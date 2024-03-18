@@ -27,6 +27,7 @@ from collections import defaultdict
 def mapEnhancerToGene(
     annotFile, enhancerFile, transcribedFile="", uniqueGenes=True, byRefseq=False
 ):
+
     """
     maps genes to enhancers. if uniqueGenes, reduces to gene name only. Otherwise, gives for each refseq
     """
@@ -59,7 +60,7 @@ def mapEnhancerToGene(
 
     # set up the output tables
     # first by enhancer
-    # print(enhancerTable)
+    print(enhancerTable)
     enhancerToGeneTable = [
         enhancerTable[5][0:6]
         + ["OVERLAP_GENES", "PROXIMAL_GENES", "CLOSEST_GENE"]
