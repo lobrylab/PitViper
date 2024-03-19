@@ -81,7 +81,8 @@ if (neg_controls_file != "") {
                                                      mu = mu,
                                                      BIMODAL = bimodal,
                                                      max_iter = 1000,
-                                                     tol = 1e-12)
+                                                     tol = 1e-12
+                                                     )
 }
 
 

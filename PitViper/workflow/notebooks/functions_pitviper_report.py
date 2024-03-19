@@ -286,8 +286,10 @@ def import_results(token: str):
             "Li, W., Xu, H., Xiao, T. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biol 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
         )
     if content["bagel_activate"] == "True":
+        # if bagel_version != 1 and bagel_version != 2:
+        #     raise ValueError("Invalid BAGEL version. Please use 1 or 2.")
         tools.append("BAGEL2")
-        print("\nPlease cite the following article if you use BAGEL2:")
+        print("\nPlease cite the following article if you use BAGEL:")
         print(
             "Li, W., Xu, H., Xiao, T. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biol 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
         )
@@ -2258,7 +2260,8 @@ def show_sgRNA_counts_lines(token):
 
 
 def regions2genes(token, se):
-    annotation_file = f"resources/{token}/annotation_ROSE_REGION_TO_Gene.txt"
+    annotation_file = f"resources/{token}/annotation_ROSE_REGION_TO_GENE.txt"
+    # print(os.path.exists(annotation_file), annotation_file)
     if os.path.exists(annotation_file):
         annotation_table = pd.read_table(
             annotation_file, sep="\t", skiprows=1, header=None
@@ -2268,7 +2271,6 @@ def regions2genes(token, se):
             "Chromosome",
             "Start",
             "End",
-            "none1",
             "OVERLAP_GeneS",
             "PROXIMAL_GeneS",
             "CLOSEST_Gene",
@@ -2655,6 +2657,8 @@ def tool_results_by_element(results_directory, tools_available, token):
             crisphiermix_logfc,
             crisphiermix_logfc_orientation,
             significant_label,
+            fdr_cutoff=fdr_cutoff,
+            fdr_column="locfdr",
         )
 
         # Add a new row to the dataframe to display the baseline
@@ -2730,6 +2734,8 @@ def tool_results_by_element(results_directory, tools_available, token):
             mageck_rra_lfc,
             mageck_rra_lfc_orientation,
             significant_label,
+            fdr_column="selected_fdr",
+            fdr_cutoff=fdr_cutoff,
         )
 
         new_row = {
@@ -2809,6 +2815,8 @@ def tool_results_by_element(results_directory, tools_available, token):
             mageck_mle_beta,
             mageck_mle_beta_orientation,
             significant_label,
+            fdr_cutoff=fdr_cutoff,
+            fdr_column="fdr",
         )
 
         # Add a new row to the dataframe to display the baseline
@@ -2864,7 +2872,13 @@ def tool_results_by_element(results_directory, tools_available, token):
 
         # Filter the data based on the NES threshold
         result = filter_by_threshold(
-            result, "NES", ssrea_nes, ssrea_nes_orientation, significant_label
+            result,
+            "NES",
+            ssrea_nes,
+            ssrea_nes_orientation,
+            significant_label,
+            fdr_cutoff=fdr_cutoff,
+            fdr_column="padj",
         )
 
         # Add a new row to the dataframe to display the baseline
@@ -4068,7 +4082,6 @@ def multiple_tools_results(tools_available, token):
             )
 
             show_parameters(params)
-            display(occurences.sum(axis=0))
             plot_venn(occurences)
             # If more than one tool is selected, display the upset plot
             if len(tools_widget.value) > 1:
@@ -5112,8 +5125,6 @@ def condition_comparison(results_directory, tools_available, token):
             # Others genes
             "Others": "grey",
         }
-
-        # display(combined_data)
 
         # Plot the data
         plot_comparison(combined_data, column_1, column_2, elements_column, color_dict)
