@@ -145,7 +145,7 @@ docker pull lobrylab/pitviper:v1.0
 
 #### Running container
 
-PitViper Docker image can be easily run with GUI using Docker Desktop application on Windows PC or macOS. A screencast demonstrating this on macOS amr64 (Sonoma 14.3) can be found **[here](https://youtu.be/Oi1j_Jl3PdY)**.
+PitViper Docker image can be easily run with GUI using Docker Desktop application on Windows PC or macOS. A screencast demonstrating this on macOS arm64 (Sonoma 14.3) can be found **[here](https://youtu.be/Oi1j_Jl3PdY)**.
 
 To start a PitViper container using command line simply run:
 
