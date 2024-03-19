@@ -4413,7 +4413,7 @@ def multiple_tools_results(tools_available, token):
                         print("Saving metadata...")
                         utils.write_table(
                             depmap_metadata,
-                            "resources/depmap/{depmap_release}_metadata.txt",
+                            f"resources/depmap/{depmap_release}_metadata.txt",
                             row_names=False,
                             quote=False,
                             sep="\t",
