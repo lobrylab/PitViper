@@ -327,77 +327,7 @@ def import_results(token: str):
                     tools_available[tool][comparison][file] = pd.read_csv(
                         os.path.join(results_directory, tool, comparison, file), sep=sep
                     )
-    add_columns(tools_available)
     return (results_directory, tools_available)
-
-
-def add_columns(tools_available: dict):
-    """Add columns to result dataframes in tools_available.
-
-    Args:
-        tools_available (dict): Dictionnary of PitViper results.
-    """
-    if "MAGeCK_MLE" in tools_available:
-        for condition in tools_available["MAGeCK_MLE"]:
-            treatment = condition.split("_vs_")[0]
-            for file_suffixe in ["%s.gene_summary.txt", "%s.sgrna_summary.txt"]:
-                table = tools_available["MAGeCK_MLE"][condition][
-                    file_suffixe % condition
-                ]
-                if (not "log10(invFDR)" in list(table.columns)) and (
-                    "%s|fdr" % treatment in list(table.columns)
-                ):
-                    array = table["%s|fdr" % treatment].values
-                    min_fdr = np.min(array[np.nonzero(array)])
-                    table["%s|fdr_nozero" % treatment] = table[
-                        "%s|fdr" % treatment
-                    ].replace(0, min_fdr)
-                    table["log10(invFDR)"] = -np.log10(
-                        table["%s|fdr_nozero" % treatment]
-                    )
-    if "MAGeCK_RRA" in tools_available:
-        for condition in tools_available["MAGeCK_RRA"]:
-            treatment = condition.split("_vs_")[0]
-            for file_suffixe in ["%s.gene_summary.txt", "%s.sgrna_summary.txt"]:
-                table = tools_available["MAGeCK_RRA"][condition][
-                    file_suffixe % condition
-                ]
-                for direction in ["neg", "pos"]:
-                    if not "%s|log10(invFDR)" % direction in list(table.columns) and (
-                        "%s|fdr" % direction in list(table.columns)
-                    ):
-                        array = table["%s|fdr" % direction].values
-                        min_fdr = np.min(array[np.nonzero(array)])
-                        table["%s|fdr_nozero" % direction] = table[
-                            "%s|fdr" % direction
-                        ].replace(0, min_fdr)
-                        table["%s|log10(invFDR)" % direction] = -np.log10(
-                            table["%s|fdr_nozero" % direction]
-                        )
-    if "SSREA" in tools_available:
-        for condition in tools_available["SSREA"]:
-            treatment = condition.split("_vs_")[0]
-            for file_suffixe in ["%s_all-elements_SSREA.txt"]:
-                table = tools_available["SSREA"][condition][file_suffixe % condition]
-                if (not "log10(invPadj)" in list(table.columns)) and (
-                    "padj" in list(table.columns)
-                ):
-                    array = table["padj"].values
-                    min_fdr = np.min(array[np.nonzero(array)])
-                    table["padj_nozero"] = table["padj"].replace(0, min_fdr)
-                    table["log10(invPadj)"] = -np.log10(table["padj_nozero"])
-    if "CRISPhieRmix" in tools_available:
-        for condition in tools_available["CRISPhieRmix"]:
-            treatment = condition.split("_vs_")[0]
-            for file_suffixe in ["%s.txt"]:
-                table = tools_available["CRISPhieRmix"][condition][
-                    file_suffixe % condition
-                ]
-                if not "log10(invFDR)" in list(table.columns):
-                    array = table["locfdr"].values
-                    min_fdr = np.min(array[np.nonzero(array)])
-                    table["padj_nozero"] = table["locfdr"].replace(0, min_fdr)
-                    table["log10(invPadj)"] = -np.log10(table["padj_nozero"])
 
 
 def show_mapping_qc(token: str):
