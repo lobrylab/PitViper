@@ -137,10 +137,10 @@ docker build -t [image_name] .
 
 #### Downloading image from dockerhub
 
-PitViper docker image can also be downloaded from dockerhub using:
+PitViper docker image can also be downloaded from **[dockerhub](https://hub.docker.com/r/lobrylab/pitviper)** using:
 
 ```bash
-docker pull lobrylab/pitviper:v1.0
+docker pull lobrylab/pitviper
 ```
 
 #### Running container
