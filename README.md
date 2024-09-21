@@ -319,3 +319,7 @@ python pitviper.py --configfile config.yaml --jobs 4
 # Run the pipeline and save the output notebook to notebook.html
 python pitviper.py --configfile config.yaml --notebook notebook.html
 ```
+
+
+### Citation
+Meslin PA, Kelly LM, Benbarche S, Lecourt S, Lin KH, Rutter JC, Bassil CF, Itzykson R, Wood KC, Puissant A, Lobry C. PitViper: a software for comparative meta-analysis and annotation of functional screening data. NAR Genom Bioinform. 2024 May 25;6(2):lqae059. doi: [10.1093/nargab/lqae059](https://doi.org/10.1093/nargab/lqae059). [PMID: 38800827](https://pubmed.ncbi.nlm.nih.gov/38800827/); [PMCID: PMC11127635](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11127635/).
