@@ -58,6 +58,49 @@ depmap = importr("depmap")
 experimentHub = importr("ExperimentHub")
 utils = importr("utils")
 
+# Automate the full cache clear AND engine hijack from python
+js_automated_fix = """
+<script>
+(function() {
+    function fullyPatchRequireJS() {
+        if (window.requirejs && window.requirejs.load) {
+            // 1. Clear out the broken definitions from browser memory
+            requirejs.undef('vega-embed');
+            requirejs.undef('vega-lite');
+            requirejs.undef('vega');
+
+            // 2. Prevent duplicate patching loops
+            if (window.requirejs.load.__patched) return; 
+            
+            // 3. Hijack the loader to route to the absolute direct build URLs
+            const originalLoad = window.requirejs.load;
+            window.requirejs.load = function(context, moduleName, url) {
+                if (moduleName === 'vega-embed') {
+                    url = 'https://cdn.jsdelivr.net/npm/vega-embed@6/build/vega-embed.min.js';
+                } else if (moduleName === 'vega-lite') {
+                    url = 'https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js';
+                } else if (moduleName === 'vega') {
+                    url = 'https://cdn.jsdelivr.net/npm/vega@5/build/vega.min.js';
+                }
+                return originalLoad.call(this, context, moduleName, url);
+            };
+            window.requirejs.load.__patched = true;
+            console.log("🚀 Permanent RequireJS Cache Reset & Hijack Activated!");
+        } else {
+            // Retry if Jupyter hasn't finished rendering the page frame yet
+            setTimeout(fullyPatchRequireJS, 50);
+        }
+    }
+    fullyPatchRequireJS();
+})();
+</script>
+"""
+display(HTML(js_automated_fix))
+
+# Ensure the renderer is pointing to default
+alt.renderers.enable('default')
+
+
 # Remove Altair max rows
 alt.data_transformers.disable_max_rows()
 
