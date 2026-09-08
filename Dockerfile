@@ -1,17 +1,24 @@
-# 1. Use Bullseye to completely bypass the host seccomp/GPG issue
 FROM debian:bullseye-slim
 
-# 2. Set your Miniconda paths
 ENV PATH="/root/miniconda3/bin:${PATH}"
 ARG PATH="/root/miniconda3/bin:${PATH}"
 
-# 3. Standard update and install will now work perfectly
 RUN apt-get -o Acquire::Check-Valid-Until=false update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
 
-# ... [Your other installation steps go here] ...
+RUN wget \
+    https://repo.anaconda.com/miniconda/Miniconda3-py38_23.3.1-0-Linux-x86_64.sh \
+    && mkdir /root/.conda \
+    && bash Miniconda3-py38_23.3.1-0-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-py38_23.3.1-0-Linux-x86_64.sh \
+    && conda init bash
 
-# 4. Use WORKDIR instead of 'cd' to clear the original CMD warning
+COPY . /PitViper
+
+RUN cd /PitViper && bash install_PitViper_env.sh --installer mamba
+
+EXPOSE 5000
+EXPOSE 8888
+
 WORKDIR /PitViper/PitViper
 
-# 5. The optimized exec form for stable container shutdowns
 CMD ["bash", "run_docker.sh"]
